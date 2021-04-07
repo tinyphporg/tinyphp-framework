@@ -1,0 +1,15 @@
+{
+    "name": "tinycn/tinyphp",
+    "description": "a framework for php",
+    "type" : "project",
+    "require" :{
+    	"php" : ">= 7.0.0"
+    },
+    "author" : {
+    	"name" : "tinycn",
+    	"email" : "tinycn@qq.com"
+    },
+    "autoload":{
+    "psr-4" : { "Tiny\\":"src/"}
+    }
+}
