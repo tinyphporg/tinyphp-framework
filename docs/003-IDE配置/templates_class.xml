@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><templates><template autoinsert="true" context="php" deleted="false" description="类注释" enabled="true" name="class">/**&#13;
+ *&#13;
+ *&#13;
+ * @package &#13;
+ * @since ${date}${time}&#13;
+ * @final ${date}${time}&#13;
+ */</template></templates>

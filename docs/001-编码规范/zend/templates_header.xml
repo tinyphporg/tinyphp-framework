@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><templates><template autoinsert="true" context="php" deleted="false" description="头部注释" enabled="true" name="header">/**&#13;
+ * @Copyright (C), 2018-&#13;
+ * @Name ${file}&#13;
+ * @Author  [作者名字]&#13;
+ * @Version Beta 1.0 &#13;
+ * @Date ${date}${time}&#13;
+ * @Desc &#13;
+ * @History  [作者名字] ${date} ${time} 0 第一次建立该文件             &#13;
+ */</template></templates>
