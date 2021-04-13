@@ -14,7 +14,6 @@
 /*zeroai根目录*/
 define('TINY_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
 
-
 /*加载库*/
 define('TINY_COMPOSER_FILE', TINY_ROOT_PATH . '/vendor/autoload.php');
 define('TINY_LIBRARY_FILE', TINY_ROOT_PATH . '/src/Tiny.php');
