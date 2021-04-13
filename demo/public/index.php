@@ -17,6 +17,7 @@ define('TINY_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
 /*加载库*/
 define('TINY_COMPOSER_FILE', TINY_ROOT_PATH . '/vendor/autoload.php');
 define('TINY_LIBRARY_FILE', TINY_ROOT_PATH . '/src/Tiny.php');
+
 include_once (is_file(TINY_COMPOSER_FILE) ? TINY_COMPOSER_FILE : TINY_LIBRARY_FILE);
 
 /*设置application主目录*/
