@@ -8,6 +8,7 @@ class Main extends Controller
     public function indexAction()
     {
         //配置使用
+        
         print_r($this->config['def.a.b.c']);
         return;
         print_r($this->MainUserInfoModel->main());

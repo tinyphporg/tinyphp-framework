@@ -61,7 +61,7 @@ class ConsoleRequest extends Base
      */
     public function getRouterString()
     {
-        return $this->uri;
+        return $this->_uri;
     }
 
     /**
@@ -73,7 +73,8 @@ class ConsoleRequest extends Base
      */
     public function setRouterParam(array $param)
     {
-        $this->_getOption()->merge($param);
+        
+        $this->param->merge($param);
     }
 
     /**

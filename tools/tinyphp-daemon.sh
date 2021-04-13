@@ -8,7 +8,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 BIN_FILE='/usr/bin/php'
 
 #服务名称
-SERVICE_DAEMON_ID='tinyd-demo'
+SERVICE_DAEMON_ID='tinyphp-daemon'
 
 #服务入口文件 绝对路径
 SERVICE_INDEX_FILE='/data/tiny/tinyphp/demo/public/index.php'

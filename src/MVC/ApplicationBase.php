@@ -850,6 +850,8 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         if (!method_exists($controller, $action))
         {
+            $cname = get_class($controller);
+            $aname = $action;
             throw new ApplicationException("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ");
         }
         $ret = call_user_func_array([

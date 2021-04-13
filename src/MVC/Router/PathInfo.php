@@ -71,7 +71,7 @@ class PathInfo implements IRouter
      */
     protected function _checkUrl($ext, $routerString)
     {
-        $pattern = "/^((\/[a-z]+)*)(\/([a-z]+))(\/|" . $ext . ")?$/i";
+        $pattern = "/^((\/?[a-z][a-z0-9]+)*)(\/([a-z][a-z0-9]+))(\/|" . $ext . ")?$/i";
         $index = strpos($routerString, "?");
         if ($index)
         {

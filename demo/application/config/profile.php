@@ -62,7 +62,7 @@ $profile['debug']['class'] = '\Tiny\MVC\Plugin\Debug';
  * 守护进程的基本设置
  */
 $profile['daemon']['enable'] = TRUE;
-$profile['daemon']['id'] = 'tinyd-demo';          /*默认的daemonid*/
+$profile['daemon']['id'] = 'tinyphp-daemon';          /*默认的daemonid*/
 $profile['daemon']['plugin'] = '\Tiny\MVC\Plugin\Daemon';
 $profile['daemon']['piddir'] = 'runtime/pid/'; /*守护进程pid目录*/
 $profile['daemon']['logdir'] = 'runtime/log/'; /*守护进程的日志目录*/

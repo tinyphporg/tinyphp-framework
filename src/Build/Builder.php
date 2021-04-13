@@ -61,12 +61,12 @@ class Builder
         /**
          * 解压附件
          *
-         * @var Ambiguous $attachmentPath
+         * @var string $attachmentPath
          */
-        $attachmentPath = ZEROAI_PHAR_FILE . '/attachments/';
+        $attachmentPath = TINY_PHAR_FILE . '/attachments/';
         if (file_exists($attachmentPath))
         {
-            self::_unpackage($attachmentPath, '', ZEROAI_PHAR_DIR);
+            self::_unpackage($attachmentPath, '', TINY_PHAR_DIR);
         }
     }
 
@@ -167,13 +167,13 @@ class Builder
 
         // runtime
         $this->_pharHandler->addEmptyDir('attachments/runtime');
-        $this->_properties['app']['runtime'] = 'ZEROAI_PHAR_DIR/runtime/';
+        $this->_properties['app']['runtime'] = 'TINY_PHAR_DIR/runtime/';
 
         // setting
         if ($attachments['setting'])
         {
             $this->_pharHandler->addEmptyDir('attachments/setting');
-            $this->_data['config_path'] = 'ZEROAI_PHAR_DIR/setting/';
+            $this->_data['config_path'] = 'TINY_PHAR_DIR/setting/';
         }
 
         // profile
@@ -181,7 +181,7 @@ class Builder
         {
             $this->_pharHandler->addEmptyDir('attachments/profile');
             // 添加的配置路径
-            $this->_data['profile_path'] = 'ZEROAI_PHAR_DIR/profile/';
+            $this->_data['profile_path'] = 'TINY_PHAR_DIR/profile/';
         }
 
         // 循环添加附件
@@ -221,7 +221,7 @@ class Builder
         $this->_properties['config']['cache']['enable'] = FALSE;
 
         $this->_properties['config']['path'] = [];
-        $this->_properties['config']['path'][] = 'ZEROAI_PHAR_FILE/application/.config.php';
+        $this->_properties['config']['path'][] = 'TINY_PHAR_FILE/application/.config.php';
         if ($this->_data['config_path'])
         {
             $this->_properties['config']['path'][] = $this->_data['config_path'];
@@ -254,7 +254,7 @@ class Builder
             {
                 $this->_pharHandler->addEmptyDir($name);
             }
-            $idata[$ns] = 'ZEROAI_PHAR_FILE' . '/' . $name . '/';
+            $idata[$ns] = 'TINY_PHAR_FILE' . '/' . $name . '/';
             printf("    %s => %s\n", $ns, $path);
         }
         $this->_properties['imports'] = $idata;
@@ -268,10 +268,10 @@ class Builder
     {
         $contents = "<?php\n return " . var_export($this->_properties, TRUE) . ";\n?>";
         $contents = strtr($contents, [
-            "'ZEROAI_PHAR_FILE/application" => "ZEROAI_PHAR_FILE . '/application",
-            "'ZEROAI_PHAR_DIR/runtime/'" => "ZEROAI_PHAR_DIR . '/runtime/'",
-            "'ZEROAI_PHAR_DIR/setting/'" => "ZEROAI_PHAR_DIR . '/setting/'",
-            "'ZEROAI_PHAR_DIR/profile/'" => "ZEROAI_PHAR_DIR . '/profile/'"
+            "'TINY_PHAR_FILE/application" => "TINY_PHAR_FILE . '/application",
+            "'TINY_PHAR_DIR/runtime/'" => "TINY_PHAR_DIR . '/runtime/'",
+            "'TINY_PHAR_DIR/setting/'" => "TINY_PHAR_DIR . '/setting/'",
+            "'TINY_PHAR_DIR/profile/'" => "TINY_PHAR_DIR . '/profile/'"
         ]);
         $this->_pharHandler->addFromString('application/.properties.php', $contents);
         printf("add properties:\n   application/.properties.php\n");
@@ -361,17 +361,17 @@ class Builder
         $profilestr = "APPLICATION_PATH . '.properties.php'";
         if ($this->_data['profile_path'])
         {
-            $profilestr = "[APPLICATION_PATH . '.properties.php',ZEROAI_PHAR_DIR . " . "'/profile/']";
+            $profilestr = "[APPLICATION_PATH . '.properties.php',TINY_PHAR_DIR . " . "'/profile/']";
         }
 
         //index.php
         $indexstring = <<<EOT
         <?php
-        define('ZEROAI_PHAR_FILE', dirname(__DIR__));
-        define('ZEROAI_HOME_DIR', '/root/.' . str_replace('.phar', '', basename(ZEROAI_PHAR_FILE)));
-        define('ZEROAI_PHAR_DIR', str_replace('phar://', '', dirname(dirname(__DIR__))));
+        define('TINY_PHAR_FILE', dirname(__DIR__));
+        define('TINY_HOME_DIR', '/root/.' . str_replace('.phar', '', basename(TINY_PHAR_FILE)));
+        define('TINY_PHAR_DIR', str_replace('phar://', '', dirname(dirname(__DIR__))));
         define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
-        require(ZEROAI_PHAR_FILE . '/tiny-framework/Tiny.php');
+        require(TINY_PHAR_FILE . '/tiny-framework/Tiny.php');
         \Tiny\Runtime\Runtime::getInstance();
         \Tiny\Build\Builder::init([]);
         \Tiny\Tiny::createApplication(APPLICATION_PATH, $profilestr)->run();
@@ -382,9 +382,9 @@ class Builder
         printf("add default stub file:\n    application/index.php\n");
         $this->_pharHandler->addFromString('application/index.php', $indexstring);
         $stub = $this->_pharHandler->createDefaultStub('application/index.php', 'application/index.php');
-        if ($this->_config['header_php_env'])
+        if ($_SERVER['_'])
         {
-            $stub = "#!" . $this->_config['php_env_path'] . "\n" . $stub;
+            $stub = "#!" . $_SERVER['_'] . "\n" . $stub;
         }
         $this->_pharHandler->setStub($stub);
     }
