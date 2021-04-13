@@ -1,8 +1,87 @@
   TinyPHP For Framework
 ====
+[简介](#简介)
 
-搭建运行环境
+[框架安装](#安装)
+
+[一键搭建lnmp运行环境](#一键搭建lnmp运行环境)
+
+[框架编码规范](#框架开发规范)
+
+[一、PHP编码规范](#一、PHP编码规范)
+	
+[SQL规范](#SQL规范)
+
+
+简介
 ====
+
+一款经过生产环境检验(日PV10亿级)的轻量级PHP框架。
+
+```shell
+#支持Web和Console两种模式，单文件入口，自动识别web和cli环境，创建web下/console的application。
+php index.php
+```
+
+支持Console环境下(主要适应于LINUX CENTOS 7)的Daemon守护进程模式。
+
+```shell
+   #实现了经典的Master-Worker模式。
+   php index.php -daemon=start -id=zeroaid
+   
+   #可扩展为TCP服务端程序，定时器，IO异步事件驱动等模式，能够365xx24稳定运行。
+   ```
+
+支持一键打包成单文件可执行程序。
+
+```shell
+   #编译
+   php index.php --build
+   
+   #运行生成的phar单文件程序
+   php tinyd.phar
+   ```
+
+框架安装
+===
+
+```shell
+git clone https://github.com/tinycn/tinyphp-bootstrap.git
+
+cd tinyphp-bootstrap
+
+#兼容composer安装zeroai-php库
+composer install zeroai-php@dev
+
+#直接git下载
+mkdir  lib/ && cd lib
+git clone https://github.com/zeroainet/zeroai-php.git
+
+#运行
+php index.php
+
+#编译
+php index.php --build
+
+#开启守护进程
+php index.php -d
+
+#具体配置文件
+vi application/config/profile.php
+
+```
+
+
+一键搭建lnmp运行环境
+====
+
+lnmp-utils
+====
+
+框架所在的生产环境 ,Linux(CentOS7X_64) +openresty(nginx)+Mysql+PHP+Redis一键安装包.
+
+项目地址: https://github.com/tinycn/lnmp-utils.git
+
 
 CentOS 7x.x86_64/生产环境
 ----
