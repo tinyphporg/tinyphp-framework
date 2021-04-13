@@ -1,8 +1,46 @@
   TinyPHP For Framework
 ====
 
+搭建运行环境
+====
 
-一、编码规范
+CentOS 7x.x86_64/生产环境
+----
+```shell
+git clone https://github.com/tinycn/lnmp-utils.git
+cd ./lnmp-utils
+./install.sh -m tinyphp-demo
+curl http://127.0.0.1
+ 
+```
+
+docker/开发环境
+----
+
+```shell
+
+#可自定义IDE工作目录
+workspace=/data/workspace/tinyphp-demo
+
+docker pull centos:7
+
+docker run -d -p 80:80 -p 10022:22 -v $workspace:/data/web/tinyphp-demo --name="tinyphp-demo" --hostname="tinyphp-demo" --restart=always centos:7 /sbin/init
+
+docker exec -it tinyphp-demo /bin/bash
+
+#login docker tinyphp-demo
+
+git clone https://github.com/tinycn/lnmp-utils.git
+cd ./lnmp-utils
+./install.sh -m tinyphp-demo
+curl http://127.0.0.1
+
+```
+
+框架开发规范
+====
+
+一、PHP编码规范
 ----
 
 >[第一章 文件结构](https://github.com/tinycn/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/001%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84.md)
