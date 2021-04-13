@@ -2,7 +2,7 @@
 namespace App\Controller\Console;
 
 
-class Main extends \ZeroAI\MVC\Controller\ConsoleController
+class Main extends \Tiny\MVC\Controller\ConsoleController
 {
     public function onstart()
     {

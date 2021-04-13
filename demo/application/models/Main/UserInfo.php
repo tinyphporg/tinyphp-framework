@@ -2,7 +2,7 @@
 
 namespace App\Model\Main;
 
-use ZeroAI\MVC\Model\Db;
+use Tiny\MVC\Model\Db;
 
 class UserInfo extends Db
 {

@@ -1,7 +1,7 @@
 <?php
 namespace App\Controller;
 
-use ZeroAI\MVC\Controller\Controller;
+use Tiny\MVC\Controller\Controller;
 
 class Main extends Controller
 {

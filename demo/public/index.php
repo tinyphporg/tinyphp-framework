@@ -11,16 +11,17 @@
  *          King 2020年6月5日16:04 stable 1.0.01 审定
  */
 
-/*tiny根目录*/
-define('ZEROAI_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
+/*zeroai根目录*/
+define('TINY_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
+
 
 /*加载库*/
-define('ZEROAI_COMPOSER_FILE', ZEROAI_ROOT_PATH . '/vendor/autoload.php');
-define('ZEROAI_LIBRARY_FILE', ZEROAI_ROOT_PATH . '/src/ZeroAI.php');
-include_once (is_file(ZEROAI_COMPOSER_FILE) ? ZEROAI_COMPOSER_FILE : ZEROAI_LIBRARY_FILE);
+define('TINY_COMPOSER_FILE', TINY_ROOT_PATH . '/vendor/autoload.php');
+define('TINY_LIBRARY_FILE', TINY_ROOT_PATH . '/src/Tiny.php');
+include_once (is_file(TINY_COMPOSER_FILE) ? TINY_COMPOSER_FILE : TINY_LIBRARY_FILE);
 
 /*设置application主目录*/
 define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
 
 /*application run 自动识别web/console模式*/
-\ZeroAI\ZeroAI::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')->run();
+\Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')->run();

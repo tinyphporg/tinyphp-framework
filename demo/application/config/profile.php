@@ -46,7 +46,7 @@ $profile['bootstrap']['class'] = '\App\Common\Bootstarp';
  */
 $profile['build']['enable'] = TRUE;  /*不开启时 忽略build打包行为*/
 $profile['build']['param_name'] = 'build'; /*--build参数 开启打包工作*/
-$profile['build']['plugin'] = '\ZeroAI\MVC\Plugin\Builder';
+$profile['build']['plugin'] = '\Tiny\MVC\Plugin\Builder';
 $profile['build']['path'] = 'build/builder'; /*打包配置文件夹*/
 $profile['build']['setting_path'] = 'build/setting';  /*打包器的设置文件夹，用来自定义application.config数据*/
 $profile['build']['profile_path'] = 'build/profile';  /*打包器的属性文件夹,用来自定义application.proerties数据*/
@@ -56,14 +56,14 @@ $profile['build']['profile_path'] = 'build/profile';  /*打包器的属性文件
  */
 $profile['debug']['enable'] = TRUE;
 $profile['debug']['param_name'] = 'debug';
-$profile['debug']['class'] = '\ZeroAI\MVC\Plugin\Debug';
+$profile['debug']['class'] = '\Tiny\MVC\Plugin\Debug';
 
 /**
  * 守护进程的基本设置
  */
 $profile['daemon']['enable'] = TRUE;
 $profile['daemon']['id'] = 'tinyd-demo';          /*默认的daemonid*/
-$profile['daemon']['plugin'] = '\ZeroAI\MVC\Plugin\Daemon';
+$profile['daemon']['plugin'] = '\Tiny\MVC\Plugin\Daemon';
 $profile['daemon']['piddir'] = 'runtime/pid/'; /*守护进程pid目录*/
 $profile['daemon']['logdir'] = 'runtime/log/'; /*守护进程的日志目录*/
 $profile['daemon']['tick'] = 2;                /*检测子进程退出后的tick数 避免异常时大量创建操作系统进程引发崩溃*/
@@ -173,8 +173,8 @@ $profile['session']['dataid'] = 'redis_session';
  * 过滤器配置
  */
 $profile['filter']['enabled'] = TRUE;
-$profile['filter']['web'] = '\ZeroAI\Filter\WebFilter';
-$profile['filter']['console'] = '\ZeroAI\Filter\ConsoleFilter';
+$profile['filter']['web'] = '\Tiny\Filter\WebFilter';
+$profile['filter']['console'] = '\Tiny\Filter\ConsoleFilter';
 $profile['filter']['filters'] = [];
 
 /**

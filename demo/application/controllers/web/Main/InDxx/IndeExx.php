@@ -1,7 +1,7 @@
 <?php
 namespace App\Controller\Main\InDxx;
 
-use ZeroAI\MVC\Controller\Controller;
+use Tiny\MVC\Controller\Controller;
 
 class IndeExx extends Controller
 {
