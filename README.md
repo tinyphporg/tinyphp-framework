@@ -40,3 +40,4 @@
 
 三、框架使用手册
 ----
+>[第一章 框架入门](https://github.com/tinycn/tinyphp/blob/master/manual/001框架入门.md)
