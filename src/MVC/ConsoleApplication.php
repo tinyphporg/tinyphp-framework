@@ -38,6 +38,9 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
     public function onWorkerDispatch($action, $args, $isEvent = FALSE)
     {
         $cname = $args['controller'];
+        print_r($args);
+        echo 'cname' . $cname;
+        die;
         return $this->dispatch($cname, $action, $args, $isEvent);
     }
 

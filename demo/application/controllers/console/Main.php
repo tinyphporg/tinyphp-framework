@@ -14,8 +14,9 @@ class Main extends \Tiny\MVC\Controller\ConsoleController
         echo "\nonstop\n";
     }
 
-    public function indexAction()
+    public function indexAction(...$args)
     {
+        print_r($args);
         echo $this->config['status.index'];
         echo "aaaa";
         return;

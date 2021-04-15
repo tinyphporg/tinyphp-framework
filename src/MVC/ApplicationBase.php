@@ -842,6 +842,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             array_push($args, $this->request, $this->response);
         }
+
         //执行前返回FALSE则不执行派发动作
         $ret = call_user_func_array([$this, 'onBeginExecute'], $args);
         if (FALSE === $ret)

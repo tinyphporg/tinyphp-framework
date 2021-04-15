@@ -81,6 +81,10 @@ class Worker extends Base
         }
         for ($i = $this->_runmax; $i > 0; $i--)
         {
+            if (!$this->daemonIsRunning())
+            {
+                break;
+            }
             $this->__call($this->_action, $this->_args);
             usleep($this->_tick * 1000);
         }
