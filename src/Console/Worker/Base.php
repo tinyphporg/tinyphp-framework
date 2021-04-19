@@ -81,17 +81,6 @@ abstract class Base
     protected $_handler;
 
     /**
-     * 守护进程的PID
-     * @var int
-     */
-    protected $_daemonPid;
-    
-    /**
-     * 守护进程的PID文件
-     * @var string
-     */
-    protected $_daemonPidFile;
-    /**
      * 策略数组
      *
      * @var array
@@ -302,7 +291,7 @@ abstract class Base
             return FALSE;
         }
         
-        if (!$options['pid_file'])
+        if (!$options['daemon_pid_file'])
         {
             return FALSE;
         }
@@ -311,14 +300,10 @@ abstract class Base
         $this->_daemonPid = $options['daemon_pid'];
         $this->_daemonPidFile = $options['daemon_pid_file'];
 
-        //$this->_daemonPid = $options['daemon_pid'];
-        $this->_daemonPidFile = $options['daemon_pid_file'];
         
         // hanlder onworkerevent args
         if (is_array($options['args']))
         {
-            print_r($options['args']);
-            die;
             $this->_args = array_merge($this->_args, $options['args']);
         }
 
