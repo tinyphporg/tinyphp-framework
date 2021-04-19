@@ -53,6 +53,18 @@ abstract class Base
      * @var integer
      */
     protected $_id;
+    
+    /**
+     * daemon pid
+     * @var int
+     */
+    protected $_daemonPid;
+    
+    /**
+     * Daemon pid file
+     * @var string
+     */
+    protected $_daemonPidFile;
 
     /**
      * 默认开启的工作进程
@@ -113,7 +125,7 @@ abstract class Base
         $ret = $this->_formatOptions($options);
         if(!$ret)
         {
-            throw new WorkerException('Worker Excetion: options is format faild!');
+            throw new WorkerException(sprintf('Worker Excetion: options：%s is format faild!', var_export($options, TRUE)));
         }
 
     }
@@ -189,7 +201,15 @@ abstract class Base
     {
         return $this->onstop();
     }
-
+    
+    /**
+     * 判断主进程是否仍在正常运行
+     */
+    public function  daemonIsRunning()
+    {
+        return file_exists($this->_pidfile);
+    }
+    
     /**
      * 调用handler的函数
      *
@@ -277,12 +297,19 @@ abstract class Base
     protected function _formatOptions(array $options)
     {
         $options = array_merge($this->_options, $options);
-        print_r($options['id']);
         if (!$options['id'])
         {
             return FALSE;
         }
+        
+        if (!$options['pid_file'])
+        {
+            return FALSE;
+        }
+        
         $this->_id = $options['id'];
+        $this->_daemonPid = $options['daemon_pid'];
+        $this->_daemonPidFile = $options['daemon_pid_file'];
 
         //$this->_daemonPid = $options['daemon_pid'];
         $this->_daemonPidFile = $options['daemon_pid_file'];
@@ -290,6 +317,8 @@ abstract class Base
         // hanlder onworkerevent args
         if (is_array($options['args']))
         {
+            print_r($options['args']);
+            die;
             $this->_args = array_merge($this->_args, $options['args']);
         }
 
@@ -316,8 +345,12 @@ abstract class Base
         {
             $this->_gid = (int)$this->_options['gid'];
         }
+<<<<<<< HEAD
         $this->_controller = $this->_args['controller'] ?: 'main';
         $this->_action = $this->_args['action'] ?: 'index';
+=======
+        
+>>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
         return TRUE;
     }
 }

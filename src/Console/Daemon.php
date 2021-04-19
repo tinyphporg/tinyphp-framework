@@ -229,6 +229,7 @@ class Daemon
         {
             return;
         }
+        
         $this->_workers[$workerId] = [
             'id' => $workerId,
             'instance' => $worker,
@@ -259,8 +260,12 @@ class Daemon
             $worker['args'] = $args;
             $worker['num'] = (int)$worker['num'] ?: 0;
             $worker['handler'] = $handler;
+<<<<<<< HEAD
             //$worker['daemon_pid'] = posix_getpid();
             $worker['daemon_pid_file'] = $this->_pidFile;
+=======
+            $worker['pid_file'] = $this->_pidFile;
+>>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
             $workerInstance = new $className($worker);
             $this->addWorker($workerInstance);
         }
@@ -380,8 +385,13 @@ class Daemon
     {
         if ($this->_isRunning())
         {
+<<<<<<< HEAD
             echo sprintf("\npid file [%s] already exists, is it already running?\n", $this->_pidFile);
             exit(0);
+=======
+            $errMsg = sprintf("\npid file [%s] already exists, is it already running?\n", $this->_pidFile);
+            die($errMsg);
+>>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
         }
 
         // 进入后台守护模式
@@ -900,7 +910,7 @@ class Daemon
      */
     protected function _outlog($id, $msg, $priority = 6)
     {
-        if ($this->_debug)
+        if (true || $this->_debug)
         {
             echo $msg;
         }

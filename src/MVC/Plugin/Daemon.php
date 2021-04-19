@@ -15,6 +15,7 @@
 namespace Tiny\MVC\Plugin;
 use Tiny\Config\Configuration;
 use Tiny\MVC\ApplicationBase;
+use Tiny\MVC\ApplicationException;
 /**
  *
  *
@@ -92,12 +93,12 @@ class Daemon implements Iplugin
         $id = $this->_app->request->param['id'] ?: $config['id'];
         if (!$id)
         {
-            return;
+            throw new ApplicationException('daemon init failed!: option --id is null or not set', E_ERROR);
         }
         
         if (!isset($config['policys'][$id]))
         {
-            return;
+            throw new ApplicationException('daemon init failed!:  option --id:%s in policys is null', E_ERROR);
         }
         echo "111111";
         $policy = $config['policys'][$id];

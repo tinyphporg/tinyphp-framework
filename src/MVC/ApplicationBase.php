@@ -850,7 +850,11 @@ abstract class ApplicationBase implements IExceptionHandler
             }
             return FALSE;
         }
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
         //执行前返回FALSE则不执行派发动作
         $ret = call_user_func_array([$this, 'onBeginExecute'], $args);
         if (FALSE === $ret)
