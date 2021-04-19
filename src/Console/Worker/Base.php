@@ -345,12 +345,8 @@ abstract class Base
         {
             $this->_gid = (int)$this->_options['gid'];
         }
-<<<<<<< HEAD
         $this->_controller = $this->_args['controller'] ?: 'main';
         $this->_action = $this->_args['action'] ?: 'index';
-=======
-        
->>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
         return TRUE;
     }
 }

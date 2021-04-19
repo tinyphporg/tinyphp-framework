@@ -77,12 +77,8 @@ $profile['daemon']['tick'] = 2;                /*检测子进程退出后的tick
 $profile['daemon']['policys'] = [
     'tinyphp-daemon' => [
         'workers' => [      //worker子进程配置
-<<<<<<< HEAD
             ['id' => 'index', 'type' => 'worker' , 'args' => ['controller' => 'main', 'action' => 'index'], 'num' => 3, 'options' => ['runmax' => 1024, 'interval' => '0.1']],
             ['id' => 'test', 'type' => 'worker' , 'args' => ['controller' => 'main', 'action' => 'test'], 'num' => 3, 'options' => ['runmax' => 1024, 'interval' => '0.1']]
-=======
-            ['id' => 'index', 'type' => 'worker' , '' => ['controller' => 'main', 'action' => 'index'], 'num' => 3, 'options' => ['runmax' => 1024, 'interval' => '0.1']]
->>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
         ],
         'options' => [],
     ],

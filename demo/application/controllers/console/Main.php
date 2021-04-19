@@ -14,16 +14,11 @@ class Main extends \Tiny\MVC\Controller\ConsoleController
         echo "\nonstop\n";
     }
 
-<<<<<<< HEAD
     public function testAction()
     {
         echo "bbbbbbbbbb";
     }
     public function indexAction()
- 
-=======
-    public function indexAction(...$args)
->>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
     {
         print_r($args);
         echo $this->config['status.index'];

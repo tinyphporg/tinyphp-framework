@@ -37,15 +37,7 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
      */
     public function onWorkerDispatch($controller, $action, $args, $isEvent = FALSE)
     {
-<<<<<<< HEAD
         return $this->dispatch($controller, $action, $args, $isEvent);
-=======
-        $cname = $args['controller'];
-        print_r($args);
-        echo 'cname' . $cname;
-        die;
-        return $this->dispatch($cname, $action, $args, $isEvent);
->>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
     }
 
     /**

@@ -72,20 +72,12 @@ class Worker extends Base
         }
         for ($i = $this->_runmax; $i > 0; $i--)
         {
-<<<<<<< HEAD
             if(!$this->_daemonIsRunning())
             {
                 
                 break;
             }
             $this->__call($this->_action, [$this->_controller, $this->_args]);
-=======
-            if (!$this->daemonIsRunning())
-            {
-                break;
-            }
-            $this->__call($this->_action, $this->_args);
->>>>>>> branch 'master' of https://github.com/tinycn/tinyphp.git
             usleep($this->_tick * 1000);
         }
     }
