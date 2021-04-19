@@ -26,14 +26,6 @@ namespace Tiny\Console\Worker;
  */
 class Worker extends Base
 {
-
-    /**
-     * 执行worker委托的回调函数
-     *
-     * @var callable
-     */
-    protected $_action;
-
     /**
      * 最大执行次数
      *
@@ -64,7 +56,6 @@ class Worker extends Base
         {
             $this->_tick = intval($options['tick'] * 1000);
         }
-        $this->_action = $this->_args['action'] ?: 'index';
     }
 
     /**
@@ -81,7 +72,12 @@ class Worker extends Base
         }
         for ($i = $this->_runmax; $i > 0; $i--)
         {
-            $this->__call($this->_action, $this->_args);
+            if(!$this->_daemonIsRunning())
+            {
+                
+                break;
+            }
+            $this->__call($this->_action, [$this->_controller, $this->_args]);
             usleep($this->_tick * 1000);
         }
     }

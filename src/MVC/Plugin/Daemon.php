@@ -87,19 +87,19 @@ class Daemon implements Iplugin
         {
             return;
         }
-
+        
         $config['debug'] = $this->_app->isDebug;
         $id = $this->_app->request->param['id'] ?: $config['id'];
         if (!$id)
         {
             return;
         }
-
+        
         if (!isset($config['policys'][$id]))
         {
             return;
         }
-
+        echo "111111";
         $policy = $config['policys'][$id];
         $policy['id'] = $id;
         if (!$policy || !is_array($policy))
@@ -121,6 +121,7 @@ class Daemon implements Iplugin
         $daemonInstance = new \Tiny\Console\Daemon($id, $options);
         $daemonInstance->addWorkerByConfig($workers, $this->_app);
         $daemonInstance->setDaemonHandler($this->_app);
+        
         $daemonInstance->run();
         $this->_app->response->end();
 

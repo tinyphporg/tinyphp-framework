@@ -28,6 +28,6 @@ interface IWorkerHandler
      * @param string $action 事件名
      * @param array $args 参数数组
      */
-    public function onWorkerDispatch($action, $args, $isEvent = TRUE);
+    public function onWorkerDispatch($controller, $action, $args, $isEvent = TRUE);
 }
 ?>

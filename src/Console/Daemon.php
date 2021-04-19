@@ -259,6 +259,8 @@ class Daemon
             $worker['args'] = $args;
             $worker['num'] = (int)$worker['num'] ?: 0;
             $worker['handler'] = $handler;
+            //$worker['daemon_pid'] = posix_getpid();
+            $worker['daemon_pid_file'] = $this->_pidFile;
             $workerInstance = new $className($worker);
             $this->addWorker($workerInstance);
         }
@@ -378,8 +380,8 @@ class Daemon
     {
         if ($this->_isRunning())
         {
-            $errMsg = sprintf('pid file [%s] already exists, is it already running?\n', $this->_pidFile);
-            return $this->_exit(1, $errMsg);
+            echo sprintf("\npid file [%s] already exists, is it already running?\n", $this->_pidFile);
+            exit(0);
         }
 
         // 进入后台守护模式
@@ -760,7 +762,7 @@ class Daemon
      */
     protected function _getPidFromPidFile()
     {
-        if (!is_file($this->_pidFile))
+        if (!file_exists($this->_pidFile))
         {
             return FALSE;
         }

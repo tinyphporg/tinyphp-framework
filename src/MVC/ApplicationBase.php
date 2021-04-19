@@ -837,11 +837,20 @@ abstract class ApplicationBase implements IExceptionHandler
 
         //获取执行动作名称
         $action = $this->getAction($aname, $isEvent);
-
-        if ($args)
+        
+        //触发事件
+        if ($isEvent)
         {
-            array_push($args, $this->request, $this->response);
+            if (method_exists($controller, $action))
+            {
+                return call_user_func_array([
+                    $controller,
+                    $action
+                ], $args);
+            }
+            return FALSE;
         }
+        
         //执行前返回FALSE则不执行派发动作
         $ret = call_user_func_array([$this, 'onBeginExecute'], $args);
         if (FALSE === $ret)

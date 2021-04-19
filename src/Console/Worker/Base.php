@@ -69,6 +69,17 @@ abstract class Base
     protected $_handler;
 
     /**
+     * 守护进程的PID
+     * @var int
+     */
+    protected $_daemonPid;
+    
+    /**
+     * 守护进程的PID文件
+     * @var string
+     */
+    protected $_daemonPidFile;
+    /**
      * 策略数组
      *
      * @var array
@@ -82,6 +93,19 @@ abstract class Base
     protected $_args = [];
 
     /**
+     * 执行worker委托的控制器名称
+     * @var string
+     */
+    protected $_controller;
+    
+    /**
+     * 执行worker委托的回调函数
+     *
+     * @var callable
+     */
+    protected $_action;
+    
+    /**
      * 构造函数
      */
     public function __construct(array $options = [])
@@ -91,6 +115,7 @@ abstract class Base
         {
             throw new WorkerException('Worker Excetion: options is format faild!');
         }
+
     }
 
     /**
@@ -178,14 +203,15 @@ abstract class Base
         {
             return NULL;
         }
-
+        
         $isEvent = FALSE;
         if (substr($method, 0, 2) == 'on')
         {
             $isEvent = TRUE;
         }
         // 参数
-        $args[] = $this->_args;
+        $controller = $this->_controller;
+        $args = is_array($args) ? $args : [];
 
         // callback
         $callback = [
@@ -195,6 +221,7 @@ abstract class Base
 
         // param array
         $params = [
+            $controller,
             $method,
             $args,
             $isEvent
@@ -205,6 +232,37 @@ abstract class Base
         return $ret;
     }
 
+    /**
+     * 守护进程是否正常运行
+     * 
+     * @return boolean|boolean|void
+     */
+    protected function _daemonIsRunning()
+    {
+        $pid = $this->_getPidFromPidFile();
+        if (!$pid)
+        {
+            return FALSE;
+        }
+        $pidIsExists = file_exists('/proc/' . $pid);
+        return $pidIsExists ? $pid : FALSE;
+    }
+    
+    /**
+     * 通过输入参数初始化守护进程
+     *
+     * @return void
+     */
+    protected function _getPidFromPidFile()
+    {
+        if (!file_exists($this->_daemonPidFile))
+        {
+            return FALSE;
+        }
+        $pid = (int)file_get_contents($this->_daemonPidFile);
+        return $pid;
+    }
+    
     /**
      * worker正式运行
      */
@@ -226,6 +284,9 @@ abstract class Base
         }
         $this->_id = $options['id'];
 
+        //$this->_daemonPid = $options['daemon_pid'];
+        $this->_daemonPidFile = $options['daemon_pid_file'];
+        
         // hanlder onworkerevent args
         if (is_array($options['args']))
         {
@@ -255,7 +316,8 @@ abstract class Base
         {
             $this->_gid = (int)$this->_options['gid'];
         }
-
+        $this->_controller = $this->_args['controller'] ?: 'main';
+        $this->_action = $this->_args['action'] ?: 'index';
         return TRUE;
     }
 }
