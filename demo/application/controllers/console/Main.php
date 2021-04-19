@@ -49,9 +49,10 @@ class Main extends \Tiny\MVC\Controller\ConsoleController
 
 
         //
+        
         return;
         //request使用
-        $user = new \ZP\User();
+ 
         print_r($user->main());
 
         //get post 只读 files基本不在PHP做处理，后续再加上
