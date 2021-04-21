@@ -154,9 +154,6 @@ abstract class Base
     {
         $this->_daemonPid = $daemonPid;
         $this->_daemonPidFile = $daemonPidFile;
-        // process uid
-        //$this->_uid = (int)pos;
-         //   $this->_gid = (int)$this->_options['gid'];
     }
     
     /**
