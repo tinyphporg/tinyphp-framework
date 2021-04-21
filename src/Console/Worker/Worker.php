@@ -45,17 +45,10 @@ class Worker extends Base
      *
      * @param array $options
      */
-    public function __construct(array $options = [])
+    public function __construct(array $config = [])
     {
-        parent::__construct($options);
-        if (isset($options['runmax']) && intval($options['runmax']) > 0)
-        {
-            $this->_runmax = (int)$options['runmax'];
-        }
-        if (isset($options['tick']) && floatval($options['tick']) > 0)
-        {
-            $this->_tick = intval($options['tick'] * 1000);
-        }
+        parent::__construct($config);
+        $this->_formatWorkerOptions($this->_options);
     }
 
     /**
@@ -74,11 +67,26 @@ class Worker extends Base
         {
             if(!$this->_daemonIsRunning())
             {
-                
                 break;
             }
             $this->__call($this->_action, [$this->_controller, $this->_args]);
             usleep($this->_tick * 1000);
+        }
+    }
+    
+    /**
+     * 格式化worker的options
+     * @param array $options
+     */
+    protected function _formatWorkerOptions(array $options)
+    {
+        if (isset($options['runmax']) && intval($options['runmax']) > 0)
+        {
+            $this->_runmax = (int)$options['runmax'];
+        }
+        if (isset($options['tick']) && floatval($options['tick']) > 0)
+        {
+            $this->_tick = intval($options['tick'] * 1000);
         }
     }
 }

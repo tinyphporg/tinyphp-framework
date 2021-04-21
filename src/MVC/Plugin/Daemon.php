@@ -100,7 +100,7 @@ class Daemon implements Iplugin
         {
             throw new ApplicationException('daemon init failed!:  option --id:%s in policys is null', E_ERROR);
         }
-        echo "111111";
+
         $policy = $config['policys'][$id];
         $policy['id'] = $id;
         if (!$policy || !is_array($policy))

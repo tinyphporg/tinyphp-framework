@@ -34,20 +34,6 @@ abstract class Base
     protected $_pid = 0;
 
     /**
-     * 系统用户ID
-     *
-     * @var integer
-     */
-    protected $_uid = FALSE;
-
-    /**
-     * 系统用户组ID
-     *
-     * @var integer
-     */
-    protected $_gid = FALSE;
-
-    /**
      * workerID
      *
      * @var integer
@@ -109,14 +95,14 @@ abstract class Base
     /**
      * 构造函数
      */
-    public function __construct(array $options = [])
+    public function __construct(array $config = [])
     {
-        $ret = $this->_formatOptions($options);
+        $this->_pid = posix_getpid();
+        $ret = $this->_formatConfig($config);
         if(!$ret)
         {
-            throw new WorkerException(sprintf('Worker Excetion: options：%s is format faild!', var_export($options, TRUE)));
+            throw new WorkerException(sprintf('Worker Excetion: options：%s is format faild!', var_export($config, TRUE)));
         }
-
     }
 
     /**
@@ -159,6 +145,20 @@ abstract class Base
         return $this->_handler;
     }
 
+    /**
+     * 设置守护进程的选型
+     * @param int $daemonPid
+     * @param string $daemonPidFile
+     */
+    public function setDaemonOptions($daemonPid, $daemonPidFile)
+    {
+        $this->_daemonPid = $daemonPid;
+        $this->_daemonPidFile = $daemonPidFile;
+        // process uid
+        //$this->_uid = (int)pos;
+         //   $this->_gid = (int)$this->_options['gid'];
+    }
+    
     /**
      * 初始化 在成为子进程之前
      *
@@ -248,28 +248,17 @@ abstract class Base
      */
     protected function _daemonIsRunning()
     {
-        $pid = $this->_getPidFromPidFile();
-        if (!$pid)
-        {
-            return FALSE;
-        }
-        $pidIsExists = file_exists('/proc/' . $pid);
-        return $pidIsExists ? $pid : FALSE;
-    }
-    
-    /**
-     * 通过输入参数初始化守护进程
-     *
-     * @return void
-     */
-    protected function _getPidFromPidFile()
-    {
         if (!file_exists($this->_daemonPidFile))
         {
             return FALSE;
         }
         $pid = (int)file_get_contents($this->_daemonPidFile);
-        return $pid;
+        if ($pid != $this->_daemonPid)
+        {
+            return FALSE;
+        }
+        $pidIsExists = file_exists('/proc/' . $pid);
+        return $pidIsExists;
     }
     
     /**
@@ -283,52 +272,36 @@ abstract class Base
      * @param array $options
      * @throws WorkerException
      */
-    protected function _formatOptions(array $options)
+    protected function _formatConfig(array $config)
     {
-        $options = array_merge($this->_options, $options);
-        if (!$options['id'])
+        if (!$config['id'])
         {
             return FALSE;
         }
-        
-        if (!$options['daemon_pid_file'])
-        {
-            return FALSE;
-        }
-        
-        $this->_id = $options['id'];
-        $this->_daemonPid = $options['daemon_pid'];
-        $this->_daemonPidFile = $options['daemon_pid_file'];
+        $this->_id = $config['id'];
 
-        
         // hanlder onworkerevent args
-        if (is_array($options['args']))
+        if (is_array($config['args']))
         {
-            $this->_args = array_merge($this->_args, $options['args']);
+            $this->_args = array_merge($this->_args, $config['args']);
         }
 
-        // handler
-        if ($options['handler'] && $options['handler'] instanceof IWorkerHandler)
+        //附带选型
+        if (is_array($config['options']))
         {
-            $this->_handler = $options['handler'];
+            $this->_options = array_merge($this->_options, $config['options']);
+        }
+        
+        // handler
+        if ($config['handler'] && $config['handler'] instanceof IWorkerHandler)
+        {
+            $this->_handler = $config['handler'];
         }
 
         // worker num
-        if (isset($options['num']) && $options['num'] > 0)
+        if (isset($config['num']) && $config['num'] > 0)
         {
-            $this->_num = (int)$options['num'];
-        }
-
-        // process uid
-        if (isset($this->_options['uid']))
-        {
-            $this->_uid = (int)$this->_options['uid'];
-        }
-
-        // process gid
-        if (isset($this->_options['gid']))
-        {
-            $this->_gid = (int)$this->_options['gid'];
+            $this->_num = (int)$config['num'];
         }
         $this->_controller = $this->_args['controller'] ?: 'main';
         $this->_action = $this->_args['action'] ?: 'index';

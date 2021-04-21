@@ -69,7 +69,7 @@ class Daemon
      *
      * @var string
      */
-    protected $_id = 'tinyd';
+    protected $_id = 'tinyphp-daemon';
 
     /**
      * 守护进程的配置选项
@@ -89,7 +89,7 @@ class Daemon
      *
      * @var bool
      */
-    protected $_isMaster = TRUE;
+    protected $_isDaemon = TRUE;
 
     /**
      * 进程ID
@@ -260,9 +260,6 @@ class Daemon
             $worker['args'] = $args;
             $worker['num'] = (int)$worker['num'] ?: 0;
             $worker['handler'] = $handler;
-            
-            //$worker['daemon_pid'] = posix_getpid();
-            $worker['daemon_pid_file'] = $this->_pidFile;
             $workerInstance = new $className($worker);
             $this->addWorker($workerInstance);
         }
@@ -465,6 +462,7 @@ class Daemon
     {
         foreach ($this->_workers as $worker)
         {
+            $worker['instance']->setDaemonOptions($this->_pid, $this->_pidFile);
             $worker['instance']->init();
         }
     }
@@ -677,9 +675,8 @@ class Daemon
     protected function _dispathByWorker($worker)
     {
         // worker
-        $this->_isMaster = FALSE;
-        // pid
-        $this->_pid = posix_getpid();
+        $this->_isDaemon = FALSE;
+        
         // rename process name for ps -ef
         $this->_setProcessTitle($this->_processTitle . ' process worker ' . $worker['id']);
 
@@ -709,7 +706,6 @@ class Daemon
                 $this->_log(1, sprintf('Worker PID %d onstart faild', $this->_pid));
                 exit(1);
             }
-
             // r运行事件
             $this->_currentWorkerInstance->run();
         }
@@ -727,14 +723,22 @@ class Daemon
      */
     public function onWorkerOutput($output)
     {
+        if (!$output)
+        {
+            return FALSE;
+        }
         $this->_log($output);
         return NULL;
     }
-
+    
     /**
      */
     public function onWorkerExit()
     {
+        if($this->_isRunning())
+        {
+            return;
+        }
         // worker stop事件
         $this->_onWorkerStop();
     }
@@ -749,12 +753,6 @@ class Daemon
         {
             $this->_currentWorkerInstance->stop();
         }
-        // 检测主进程没有运行后 直接清理pid文件
-        if (!$this->_isRunning())
-        {
-            $this->_delPidFile();
-        }
-        exit(0);
     }
 
     /**
@@ -782,6 +780,10 @@ class Daemon
         {
             return FALSE;
         }
+        if ($this->_pid > 0 && $pid != $this->_pid)
+        {
+            return FALSE;
+        }
         $pidIsExists = file_exists('/proc/' . $pid);
         return $pidIsExists ? $pid : FALSE;
     }
@@ -793,19 +795,19 @@ class Daemon
      */
     protected function _stop(bool $isGraceful = TRUE)
     {
-        if (!$this->_isMaster)
+        //worker进程接受
+        if (!$this->_isDaemon)
         {
             $this->_onWorkerStop($isGraceful);
             exit(0);
         }
-        $this->_delPidFile();
-
+        
+        //daemon接受
         $sig = $isGraceful ? SIGTERM : SIGINT;
         foreach ($this->_workerInstances as $pid => $worker)
         {
             posix_kill($pid, $sig);
         }
-
         if ($isGraceful)
         {
             sleep(2);
@@ -814,6 +816,7 @@ class Daemon
                 posix_kill($pid, SIGINT);
             }
         }
+        $this->_delPidFile();
         exit(0);
     }
 
@@ -902,6 +905,7 @@ class Daemon
      */
     protected function _outlog($id, $msg, $priority = 6)
     {
+        $msg .= "\n";
         if (true || $this->_debug)
         {
             echo $msg;
