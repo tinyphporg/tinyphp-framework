@@ -483,11 +483,11 @@ class Environment implements \ArrayAccess
         'RUNTIME_DEBUG_BACKTRACE' => NULL,
         'SCRIPT_FILENAME' => NULL,
         'SCRIPT_FILENAME' => NULL,
-        'RUNTIME_MODE' => -1,
+        'RUNTIME_MODE' => Runtime::RUNTIME_MODE_WEB,
 
         'RUNTIME_MODE_CONSOLE' => Runtime::RUNTIME_MODE_CONSOLE,
-        'RUNTIME_MODE_WEB' => -1,
-        'RUNTIME_MODE_RPC' => -1,
+        'RUNTIME_MODE_WEB' => Runtime::RUNTIME_MODE_WEB,
+        'RUNTIME_MODE_RPC' => Runtime::RUNTIME_MODE_RPC,
     ];
 
     /**

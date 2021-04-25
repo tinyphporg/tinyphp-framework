@@ -74,7 +74,17 @@ class WebRequest extends Base
     {
         parent::setApplication($app);
     }
-
+    
+    /**
+     * 获取request的初始化数值
+     * 
+     * @return array|[]
+     */
+    public function getRequestData()
+    {
+        return $this->_data;
+    }
+    
     /**
      * 魔术函数获取变量的值
      *
@@ -95,9 +105,9 @@ class WebRequest extends Base
             case 'server':
                 return new Readonly($this->_server);
             case 'cookie':
-                return $this->_app->getCookie($this->_data['cookie']);
+                return $this->_app->getCookie();
             case 'session':
-                return $this->_app->getSsession();
+                return $this->_app->getSession();
             // case 'file':
             // return $this->_app->getFile();
             case 'files':
@@ -141,12 +151,14 @@ class WebRequest extends Base
             'request' => $_REQUEST,
             'post' => $_POST,
             'get' => $_GET,
-            'files' => $_FILES
+            'files' => $_FILES,
+            'server' => $_SERVER,
+            'session'=> $_SESSION
         ];
         $this->_server = $_SERVER;
         $sessionName = ini_get('session.name');
         $sessionId = $_COOKIE[$sessionName];
-        // unset($_SERVER, $_REQUEST, $_COOKIE, $_POST, $_GET, $_FILES);
+        unset($_SERVER, $_REQUEST, $_COOKIE, $_POST, $_GET, $_FILES);
         if (isset($sessionId))
         {
             $_COOKIE[$sessionName] = $sessionId;

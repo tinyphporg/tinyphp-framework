@@ -283,6 +283,7 @@ echo '<p><span class="debug_Green">视图变量:&nbsp;</span>' . join(',', array
  <?php
 	$const = get_defined_constants(true);
 	$const = $const['user'];
+	$requestData = $request->getRequestData();
 	echo '<p class="debug_DYellow">以下为未经框架处理的原生数据,仅供参考,请勿直接调用$_GET,$_POST,$_COOKIE三个全局数组.应在HttpRequest实例化后,以getQueryString(),getPost(),getCookie()获取.</p><p><b style="color:blue">Const</b></p>';
 	foreach ($const as $key => $value)
 	{
@@ -309,17 +310,17 @@ echo '<p><span class="debug_Green">视图变量:&nbsp;</span>' . join(',', array
 		echo '<p>' . $key . ' = ' . $value . '</p>';
 	}
 	echo '<p><b style="color:blue" >$_GET</b></p>';
-	foreach ($_GET as $key => $value)
+	foreach ($requestData['get'] as $key => $value)
 	{
 		echo '<p>' . $key . ' = ' . '<span style="color:green">&nbsp;"' . $value . '"&nbsp;</span></p>';
 	}
 	echo '<p><b style="color:blue">$_POST</b></p>';
-	foreach ($_POST as $key => $value)
+	foreach ($requestData['post'] as $key => $value)
 	{
 		echo '<p>' . $key . ' = ' . '<span style="color:green">&nbsp;"' . $value . '"&nbsp;</span>' . '</p>';
 	}
 	echo '<p><b style="color:blue">$_COOKIE</b></p>';
-	foreach ($_COOKIE as $key => $value)
+	foreach ($requestData['cookie'] as $key => $value)
 	{
 		echo '<p>' . $key . ' = ' . '<span style="color:green">&nbsp;"' . $value . '"&nbsp;</span>' . '</p>';
 	}
@@ -332,7 +333,7 @@ echo '<p><span class="debug_Green">视图变量:&nbsp;</span>' . join(',', array
 		}
 	}
 	echo '<p><b style="color:blue">$_SERVER</b></p>';
-	foreach ($_SERVER as $key => $value)
+	foreach ($requestData['server'] as $key => $value)
 	{
 		echo '<p>' . $key . ' = ' . '<span style="color:green">&nbsp;"' . $value . '"&nbsp;</span>' . '</p>';
 	}

@@ -18,6 +18,9 @@
  */
 namespace Tiny\MVC\Web;
 
+use Tiny\Tiny;
+use Tiny\MVC\Request\WebRequest;
+
 /**
  * Cookie
  *
@@ -40,7 +43,7 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      *
      * @var array
      */
-    protected $_cookies;
+    protected $_cookies = FALSE;
 
     /**
      * cookie域名
@@ -83,11 +86,11 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      * @param array $cookies 预设的cookies数据
      * @return self
      */
-    public static function getInstance($cookies = [])
+    public static function getInstance($policy =  [])
     {
         if (!self::$_instance)
         {
-            self::$_instance = new self($cookies);
+            self::$_instance = new self($policy);
         }
         return self::$_instance;
     }
@@ -95,69 +98,17 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
     /**
      * 构造函数
      *
-     * @param array $cookies
+     * @param array $policy 策略配置数组
      * @return void
      */
-    protected function __construct(array $cookies)
+    protected function __construct(array $policy)
     {
-        $this->_cookies = $cookies;
-    }
-
-    /**
-     * 设置cookie的作用域
-     *
-     * @param string $domain
-     * @return void
-     */
-    public function setDomain($domain)
-    {
-        $this->_domain = $domain;
-    }
-
-    /**
-     * 设置默认过期时间
-     *
-     * @param int $ex
-     *        过期秒数
-     * @return void
-     */
-    public function setExpires($ex)
-    {
-        $this->_expires = $ex;
-    }
-
-    /**
-     * 设置域名前缀
-     *
-     * @param string $pf
-     * @return void
-     */
-    public function setPrefix($pf)
-    {
-        $this->_prefix = $pf;
-    }
-
-    /**
-     * cookie的作用路径
-     *
-     * @param string $path
-     * @return void
-     */
-    public function setPath($path)
-    {
-        $this->_path = $path;
-    }
-
-    /**
-     * 设置是否编码
-     *
-     * @param bool $isEncode
-     *        是否编码
-     * @return void
-     */
-    public function setEncode($isEncode)
-    {
-        $this->_isEncode = (bool)$isEncode;
+        $this->_cookies = $policy['data'];
+        $this->_domain = $policy['domain'];
+        $this->_expires = (int)$policy['expires'];
+        $this->_prefix = (string)$policy['prefix'];
+        $this->_path = $policy['path'];
+        $this->_isEncode = (bool)$policy['encode'];
     }
 
     /**
