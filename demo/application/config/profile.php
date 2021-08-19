@@ -16,7 +16,7 @@ $profile = [];
 /**
  * 基本设置
  */
-//$profile['debug'] = TRUE;      /*是否开启调试模式: bool FALSE 不开启 | bool TRUE 开启*/
+$profile['debug']['enable'] = FALSE;      /*是否开启调试模式: bool FALSE 不开启 | bool TRUE 开启*/
 $profile['timezone'] = 'PRC';  /*设置时区*/
 $profile['charset'] = 'utf-8'; /*设置编码*/
 
@@ -54,7 +54,7 @@ $profile['build']['profile_path'] = 'build/profile';  /*打包器的属性文件
 /**
  * 调试器设置
  */
-$profile['debug']['enable'] = TRUE;
+//$profile['debug']['enable'] = TRUE;
 $profile['debug']['param_name'] = 'debug';
 $profile['debug']['class'] = '\Tiny\MVC\Plugin\Debug';
 

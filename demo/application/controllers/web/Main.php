@@ -8,6 +8,7 @@ class Main extends Controller
     public function indexAction()
     {
         //配置使用
+        //$this->setDebug(false);
         print_r($_COOKIE);
         print_r($this->config['def.a.b.c']);
         $this->cookie->set('aa', 'bbbbbb');

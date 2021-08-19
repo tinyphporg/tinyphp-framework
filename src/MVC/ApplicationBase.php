@@ -370,8 +370,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_config = new Configuration($prop['path']);
         if (!$this->isDebug && (!isset($prop['cache']['enable']) || $prop['cache']['enable']))
         {
-
-            $cachekey = ftok($this->env['SCRIPT_NAME'], 'a');
+            $cachekey = ftok($this->env['SCRIPT_FILENAME'], 'a');
             $cacheId = $prop['cache']['id'] ?: 'default';
             $cacheTtl = (int)$prop['cache']['ttl'] ?: 60;
             $cache = $this->getCache();
@@ -852,7 +851,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
 
         //执行前返回FALSE则不执行派发动作
-        $ret = call_user_func_array([$this, 'onBeginExecute'], $args);
+        $ret = call_user_func_array([$controller, 'onBeginExecute'], $args);
         if (FALSE === $ret)
         {
             return FALSE;
@@ -867,7 +866,7 @@ abstract class ApplicationBase implements IExceptionHandler
             $controller,
             $action
         ], $args);
-        call_user_func_array([$this, 'onEndExecute'], $args);
+        call_user_func_array([$controller, 'onEndExecute'], $args);
         return $ret;
     }
 
@@ -954,7 +953,7 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initPlugin()
     {
-        if ($this->properties['debug'])
+        if ($this->properties['debug']['enable'])
         {
             $this->isDebug = TRUE;
             $this->regPlugin(new \Tiny\MVC\Plugin\Debug($this));

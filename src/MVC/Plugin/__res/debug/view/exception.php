@@ -16,9 +16,6 @@
  */
 $exceptionType = array (
 	0 => 'Fatal error',
-	E_DATA => 'E_DATA',
-	E_NOFOUND => 'E_NOFOUND',
-	E_CACHE => 'E_CACHE',
 	E_ERROR => 'ERROR',
 	E_WARNING => 'WARNING',
 	E_PARSE => 'PARSING ERROR',

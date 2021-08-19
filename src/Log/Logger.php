@@ -209,7 +209,6 @@ class Logger
         $message = str_replace("\n", '', $message);
         $date = date('y-m-d H:i:s');
         $message = sprintf("%s %s %s \r\n", self::PRIORITIES[$priority], $date, $message);
-        echo $message;
         $this->write($id, $message, $priority);
     }
 
