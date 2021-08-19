@@ -49,7 +49,7 @@ $profile['build']['param_name'] = 'build'; /*--build参数 开启打包工作*/
 $profile['build']['plugin'] = '\Tiny\MVC\Plugin\Builder';
 $profile['build']['path'] = 'build/builder'; /*打包配置文件夹*/
 $profile['build']['setting_path'] = 'build/setting';  /*打包器的设置文件夹，用来自定义application.config数据*/
-$profile['build']['profile_path'] = 'build/profile';  /*打包器的属性文件夹,用来自定义application.proerties数据*/
+$profile['build']['profile_path'] = 'build/profile';  /*打包器的属性文件夹,用来自定义application.properties数据*/
 
 /**
  * 调试器设置
