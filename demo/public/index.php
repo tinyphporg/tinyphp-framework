@@ -10,7 +10,6 @@
  *          King 2019年11月18日上午11:18:04 修改
  *          King 2020年6月5日16:04 stable 1.0.01 审定
  */
-
 /*zeroai根目录*/
 define('TINY_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
 
