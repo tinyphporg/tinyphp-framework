@@ -134,7 +134,7 @@ class Builder
         $this->_config = $config;
         // 应用程序的properties
         $this->_properties = $this->_config['properties'];
-        $this->_properties['build']['enable'] = FALSE;
+        $this->_properties['build']['enabled'] = FALSE;
     }
 
     /**
@@ -218,7 +218,7 @@ class Builder
         $contents = "<?php\n return " . var_export($config, true) . ";\n?>";
         $this->_pharHandler->addFromString('application/.config.php', $contents);
 
-        $this->_properties['config']['cache']['enable'] = FALSE;
+        $this->_properties['config']['cache']['enabled'] = FALSE;
 
         $this->_properties['config']['path'] = [];
         $this->_properties['config']['path'][] = 'TINY_PHAR_FILE/application/.config.php';

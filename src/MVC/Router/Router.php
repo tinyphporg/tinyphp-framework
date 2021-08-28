@@ -50,11 +50,11 @@ class Router
      */
     protected $_routers = [];
     /**
-     * 路由规则集合
+     * 路由器策略集合
      *
      * @var array
      */
-    protected $_rules = [];
+    protected $_routerPolicys = [];
 
     /**
      * 是否已经执行过路由检测
@@ -64,11 +64,11 @@ class Router
     protected $_isRouted = FALSE;
 
     /**
-     * 匹配的路由规则
+     * 匹配的路由实例
      *
      * @var IRouter
      */
-    protected $_matchRule;
+    protected $_matchRouter;
 
     /**
      * 解析的参数
@@ -124,8 +124,8 @@ class Router
             return FALSE;
         }
         $rule['className'] = $this->_driverMaps[$driverId];
-        $rule['ruleData'] = $data;
-        $this->_rules[] = $rule;
+        $rule['data'] = $data;
+        $this->_routerPolicys[] = $rule;
     }
 
     /**
@@ -136,10 +136,10 @@ class Router
     public function route()
     {
         $routerString = $this->_req->getRouterString();
-        foreach ($this->_rules as $r)
+        foreach ($this->_routerPolicys as $policy)
         {
-            $router = $this->_getRouter($r['className']);
-            if ($router->checkRule($r, $routerString))
+            $router = $this->_loadRouter($policy['className']);
+            if ($router->checkRule($policy, $routerString))
             {
                 return $this->resolveRule($router);
             }
@@ -154,11 +154,20 @@ class Router
      *        参数
      * @return void
      */
-    public function resolveRule(IRouter $rule)
+    public function resolveRule(IRouter $router)
     {
-        $this->_matchRule = $rule;
-        $this->_params = $rule->getParams();
+        $this->_matchRouter = $router;
+        $this->_params = $router->getParams();
         $this->_req->setRouterParam($this->_params);
+    }
+    
+    /**
+     * 获取匹配的router实例
+     * @return \Tiny\MVC\Router\IRouter
+     */
+    public function getMatchRouter()
+    {
+        return $this->_matchRouter;
     }
 
     /**
@@ -168,7 +177,7 @@ class Router
      */
     public function getParams()
     {
-        return $this->_matchRule ? $this->_params : [];
+        return $this->_matchRouter ? $this->_params : [];
     }
 
     /**
@@ -177,7 +186,7 @@ class Router
      * @param array $rule
      * @return string 规则
      */
-    protected function _getRouter($className)
+    protected function _loadRouter($className)
     {
         static $routers = [];
         $routerId = strtolower($className);

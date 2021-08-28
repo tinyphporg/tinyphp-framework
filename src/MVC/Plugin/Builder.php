@@ -80,7 +80,7 @@ class Builder implements Iplugin
     public function onRouterStartup()
     {
         $config = $this->_app->properties['build'];
-        if(!$config['enable'])
+        if(!$config['enabled'])
         {
             return;
         }

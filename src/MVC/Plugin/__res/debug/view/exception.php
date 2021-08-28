@@ -14,7 +14,12 @@
  * <author> <time> <version > <desc>
  * King Thu Dec 22 18:28:11 CST 2011 Beta 1.0 第一次建立该文件
  */
-$exceptionType = array (
+
+/**
+ * 异常类型字符
+ * @var array
+ */
+const EXCEPTION_TYPES = [
 	0 => 'Fatal error',
 	E_ERROR => 'ERROR',
 	E_WARNING => 'WARNING',
@@ -28,77 +33,78 @@ $exceptionType = array (
 	E_USER_WARNING => 'USER WARNING',
 	E_USER_NOTICE => 'USER NOTICE',
 	E_STRICT => 'STRICT NOTICE',
-	E_RECOVERABLE_ERROR => 'RECOVERABLE ERROR');
-;
-$exception = $debugExceptions;
-$firstE = array_shift($exception);
-if (is_array($firstE))
+	E_RECOVERABLE_ERROR => 'RECOVERABLE ERROR'  
+];
+
+
+$firstE = array_shift($debugExceptions);
+if (!$firstE)
 {
-	$file = file($firstE['file']);
-	$sourceCode = array ();
-	$startLine = $firstE['line'] - 7;
-	$toLine = $firstE['line'] + 5;
-	if ($startLine < 0)
-	{
-		$startLine = 0;
-	}
-	$totalLine = count($file);
-	if ($toLine >= $totalLine)
-	{
-		$toLine = $totalLine - 1;
-	}
-	$debugCode = '<div id ="debug_Code" class="debug_Code "><div class="line">';
-	for ($i = $startLine; $i <= $toLine; $i++)
-	{
-		$sourceCode[$i] = $file[$i];
-	}
-	foreach ($sourceCode as $key => $value)
-	{
-		if ($firstE['line'] == ($key + 2))
-		{
-			$debugCode .= '<p class="debug_Red">' . ($key + 2) . '.</p>';
-		}
-		else
-		{
-			$debugCode .= '<p>' . ($key + 2) . '.</p>';
-		}
-	}
-	$debugCode .= ' </div><div class="code">';
-	foreach ($sourceCode as $key => $value)
-	{
-		if ($firstE['line'] == $key + 1)
-		{
-			$debugCode .= '<p class="debug_YellowBG2">' . $value . '</p>';
-		}
-		else
-		{
-			$debugCode .= '<p>' . $value . '</p>';
-		}
-	}
-	$debugCode .= '</div></div>';
+    return;
 }
+
+$fileLines = file($firstE['file']);
+
+$startLine = $firstE['line'] - 7;
+$endLine = $firstE['line'] + 5;
+if ($startLine < 0)
+{
+    $startLine = 0;
+}
+$totalLine = count($fileLines);
+if ($endLine >= $totalLine)
+{
+    $endLine = $totalLine - 1;
+}
+
+$srcCode = [];
+$debugCode = '<div id ="debug_code" class="code"><div class="line">';
+for ($i = $startLine ; $i <= $endLine; $i++)
+{
+    $sourceCode[$i] = $fileLines[$i];
+}
+foreach ($sourceCode as $key => $value)
+{
+    if ($firstE['line'] == ($key + 1))
+	{
+	   $debugCode .= '<p class="font_red">' . ($key + 1) . '.</p>';
+	}
+	else
+	{
+	   $debugCode .= '<p>' . ($key + 1) . '.</p>';
+	}
+}
+$debugCode .= ' </div><div class="">';
+foreach ($sourceCode as $key => $value)
+{
+    if ($firstE['line'] == $key + 1)
+	{
+	   $debugCode .= '<p class="bg_yellow2">' . $value . '</p>';
+	}
+	else
+	{
+	   $debugCode .= '<p>' . $value . '</p>';
+	}
+}
+$debugCode .= '</div></div>';
+
 ?>
 
-<div class="debug_Box debug_YellowBG">
+<div class="box bg_yellow">
+	<h2 class="font_red font_underline"><?=$firstE['handler']?></h2>
 	<p>
-	
-	
-	<h2 class="debug_Red debug_U"><?=$firstE['handle']?></h2>
+		<span class="font_red_d "><?=EXCEPTION_TYPES[$firstE['level']]?>: <?=$firstE['message']?></span>
 	</p>
-	<p>
-		<span class="debug_DRed"><?=$exceptionType[$firstE['level']]?>: <?=$firstE['message']?></span>
-	</p>
-
 	<p>
 		Line:
-		<span class="debug_Red"> <?=$firstE['line']?></span>
+		<span class="font_red"> <?=$firstE['line']?></span>
 	</p>
 	<p>File: <?=$firstE['file']?></p>
 	<p>
 		<span class=>Trace: <?echo str_replace('#','<br /># File:', $firstE['traceToString'])?></span>
 	</p>
 <?=$debugCode?>
-<?php foreach ($exception as $key => $value){echo '<p>' . $exceptionType['handle'] . ' ' . $exceptionType[$value['level']] . ':' . $value['message'] . 'On' . $value['file'] . ' Line ' . $value['line'] . '</p>';
+<?php foreach ($exception as $key => $value){echo '<p>' . EXCEPTION_TYPES['handler'] . ' ' . EXCEPTION_TYPES[$value['level']] . ':' . $value['message'] . 'On' . $value['file'] . ' Line ' . $value['line'] . '</p>';
 }
 ?>
 </div>

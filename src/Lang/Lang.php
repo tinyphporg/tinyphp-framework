@@ -18,6 +18,7 @@
 namespace Tiny\Lang;
 
 use Tiny\Config\Configuration;
+use Tiny\Cache\ICache;
 
 /**
  * 语言类
@@ -66,11 +67,30 @@ class Lang implements \ArrayAccess
     protected $_locale = NULL;
 
     /**
-     * 语言数据存放数组
+     * 语言数据配置实例
      *
+     * @var Configuration
+     */
+    protected $_config = [];
+    
+    /**
+     * 语言缓存实例
+     * @var \Tiny\Cache\ICache
+     */
+    protected $_cache;
+    
+    /**
+     * 缓存策略
      * @var array
      */
-    protected $_data = [];
+    protected $_cachePolicy = [
+        'dataId'
+    ];
+    /**
+     * 
+     * @var array
+     */
+    protected $cachePolicy = [];
 
     /**
      * 设置语言数据文件夹路径
@@ -79,7 +99,7 @@ class Lang implements \ArrayAccess
      *        文件夹路径
      * @return bool
      */
-    public function setLangPath($path)
+    public function setPath($path)
     {
         $this->_langPath = $path;
         return $this;
@@ -98,7 +118,25 @@ class Lang implements \ArrayAccess
         $this->_locale = $locale;
         return $this;
     }
-
+    
+    /**
+     * 设置语言包初始数据
+     * @param array $data
+     */
+    public function setData(array $data)
+    {
+        $this->_getLangConfig()->setData($data);
+    }
+    
+    /**
+     * 获取语言包数据
+     * @return array
+     */
+    public function getData()
+    {
+        return $this->_getLangConfig()->get();
+    }
+    
     /**
      * 执行翻译
      *
@@ -108,8 +146,8 @@ class Lang implements \ArrayAccess
      */
     public function translate($code, ...$params)
     {
-        $data = $this->_getData();
-        $string = $data[$this->_locale . '.' . $code];
+        $config = $this->_getLangConfig();
+        $string = $config[$this->_locale . '.' . $code];
         if ($params)
         {
             $string = vsprintf($string, $params);
@@ -174,13 +212,13 @@ class Lang implements \ArrayAccess
      *        语言代码
      * @return Configuration
      */
-    protected function _getData()
+    protected function _getLangConfig()
     {
-        if (!$this->_data)
+        if (!$this->_config)
         {
-            $this->_data = new Configuration($this->_langPath);
+            $this->_config = new Configuration($this->_langPath);
         }
-        return $this->_data;
+        return $this->_config;
     }
 }
 ?>

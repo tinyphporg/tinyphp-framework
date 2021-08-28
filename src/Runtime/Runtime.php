@@ -25,24 +25,6 @@ use Tiny\MVC\ApplicationBase;
 
 /* 定义框架所在路径 */
 define('FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
-/**
- * Runtime缓存接口
- *
- * @package Tiny.Runtime
- * @since 2019年11月12日上午10:07:58
- * @final 2020年02月19日下午15:44:00 stable 1.0.01 审定
- *
- */
-interface ICacheHandler
-{
-
-    /**
-     *
-     * @param mixed $data
-     *        执行存取缓存数据的动作
-     */
-    public function oncache($data = NULL);
-}
 
 /**
  * 运行时异常类
@@ -153,6 +135,12 @@ class Runtime
      * @var ExceptionHandler
      */
     protected $_exceptionHandler;
+    
+    /**
+     * 运行时缓存句柄
+     * @var RunTimeCacheHandler
+     */
+    protected $_cacheHandler;
 
     /**
      * 注册或者替换已有的Application
@@ -208,7 +196,7 @@ class Runtime
         }
         return $this->_app;
     }
-
+    
     /**
      * 导入自动加载的类库
      *
@@ -252,7 +240,7 @@ class Runtime
     protected function __construct()
     {
         $this->env = Environment::getInstance();
-
+        
         // 创建运行时的自动加载实例
         $this->_autoloader = Autoloader::getInstance();
         $this->_autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
@@ -260,6 +248,183 @@ class Runtime
         // $this->_autoloader
         $this->_exceptionHandler = ExceptionHandler::getInstance();
     }
+}
+
+class RuntimeCache
+{
+    /**
+     * 
+     * @var CacheHandler
+     */
+    protected $_handler;
+    
+    protected $_id;
+    /**
+     * 
+     * @param string $id
+     */
+    public function __construct($id)
+    {
+        $this->_id = (string)$id;
+        $this->_handler = CacheHandler::getInstance();
+    }
+    
+    /**
+     *  获取缓存内容
+     * @param string $key
+     * @param mixed $value
+     * @return mixed
+     */
+    public function get($key)
+    {
+        return $this->_handler->get($this->_id, $key);
+    }
+    
+    /**
+     * 设置缓存内容
+     * @param string $key
+     * @param mixed $value
+     */
+    public function set($key, $value)
+    {
+       $this->_handler->set($this->_id, $key, $value);
+    }
+}
+
+/**
+ * 运行时缓存
+ * @author macbookpro
+ *
+ */
+class CacheHandler
+{   
+    
+    /**
+     * 单一实例
+     * @var \Tiny\Runtime\RunTimeCache
+     */
+    protected static $_instance;
+    
+    protected $_isShmop = FALSE;
+    
+    protected $_runtimePath;
+    
+    protected $_data = FALSE;
+    
+    protected $_ttl = 60;
+    
+    protected $_isUpdated = FALSE;
+    
+    /**
+     * 获取单一实例
+     * @return \Tiny\Runtime\RunTimeCache
+     */
+    public static function getInstance()
+    {
+        if (!self::$_instance)
+        {
+            self::$_instance = new self();
+        }
+        return self::$_instance;
+    }
+    
+    /**
+     * 构造函数
+     */
+    protected function __construct()
+    {
+        $this->_isShmop = extension_loaded('shmop');
+        $this->_runtimePath = get_included_files()[0];
+    }
+    
+    public function get($id, $key)
+    {
+        if (FALSE  === $this->_data)
+        {
+            $this->_data = $this->_loadData();
+        }
+    
+        if (!isset($this->_data[$id]) || !is_array($this->_data[$id]))
+        {
+            $this->_isUpdated = TRUE;
+           $this->_data[$id]  = []; 
+        }
+        
+        return $this->_data[$id][$key];
+    }
+    
+    public function set($id, $key, $value)
+    {
+        if (FALSE  === $this->_data)
+        {
+            $this->_data = $this->_loadData();
+        }
+        if (!isset($this->_data[$id]) || !is_array($this->_data[$id]))
+        {
+            $this->_data[$id]  = [];
+        }
+        if (!isset($this->_data[$id][$key]) || $this->_data[$id][$key] !== $value)
+        {
+            $this->_isUpdated = TRUE;
+            $this->_data[$id][$key] = $value;
+        }
+    }
+    
+    public function __destruct()
+    {
+        if ($this->_isUpdated)
+        {
+            return $this->_isShmop ? $this->_wrtieDataByShmop() : $this->_wrtieDataByShmop();
+        }
+    }
+    
+    protected function _loadData()
+    {
+        return $this->_isShmop ? $this->_loadDataByShmop() : $this->_loadDataByShmop();
+    }
+    
+    protected function _loadDataByShmop()
+    {
+        $shmKey = ftok($this->_runtimePath, 0);
+        $shmId = shmop_open($shmKey, 'c', 0644, 4 * 1024 * 1024);
+        if(!$shmId)
+        {
+            return [];
+        }
+        $cdata = shmop_read($shmId, 0, shmop_size($shmId));
+        if (!$cdata)
+        {
+            shmop_close($shmId);
+            return [];
+        }
+        
+        $data = unserialize($cdata);
+        if (!is_array($data) || ((int)$data['timestamp'] + $this->_ttl < time()))
+        {
+            shmop_delete($shmId);
+            shmop_close($shmId);
+            return [];
+        }
+        return $data['data'];
+    }
+        
+    protected function _wrtieDataByShmop()
+    {
+        $data = [];
+        $data['timestamp'] = time();
+        $data['data'] = $this->_data;
+        $cdata = serialize($data);
+        //echo $cdata;
+        $shmKey = ftok($this->_runtimePath, 0);
+        $shmId = shmop_open($shmKey, 'c', 0644, 4 * 1024 * 1024);
+        if(!$shmId)
+        {
+            return;
+        }
+        shmop_write($shmId, $cdata, 0);
+        shmop_close($shmId);
+    }
+ 
 }
 
 /**
@@ -279,6 +444,11 @@ class Autoloader
      */
     protected static $_instance;
 
+    /**
+     * 
+     * @var RuntimeCache
+     */
+    protected $_runtimeCache;
     /**
      * 库的缓存数组
      *
@@ -357,10 +527,16 @@ class Autoloader
      */
     public function load($cname)
     {
+        $ipath = $this->_runtimeCache->get($cname);
+        if ($ipath)
+        {
+            return include($ipath);
+        }
         //echo $cname . '|' . strrpos($cname, "\\") . "\n";
         if (FALSE === strpos($cname, "\\"))
         {
             $ipath =  $cname . '.php';
+            $this->_runtimeCache->set($cname, $ipath);
             include $ipath;
             return;
         }
@@ -416,6 +592,7 @@ class Autoloader
                     return FALSE;
                 }
             }
+            $this->_runtimeCache->set($cname, $ipath);
             include_once ($ipath);
         }
         return FALSE;
@@ -430,6 +607,7 @@ class Autoloader
      */
     protected function __construct()
     {
+        $this->_runtimeCache = new RuntimeCache('autoloader');
         spl_autoload_register([
             $this,
             'load'
@@ -619,6 +797,7 @@ class Environment implements \ArrayAccess
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
         }
         $this->_envdata = $env;
+        $_ENV = $env;
     }
 
 

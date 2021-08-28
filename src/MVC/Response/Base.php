@@ -197,7 +197,7 @@ abstract class Base
 
         if (!$this->_formatConfig)
         {
-            $config = $this->_app->getConfig();
+            $config = $this->_app->getLang();
             $locale = $this->_locale;
             $configId = $this->_app->properies['response']['formatJsonConfigId'] ?: 'status';
             if ($locale)

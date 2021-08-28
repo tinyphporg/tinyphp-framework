@@ -16,16 +16,16 @@ $profile = [];
 /**
  * 基本设置
  */
-$profile['debug']['enable'] = FALSE;      /*是否开启调试模式: bool FALSE 不开启 | bool TRUE 开启*/
+$profile['debug']['enabled'] = TRUE;      /*是否开启调试模式: bool FALSE 不开启 | bool TRUE 开启*/
 $profile['timezone'] = 'PRC';  /*设置时区*/
 $profile['charset'] = 'utf-8'; /*设置编码*/
 
 /**
  * 异常模块
  */
-$profile['exception']['enable'] = TRUE;  /*异常处理:bool TRUE 开启异常统一处理|bool FALSE 屏蔽所有异常|string log 异常为日志输出*/
+$profile['exception']['enabled'] = TRUE;  /*异常处理:bool TRUE 开启异常统一处理|bool FALSE 屏蔽所有异常|string log 异常为日志输出*/
 $profile['exception']['log'] = TRUE;     /*是否以日志方式输出*/
-$profile['exception']['logid'] = 'tiny_exception';
+$profile['exception']['logid'] = 'tinyphp_exception';
 
 /**
  * 应用设置 配置文件里的相对路径 都是基于application文件夹所在路径
@@ -34,17 +34,17 @@ $profile['app']['namespace'] = 'App';   /*命名空间*/
 $profile['app']['resources'] = 'resource/';  /*资源文件夹*/
 $profile['app']['runtime'] = 'runtime/';
 $profile['app']['tmp'] = 'runtime/tmp/';
-
+//$profile['app']['cached']['enabled'] = TRUE;
 /**
  * 自动加载引导类
  */
-$profile['bootstrap']['enable'] = FALSE;
+$profile['bootstrap']['enabled'] = FALSE;
 $profile['bootstrap']['class'] = '\App\Common\Bootstarp';
 
 /**
  * 打包器设置
  */
-$profile['build']['enable'] = TRUE;  /*不开启时 忽略build打包行为*/
+$profile['build']['enabled'] = TRUE;  /*不开启时 忽略build打包行为*/
 $profile['build']['param_name'] = 'build'; /*--build参数 开启打包工作*/
 $profile['build']['plugin'] = '\Tiny\MVC\Plugin\Builder';
 $profile['build']['path'] = 'build/builder'; /*打包配置文件夹*/
@@ -61,7 +61,7 @@ $profile['debug']['class'] = '\Tiny\MVC\Plugin\Debug';
 /**
  * 守护进程的基本设置
  */
-$profile['daemon']['enable'] = TRUE;
+$profile['daemon']['enabled'] = TRUE;
 $profile['daemon']['id'] = 'tinyphp-daemon';          /*默认的daemonid*/
 $profile['daemon']['plugin'] = '\Tiny\MVC\Plugin\Daemon';
 $profile['daemon']['piddir'] = 'runtime/pid/'; /*守护进程pid目录*/
@@ -104,9 +104,7 @@ $profile['src']['view'] = 'views/';             /*视图源码*/
 $profile['config']['enabled'] = TRUE;   /* 是否开启默认配置模块 */
 $profile['config']['path'] = 'config/'; /* 配置文件相对路径 */
 $profile['config']['paths'] = [];       /*可加载多个扩展的配置文件或文件夹路径，必须为绝对或者相对路径 数据可覆盖*/
-$profile['config']['cache']['enable'] = TRUE; /*配置模块缓存设置 提高性能*/
-$profile['config']['cache']['id'] = 'default';
-$profile['config']['cache']['ttl'] = 60;
+$profile['config']['cache']['enabled'] = TRUE; /*配置模块缓存设置 提高性能*/
 
 /**
  * 语言模块设置
@@ -114,7 +112,9 @@ $profile['config']['cache']['ttl'] = 60;
 $profile['lang']['enabled'] = TRUE;   /*是否开启 */
 $profile['lang']['locale'] = 'zh_cn';
 $profile['lang']['path'] = 'lang/';   /*存放语言包的目录 */
-
+$profile['lang']['cache']['enabled'] = TRUE; /*配置模块缓存设置 提高性能*/
+$profile['lang']['cache']['id'] = 'default';
+$profile['lang']['cache']['ttl'] = 60;
 /**
  * 日志模块设置
  */
@@ -134,12 +134,12 @@ $profile['log']['path'] = 'runtime/log/';
 $profile['data']['enabled'] = TRUE;    /* 是否开启数据池 */
 $profile['data']['charset'] = 'utf8';
 $profile['data']['policys'] = [
+    ['id' => 'default', 'driver' => 'db.mysql_pdo', 'host' => '127.0.0.1', 'port' => '3306', 'user' => 'root', 'password' => '123456', 'dbname' => 'mysql'],
     ['id' => 'redis', 'driver' => 'redis', 'host' => '127.0.0.1', 'port' => '6379' ],
     ['id' => 'redis_cache', 'driver' => 'redis', 'host' => '127.0.0.1', 'port' => '6379', 'servers' => [['host' => '127.0.0.1', 'port' => '6379'],['host' => '127.0.0.1', 'port' => '6379']]],
 	['id' => 'redis_session', 'driver' => 'redis', 'host' => '127.0.0.1', 'port' => '6379'],
     ['id' => 'redis_queue', 'driver' => 'redis', 'host' => '127.0.0.1', 'port' => '6379'],
-    ['id' => 'memcached', 'driver' => 'memcached', 'host' => '127.0.0.1', 'port' => '11211'],
-    ['id' => 'default', 'driver' => 'db.mysql_pdo', 'host' => '127.0.0.1', 'port' => '3306', 'user' => 'root', 'password' => '123456', 'dbname' => 'mysql']
+    ['id' => 'memcached', 'driver' => 'memcached', 'host' => '127.0.0.1', 'port' => '11211']
 ];
 
 /**
@@ -151,10 +151,10 @@ $profile['data']['policys'] = [
  * 类型 5 Redis缓存 */
 $profile['cache']['enabled'] = TRUE; /* 是否默认开启缓存模块，若不开启，则以下设置无效 */
 $profile['cache']['lifetime'] = 3600;
-$profile['cache']['path'] = 'runtime/cache/'; /* 缓存文件夹相对路径 */
+$profile['cache']['filepath'] = 'runtime/cache/'; /*文件缓存方式的缓存相对路径*/
 $profile['cache']['policys'] = [
     ['id' => 'default', 'driver' => 'redis', 'lifetime' => 3600, 'dataid' => 'redis_cache'],
-    ['id' => 'def', 'driver' => 'file', 'lifetime' => 3600, 'path' => '']
+    ['id' => 'file', 'driver' => 'file', 'lifetime' => 3600, 'path' => '']
 ];
 
 /**

@@ -53,7 +53,7 @@ class HashTable extends Base
      * @param $key mixed 键名
      * @return mixed
      */
-    public function get($key)
+    public function get($key = NULL)
     {
         return (is_array($key) ? $this->_redis->hMGet($this->_key, $key) : $this->_redis->hGet($this->_key, $key));
     }

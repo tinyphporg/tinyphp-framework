@@ -8,7 +8,7 @@
 /vendor/
 .DS_Store
 *.phar
-*/public/runtime
+*/application/runtime/view/*
 */public/setting
 */public/profile
 composer.lock

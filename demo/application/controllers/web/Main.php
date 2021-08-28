@@ -1,75 +1,186 @@
 <?php
+/**
+ *
+ * @copyright (C), 2013-, King.
+ * @name Main.php
+ * @author King
+ * @version Beta 1.0
+ * @Date 2021年8月24日下午6:51:23
+ * @Description
+ * @Class List 1.
+ * @Function List 1.
+ * @History King 2021年8月24日下午6:51:23 第一次建立该文件
+ *          King 2021年8月24日下午6:51:23 修改
+ *         
+ */
 namespace App\Controller;
 
 use Tiny\MVC\Controller\Controller;
 
+/**
+ * an example of main controller
+ */
 class Main extends Controller
 {
+    
+    /**
+     * main/index
+     */
     public function indexAction()
     {
-        //配置使用
-        //$this->setDebug(false);
-        print_r($_COOKIE);
-        print_r($this->config['def.a.b.c']);
-        $this->cookie->set('aa', 'bbbbbb');
-        echo $this->request->cookie->get('aa');
-        return;
-        print_r($this->MainUserInfoModel->main());
-
-        echo defined('\Redis::SERIALIZER_IGBINARY');
-        echo $this->request->getController();
-
-        //配置使用
-        print_r($this->config['def.a.b']);
-
-        //模型使用
-        print_r($this->MainUserInfoModel->main());
-
-        //
-        print_r($this->request->get->get('ax'));
-
-
-
-        //
-        return;
-        //request使用
-        $user = new \ZP\User();
-        print_r($user->main());
-
-        //get post 只读 files基本不在PHP做处理，后续再加上
-        echo $this->request->get->get('aaa');
-        echo $this->request->get['aaa'];
-
-        //session
-        $this->session['aaa'] = "aaaaa1";
-
-        echo $this->session['aaa'];
-
-        //cookie
-        echo $this->request->cookie;
-
-        //配置使用
-        print_r($this->config['def.a.b']);
-
-        //缓存使用
-        echo "------<br>";
-        $this->cache->set('a', "32342sfdds");
-        echo $this->cache->get('a');    //使用缓存 默认使用id为default的缓存实例
-        echo "------<br>";
-
-        $this->cache['default']->get('a'); //使用指定id的缓存实例
-
-        //模型使用
-        print_r($this->MainUserInfoModel->main());
-
-        //JSON输出 int code 位于config.status
-        //$this->outFormatJSON(1, "bbbb", "cccc",["aaa" => "aaaa"]);
+        $actionName = $this->request->get->formatString('a');
+        $controllerName = $this->request->get->formatString('c');
+        $name = $this->request->get->formatString('name', 'tinyphp');
+        $isName = $this->request->get->isRequired('name') ? 'true' : 'false';
+        // 模型使用
+        $userInfo = $this->mainUserInfoModel->getUsers();
+        $this->assign([
+            'actionName' => $actionName,
+            'controllerName' => $controllerName,
+            'name' => $name,
+            'defName' => 'tinyphp',
+            'isName' => $isName,
+            'users' => $userInfo,
+            'users1' => $userInfo1
+        ]);
+        $this->parse('main/index.htm');
     }
-
-    public function aAction()
+    
+    /**
+     * template php file
+     */
+    public function indexRedisAction()
     {
-        echo "bbbb";
+        $actionName = $this->request->get->formatString('a');
+        $controllerName = $this->request->get->formatString('c');
+        $name = $this->request->get->formatString('name', 'tinyphp');
+        $isName = $this->request->get->isRequired('name') ? 'true' : 'false';
+        
+        // 模型使用
+        $userInfo1 = $this->mainUserUserInfoByRedisModel->getUsers();
+        $this->assign([
+            'actionName' => $actionName,
+            'controllerName' => $controllerName,
+            'name' => $name,
+            'defName' => 'tinyphp',
+            'isName' => $isName,
+            'users' => $userInfo1
+        ]);
+        $this->parse('main/index.htm');
     }
-
+    
+    /**
+     * template php file
+     */
+    public function index1Action()
+    {
+        $actionName = $this->request->get->formatString('a');
+        $controllerName = $this->request->get->formatString('c');
+        $name = $this->request->get->formatString('name', 'tinyphp');
+        $isName = $this->request->get->isRequired('name') ? 'true' : 'false';
+        
+        // 模型使用
+        $userInfo = $this->mainUserInfoModel->getUsers();
+        print_r($userInfo1);
+        $this->assign([
+            'actionName' => $actionName,
+            'controllerName' => $controllerName,
+            'name' => $name,
+            'defName' => 'tinyphp',
+            'isName' => $isName,
+            'users' => $userInfo,
+        ]);
+        $this->parse('main/index.htm');
+    }
+    /**
+     * out json
+     */
+    public function apiAction()
+    {
+        $this->response->outFormatJSON(0, ' say hello world', ['name' => 'tinyphp']);
+    }
+    
+    /**
+     * an example of using lang packs
+     *
+     * @param
+     *        void
+     * @return void
+     */
+    public function langAction()
+    {
+        $frameworksName = $this->lang['frameworks_name'];
+        $this->response->appendBody($frameworksName);
+        $this->response->outFormatJSON('0');
+    }
+    
+    /**
+     * an example of using cookies
+     *
+     * profile cookie node
+     * $profile['cookie']['domain'] = '';
+     * $profile['cookie']['path'] = '/';
+     * $profile['cookie']['expires'] = 3600;
+     * $profile['cookie']['prefix'] = '';
+     * $profile['cookie']['encode'] = FALSE;
+     */
+    public function cookieAction()
+    {
+        $this->cookie->set('frameworksName', $this->lang['frameworks_name']);
+        $frameworksName = $this->cookie->get('frameworksName');
+        $this->response->appendBody($frameworksName);
+    }
+    
+    /**
+     * an example of using configs
+     */
+    public function configAction()
+    {
+        $example = [
+            'default' => $this->config['example.default'],
+            'custom' => $this->config['example.custom.name'],
+            'setting' => $this->config->get('example.setting')
+        ];
+        $exampleStr = var_export($example, TRUE);
+        $this->response->appendBody($exampleStr);
+    }
+    
+    /**
+     * an example of using caches
+     */
+    public function cacheAction()
+    {
+        $example = $this->cache->get('example.name');
+        if (!$example)
+        {
+            $example = [
+                'name' => 'tinyphp'
+            ];
+            $this->cache->set('example.name', $example, 60);
+        }
+        $this->response->appendBody(var_export($example, TRUE));
+        
+        /* cache id */
+        $example = $this->cache['default']->get('example.name1');
+        if (!$example)
+        {
+            $example = [
+                'name' => 'tinyphp'
+            ];
+            $this->cache->set('example.name1', $example, 60);
+        }
+        $this->response->appendBody(var_export($example, TRUE));
+    }
+    
+    /**
+     * an example of using sessions
+     */
+    public function sessionAction()
+    {
+        $this->session['frameworksname'] = 'tinyphp';
+        $fname = $this->session['frameworksname'];
+        $this->response->appendBody($fname);
+        
+    }
 }
 ?>

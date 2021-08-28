@@ -16,7 +16,7 @@
  */
 namespace Tiny\Data\Redis;
 
-use Tiny\Data\RedisException;
+use Tiny\Data\Redis\RedisException;
 
 /**
  * Redis的数据结构基类
@@ -98,7 +98,7 @@ abstract class Base
     {
         $this->_redis = $redis;
         $this->_key = (string)$key;
-        if (!$redis instanceof \Redis || !$redis instanceof \RedisArray)
+        if (!$redis instanceof \Redis && !$redis instanceof \RedisArray)
         {
             throw new RedisException(sprintf('Failed to create %s from redis: the class is not an instance of  \Redis or \RedisArray', __CLASS__));
         }

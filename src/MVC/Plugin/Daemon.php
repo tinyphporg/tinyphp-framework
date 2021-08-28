@@ -84,7 +84,7 @@ class Daemon implements Iplugin
         }
         $action = $this->_app->request->param['daemon'] ?: 'start';
         $config = $this->_app->properties['daemon'];
-        if(!$config['enable'])
+        if(!$config['enabled'])
         {
             return;
         }

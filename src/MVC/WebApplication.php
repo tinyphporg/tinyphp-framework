@@ -62,6 +62,7 @@ class WebApplication extends ApplicationBase
     protected function _initResponse()
     {
         $this->response = WebResponse::getInstance();
+        parent::_initResponse();
     }
     
     /**

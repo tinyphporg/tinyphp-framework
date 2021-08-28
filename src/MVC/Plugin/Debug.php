@@ -87,9 +87,25 @@ class Debug implements Iplugin
         }
         $interval = microtime(TRUE) - $this->_startTime;
         $memory = number_format(memory_get_peak_usage(TRUE) / 1024 / 1024, 4);
+        $router = $this->_app->getRouter()->getMatchRouter();
+        if ($router)
+        {
+            $routerName = get_class($router);
+        }
+        $routerStr = $this->_app->request->getRouterString();
+        $routerStr .= '|' . var_export($this->_app->getRouter()->getParams(), TRUE);
+        
         $viewer = $this->_app->getViewer();
         $viewPaths = $viewer->getParsePaths();
         $viewAssign = $viewer->getAssigns();
+        
+        $modelList  = $this->_app->getModelList();
+        $models = [];
+        foreach ($modelList as $model)
+        {
+            $models[] = get_class($model);
+        }
+        $models = join('|', $models);
         $viewer->assign([
             'debug' => $this,
             'debugInterval' => $interval,
@@ -97,6 +113,10 @@ class Debug implements Iplugin
             'debugViewPaths' => $viewPaths,
             'debugViewAssign' => $viewAssign,
             'datamessage' => Db::getQuerys(),
+            'routerName' => $routerName,
+            'routerStr' => $routerStr,
+            'modelList' => $models,
+            'app' => $this->_app,
             'debugExceptions' => ExceptionHandler::getInstance()->getExceptions()
         ]);
         $body = $viewer->fetch($path, TRUE);

@@ -98,7 +98,7 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
      */
     protected function _initPluginBuilder($config)
     {
-        if (!$config || !$config['enable'])
+        if (!$config || !$config['enabled'])
         {
             return;
         }
@@ -123,7 +123,7 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
      */
     protected function _initDaemonPlugin($config)
     {
-        if (!$config || !$config['enable'])
+        if (!$config || !$config['enabled'])
         {
             return;
         }

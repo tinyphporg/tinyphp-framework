@@ -180,7 +180,7 @@ class Param implements \ArrayAccess, \Iterator, \Countable
      */
     public function valid()
     {
-        return key($this->_data) !== null;
+        return key($this->_data) !== NULL;
     }
 
     /**
@@ -203,7 +203,16 @@ class Param implements \ArrayAccess, \Iterator, \Countable
     {
         $this->_data = array_merge($this->_data, $data);
     }
-
+    
+    /**
+     * key is required
+     * @param string $key
+     * @return  bool
+     */
+    public function isRequired($key)
+    {
+        return isset($this->_data[$key]);
+    }
     /**
      * tostring
      *

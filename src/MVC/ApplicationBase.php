@@ -32,6 +32,7 @@ use Tiny\Runtime\Runtime;
 use Tiny\Runtime\Environment;
 use Tiny\Filter\IFilter;
 use Tiny\Filter\Filter;
+use Tiny\Runtime\RuntimeCache;
 
 /**
  * app实例基类
@@ -43,7 +44,7 @@ use Tiny\Filter\Filter;
  */
 abstract class ApplicationBase implements IExceptionHandler
 {
-
+    
     /**
      * 应用实例的插件触发事件集合
      *
@@ -58,6 +59,17 @@ abstract class ApplicationBase implements IExceptionHandler
         'onpostdispatch',
         'onexception'
     ];
+    
+    /**
+     * 应用层 运行时缓存ID
+     * @var array
+     */
+    const RUNTIME_CACHE_ID = [
+    'APP' => 'app',
+    'CONFIG' => 'app.config',
+    'LANG' => 'app.lang',
+    'MODEL' => 'app.model'
+    ];
 
     /**
      * APP所在的目录路径
@@ -66,7 +78,7 @@ abstract class ApplicationBase implements IExceptionHandler
      *
      */
     public $path;
-
+    
     /**
      * App配置文件路径
      *
@@ -74,72 +86,72 @@ abstract class ApplicationBase implements IExceptionHandler
      *
      */
     public $profile;
-
+    
     /**
      * 是否为调试模式
      *
      * @var bool
      */
     public $isDebug = FALSE;
-
+    
     /**
      * 默认语言
      *
      * @var string
      */
     public $charset = 'zh_cn';
-
+    
     /**
      * 默认时区
      *
      * @var string
      */
     public $timezone = 'PRC';
-
+    
     /**
      *
      * @var Runtime
      */
     public $runtime;
-
+    
     /**
      * 运行时参数
      *
      * @var Environment
      */
     public $env;
-
+    
     /**
      * public
      *
      * @var Configuration App的基本配置类
-     *
+     *     
      */
     public $properties;
-
+    
     /**
      * 当前请求实例
      *
      * @var string WebRequest
-     *
+     *     
      */
     public $request;
-
+    
     /**
      * 当前响应实例
      *
      * @var string WebResponse
-     *
+     *     
      */
     public $response;
-
+    
     /**
      * 当前路由器
      *
      * @var IRouter
      */
     public $router;
-
+    
     /**
      * 引导类
      *
@@ -147,105 +159,112 @@ abstract class ApplicationBase implements IExceptionHandler
      *
      */
     protected $_bootstrap;
-
+    
     /**
      * 路由器实例
      *
      * @var Router
      */
     protected $_router;
-
+    
     /**
      * 配置实例
      *
      * @var Configuration
      */
     protected $_config;
-
+    
     /**
      * 缓存实例
      *
      * @var Cache
      */
     protected $_cache;
-
+    
     /**
      * 设置数据池实例
      *
      * @var Data
      */
     protected $_data;
-
+    
     /**
      * 语言包实例
      *
      * @var Lang
      */
     protected $_lang;
-
+    
     /**
      * 日志实例
      *
      * @var Logger
      */
     protected $_logger;
-
+    
     /**
      * 视图实例
      *
      * @var Viewer
      */
     protected $_viewer;
-
+    
     /**
      * 过滤
      *
      * @var \Tiny\Filter\Filter
      */
     protected $_filter;
-
+    
+    /**
+     * debug实例
+     *
+     * @var \Tiny\MVC\Plugin\Debug
+     */
+    protected $_debug;
+    
     /**
      * 控制器的缓存实例数组
      *
      * @var Controller
      */
     protected $_controllers = [];
-
+    
     /**
      * 模型实例数组
      *
      * @var \Tiny\MVC\Model\Base
      */
     protected $_models = [];
-
+    
     /**
      * 默认的命名空间
      *
      * @var string
      */
     protected $_namespace = '';
-
+    
     /**
      * 控制器命名空间
      *
      * @var string
      */
     protected $_cNamespace;
-
+    
     /**
      * 模型命名空间
      *
      * @var string
      */
     protected $_mNamespace;
-
+    
     /**
      * 应用程序运行的时间戳
      *
      * @var int timeline
      */
     protected $_startTime = 0;
-
+    
     /**
      * Application注册的插件
      *
@@ -253,26 +272,31 @@ abstract class ApplicationBase implements IExceptionHandler
      *
      */
     protected $_plugins = [];
-
+    
     /**
      * 配置数组
      *
      * @var Array
      */
     protected $_prop;
-
+    
     /**
-     * model加载类名缓存
+     * 运行时缓存
+     * @var RuntimeCache
+     */
+    protected $_appCache;
+    
+    /**
+     * model搜索节点列表
      *
      * @var array
      */
-    protected $_modelPathList = NULL;
-
+    protected $_modelSearchNodes = FALSE;
+    
     /**
      * 初始化应用实例
      *
-     * @param string $profile
-     *        配置文件路径
+     * @param string $profile 配置文件路径
      * @return void
      */
     public function __construct($path, $profile = NULL)
@@ -282,6 +306,7 @@ abstract class ApplicationBase implements IExceptionHandler
             Tiny::setApplication($this);
         }
         $this->runtime = Runtime::getInstance();
+        $this->_appCache = new RuntimeCache(self::RUNTIME_CACHE_ID['APP']);
         $this->env = $this->runtime->env;
         $this->path = $path;
         if (!$profile)
@@ -292,12 +317,11 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_startTime = microtime(TRUE);
         $this->_init();
     }
-
+    
     /**
      * 设置引导类
      *
-     * @param BootstrapBase $bootStrap
-     *        继承了BootstrapBase的引导类实例
+     * @param BootstrapBase $bootStrap 继承了BootstrapBase的引导类实例
      * @return ApplicationBase
      */
     public function setBootstrap(BootstrapBase $bootStrap)
@@ -305,12 +329,11 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_bootstrap = $bootStrap;
         return $this;
     }
-
+    
     /**
      * 设置配置实例
      *
-     * @param Configuration $config
-     *        配置实例
+     * @param Configuration $config 配置实例
      * @return ApplicationBase
      */
     public function setConfig(Configuration $config)
@@ -318,12 +341,11 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_config = $config;
         return $this;
     }
-
+    
     /**
      * 设置路由器
      *
-     * @param Router $router
-     *        路由器
+     * @param Router $router 路由器
      * @return ApplicationBase
      */
     public function setRouter(Router $router)
@@ -331,7 +353,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_router = $router;
         return $this;
     }
-
+    
     /**
      *
      * @return Router
@@ -345,7 +367,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         return $this->_router;
     }
-
+    
     /**
      * 获取app实例的配置实例
      *
@@ -357,7 +379,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return $this->_config;
         }
-
+        
         $prop = $this->_prop['config'];
         if (!$prop['enabled'])
         {
@@ -368,32 +390,27 @@ abstract class ApplicationBase implements IExceptionHandler
             throw new ApplicationException("properties.config.path is not allow null!");
         }
         $this->_config = new Configuration($prop['path']);
-        if (!$this->isDebug && (!isset($prop['cache']['enable']) || $prop['cache']['enable']))
+        if ($this->isDebug || !$prop['cache']['enabled'])
         {
-            $cachekey = ftok($this->env['SCRIPT_FILENAME'], 'a');
-            $cacheId = $prop['cache']['id'] ?: 'default';
-            $cacheTtl = (int)$prop['cache']['ttl'] ?: 60;
-            $cache = $this->getCache();
-            $cacheHandler = $cacheId ? $cache : $cache[$cacheId];
-            $data  = $cacheHandler->get($cachekey);
-            if($data)
-            {
-                $this->_config->setData($data);
-            }
-            else
-            {
-                $data = $this->_config->get();
-                $cacheHandler->set($cachekey, $data, $cacheTtl);
-            }
+            return $this->_config;
+        }
+        $data = $this->_appCache->get(self::RUNTIME_CACHE_ID['CONFIG']);
+        if ($data && is_array($data))
+        {
+            $this->_config->setData($data);
+        }
+        else 
+        {
+            $data = $this->_config->get();
+            $this->_appCache->set(self::RUNTIME_CACHE_ID['CONFIG'], $data);
         }
         return $this->_config;
     }
-
+    
     /**
      * 设置缓存实例
      *
-     * @param Cache $cache
-     *        缓存实例
+     * @param Cache $cache 缓存实例
      * @return ApplicationBase
      */
     public function setCache(Cache $cache)
@@ -401,7 +418,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_cache = $cache;
         return $this;
     }
-
+    
     /**
      * 获取应用实例的缓存对象
      *
@@ -418,7 +435,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             throw new ApplicationException("properties.cache.enabled is false!");
         }
-
+        
         $this->_cache = Cache::getInstance();
         $prop['drivers'] = $prop['drivers'] ?: [];
         $prop['policys'] = $prop['policys'] ?: [];
@@ -434,12 +451,11 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         return $this->_cache;
     }
-
+    
     /**
      * 设置数据池实例
      *
-     * @param Data $data
-     *        数据池实例
+     * @param Data $data 数据池实例
      * @return ApplicationBase
      */
     public function setData(Data $data)
@@ -447,7 +463,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_data = $data;
         return $this;
     }
-
+    
     /**
      * 获取数据库连接池
      *
@@ -479,19 +495,18 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         return $this->_data;
     }
-
+    
     /**
      * 设置应用过滤器
      *
-     * @param IFilter $filter
-     *        过滤器实例
+     * @param IFilter $filter 过滤器实例
      */
     public function setFilter(IFilter $filter)
     {
         $this->_filter = $filter;
         return $this->_filter;
     }
-
+    
     /**
      * 获取过滤器
      *
@@ -509,7 +524,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return NULL;
         }
-
+        
         $this->_filter = Filter::getInstance();
         if ($this->env['RUNTIME_MODE'] == $this->env['RUNTIME_MODE_WEB'] && $prop['web'])
         {
@@ -532,12 +547,11 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         return $this->_filter;
     }
-
+    
     /**
      * 设置语言包实例
      *
-     * @param Lang $lang
-     *        语言包实例
+     * @param Lang $lang 语言包实例
      * @return self
      */
     public function setLang(Lang $lang)
@@ -545,12 +559,11 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_lang = $lang;
         return $this;
     }
-
+    
     /**
      * 获取语言操作对象
      *
-     * @param
-     *        void
+     * @param void
      * @return Lang
      */
     public function getLang()
@@ -564,17 +577,30 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             throw new ApplicationException("properties.lang.enabled is false!");
         }
-
+        
         $this->_lang = Lang::getInstance();
-        $this->_lang->setLocale($prop['locale'])->setLangPath($prop['path']);
+        $this->_lang->setLocale($prop['locale'])->setPath($prop['path']);
+        if ($this->isDebug || !$prop['cache']['enabled'])
+        {
+            return $this->_lang;
+        }
+        $data = $this->_appCache->get(self::RUNTIME_CACHE_ID['LANG']);
+        if ($data && is_array($data))
+        {
+            $this->_config->setData($data);
+        }
+        else
+        {
+            $data = $this->_config->get();
+            $this->_appCache->set(self::RUNTIME_CACHE_ID['LANG'], $data);
+        }
         return $this->_lang;
     }
-
+    
     /**
      * 设置日志实例
      *
-     * @param Logger $logger
-     *        日志实例
+     * @param Logger $logger 日志实例
      * @return self
      */
     public function setLogger(Logger $logger)
@@ -582,7 +608,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_logger = $logger;
         return $this;
     }
-
+    
     /**
      * 获取日志对象
      *
@@ -611,14 +637,12 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_logger->addWriter($prop['type'], $policy);
         return $this->_logger;
     }
-
+    
     /**
      * 异常触发事件
      *
-     * @param array $exception
-     *        异常
-     * @param array $exceptions
-     *        所有异常
+     * @param array $exception 异常
+     * @param array $exceptions 所有异常
      * @return void
      */
     public function onException($e, $exceptions)
@@ -628,7 +652,7 @@ abstract class ApplicationBase implements IExceptionHandler
         if ($isLog)
         {
             $logMsg = $e['handle'] . ':' . $e['message'] . ' from ' . $e['file'] . ' on line ' . $e['line'];
-            $this->getLogger()->error($logId,$e['level'], $logMsg);
+            $this->getLogger()->error($logId, $e['level'], $logMsg);
         }
         if ($e['isThrow'])
         {
@@ -636,12 +660,11 @@ abstract class ApplicationBase implements IExceptionHandler
             $this->response->output();
         }
     }
-
+    
     /**
      * 简单获取控制器
      *
-     * @param string $cName
-     *        模型名称
+     * @param string $cName 模型名称
      * @return Base
      */
     public function getController($cname)
@@ -654,14 +677,14 @@ abstract class ApplicationBase implements IExceptionHandler
         $cparam = preg_replace_callback("/\b\w/", function ($param) {
             return strtoupper($param[0]);
         }, $cname);
-
+     
         $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
         $controllerName = $this->_cNamespace . $cparam;
         if (!class_exists($controllerName))
         {
             throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_ERROR);
         }
-
+        
         $this->_controllers[$cname] = new $controllerName();
         $this->_controllers[$cname]->setApplication($this);
         if (!$this->_controllers[$cname] instanceof \Tiny\MVC\Controller\Base)
@@ -670,9 +693,18 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         return $this->_controllers[$cname];
     }
-
+    
+    /**
+     * 获取已经加载的控制器列表
+     */
+    public function getControllerList()
+    {
+        return $this->_controllers;
+    }
+    
     /**
      * 获取动作名称
+     *
      * @param string $aname
      */
     public function getAction($aname, bool $isEvent = FALSE)
@@ -681,34 +713,41 @@ abstract class ApplicationBase implements IExceptionHandler
         $aname = $isEvent ? $aname : $aname . 'Action';
         return $aname;
     }
-
+    
     /**
      * 简单获取模型
      *
-     * @param string $modelName
-     *        模型名称
+     * @param string $modelName 模型名称
      * @return \Tiny\MVC\Model\Base
      */
     public function getModel($mname)
     {
-        $mid = strtolower($mname);
-        if ($this->_models[$mid])
+        if ($this->_models[$mname])
         {
-            return $this->_models[$mid];
+            return $this->_models[$mname];
         }
         $modelFullName = $this->_searchModel($mname);
         if ($modelFullName)
         {
-            $this->_models[$mid] = new $modelFullName();
-            return $this->_models[$mid];
+            $this->_models[$mname] = new $modelFullName();
+            return $this->_models[$mname];
         }
     }
-
+    
+    /**
+     * 获取已经加载的model列表
+     * 
+     * @return \Tiny\MVC\Model\Base
+     */
+    public function getModelList()
+    {
+        return $this->_models;
+    }
+    
     /**
      * 设置视图实例
      *
-     * @param Viewer $viewer
-     *        视图实例
+     * @param Viewer $viewer 视图实例
      * @return Base
      */
     public function setViewer(Viewer $viewer)
@@ -716,7 +755,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_viewer = $viewer;
         return $this;
     }
-
+    
     /**
      * 获取视图类型
      *
@@ -730,26 +769,25 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         $prop = $this->_prop['view'];
         $this->_viewer = Viewer::getInstance();
-
+        
         $assign = $prop['assign'] ?: [];
         $engines = $prop['engines'] ?: [];
-
+        
         $assign['env'] = $this->runtime->env;
         $assign['request'] = $this->request;
         $assign['response'] = $this->response;
-        $assign['properties'] = $this->properties;
-
+        
         if ($this->_prop['config']['enabled'])
         {
             $assign['config'] = $this->getConfig();
         }
-
+        
         if ($this->_prop['lang']['enabled'])
         {
             $assign['lang'] = $this->getLang();
             $this->_viewer->setBasePath($this->_prop['lang']['locale']);
         }
-
+        
         foreach ($engines as $ext => $ename)
         {
             $this->_viewer->bindEngineByExt($ext, $ename);
@@ -760,20 +798,20 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_viewer->assign($assign);
         return $this->_viewer;
     }
-
+    
     /**
      * 设置默认的时区
      *
      *
-     * @param string $timezone
-     *        时区标示
+     * @param string $timezone 时区标示
      * @return bool
      */
     public function setTimezone($timezone)
     {
+        $this->timezone = (string)$timezone ?: 'PRC';
         return date_default_timezone_set($timezone);
     }
-
+    
     /**
      * 获取已经设置的默认时区
      *
@@ -784,13 +822,12 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         return date_default_timezone_get();
     }
-
+    
     /**
      * 注册插件
      *
      *
-     * @param Iplugin $plugin
-     *        实现插件接口的实例
+     * @param Iplugin $plugin 实现插件接口的实例
      * @return self
      */
     public function regPlugin(Iplugin $plugin)
@@ -798,7 +835,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_plugins[] = $plugin;
         return $this;
     }
-
+    
     /**
      * 执行
      *
@@ -816,28 +853,25 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->onPostDispatch();
         $this->response->output();
     }
-
-
+    
     /**
      * 分发
      *
      * @access protected
-     * @param string $cname
-     *        控制器名称
-     * @param string $aname
-     *        动作名称
+     * @param string $cname 控制器名称
+     * @param string $aname 动作名称
      * @return mixed
      */
     public function dispatch(string $cname = NULL, string $aname = NULL, array $args = [], bool $isEvent = FALSE)
     {
-        //获取控制器实例
+        // 获取控制器实例
         $controller = $this->getController($cname);
         $this->controller = $controller;
-
-        //获取执行动作名称
+        
+        // 获取执行动作名称
         $action = $this->getAction($aname, $isEvent);
         
-        //触发事件
+        // 触发事件
         if ($isEvent)
         {
             if (method_exists($controller, $action))
@@ -849,41 +883,41 @@ abstract class ApplicationBase implements IExceptionHandler
             }
             return FALSE;
         }
-
-        //执行前返回FALSE则不执行派发动作
-        $ret = call_user_func_array([$controller, 'onBeginExecute'], $args);
+        
+        // 执行前返回FALSE则不执行派发动作
+        $ret = call_user_func_array([$controller, 'onBeginExecute'], $args);        
         if (FALSE === $ret)
         {
             return FALSE;
         }
+        
         if (!method_exists($controller, $action))
         {
             $cname = get_class($controller);
             $aname = $action;
             throw new ApplicationException("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ");
         }
-        $ret = call_user_func_array([
-            $controller,
-            $action
-        ], $args);
-        call_user_func_array([$controller, 'onEndExecute'], $args);
+        $ret = call_user_func_array([$controller, $action], $args);
+        call_user_func_array([$controller,'onEndExecute'], $args);
         return $ret;
     }
-
+    
     /**
      * 运行插件
      *
-     * @param string $method
-     *        插件事件
-     * @param $params array
-     *        参数
+     * @param string $method 插件事件
+     * @param $params array 参数
      * @return void
      */
     public function __call($method, $params)
     {
-        return $this->_onPlugin($method, $params);
+        $method = strtolower($method);
+        if (in_array($method, static::PLUGIN_EVENTS))
+        {
+            return $this->_onPlugin($method, $params);
+        }
     }
-
+    
     /**
      * 执行初始化
      *
@@ -899,7 +933,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_initException();
         $this->_initRequest();
     }
-
+    
     /**
      * 初始化应用程序的配置对象
      *
@@ -908,22 +942,19 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function _initProperties()
     {
         $this->properties = new Configuration($this->profile);
+        if ($this->properties['debug'])
+        {
+            $this->isDebug = TRUE;
+        }
         $this->_initPath($this->properties['path']);
-        $this->_prop = $this->properties->get();
-        $prop = $this->_prop;
+        
+        $prop = $this->properties->get();
         $this->_namespace = $prop['app']['namespace'];
-        if (isset($prop['timezone']))
-        {
-            $this->timezone = $prop['timezone'];
-            $this->setTimezone($prop['timezone']);
-        }
-
-        if (isset($prop['charset']))
-        {
-            $this->charset = $prop['charset'];
-        }
+        $this->setTimezone($prop['timezone']);
+        $this->charset = (string)$prop['charset'] ?: 'zh_cn';
+        $this->_prop = $prop;
     }
-
+    
     /**
      * 初始化命名空间
      *
@@ -941,11 +972,11 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             $cprefix = $this->_prop['controller']['rpc'];
         }
-
+        
         $this->_cNamespace = '\\' . $this->_namespace . '\\' . $cprefix;
         $this->_mNamespace = '\\' . $this->_namespace . '\\' . $this->_prop['model']['namespace'];
     }
-
+    
     /**
      * 初始化debug插件
      *
@@ -953,13 +984,14 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initPlugin()
     {
-        if ($this->properties['debug']['enable'])
+        if ($this->properties['debug']['enabled'])
         {
             $this->isDebug = TRUE;
-            $this->regPlugin(new \Tiny\MVC\Plugin\Debug($this));
+            $this->_debug = new \Tiny\MVC\Plugin\Debug($this);
+            $this->regPlugin($this->_debug);
         }
     }
-
+    
     /**
      * 初始化异常处理
      *
@@ -967,24 +999,23 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initException()
     {
-        if ($this->properties['exception.enable'])
+        if ($this->properties['exception.enabled'])
         {
             $this->runtime->regExceptionHandler($this);
         }
     }
-
+    
     /**
      * 初始化路径
      *
-     * @param array $paths
-     *        初始化路径
+     * @param array $paths 初始化路径
      * @return void
      *
      */
     protected function _initPath(array $paths)
     {
         $runtimePath = $this->properties['app.runtime'];
-        if(!$runtimePath)
+        if (!$runtimePath)
         {
             $runtimePath = $this->path . 'runtime/';
         }
@@ -1001,7 +1032,7 @@ abstract class ApplicationBase implements IExceptionHandler
             }
             if (0 === strpos($path, 'runtime'))
             {
-                $rpath = preg_replace("/\/+/", "/",$runtimePath . substr($path, 7));
+                $rpath = preg_replace("/\/+/", "/", $runtimePath . substr($path, 7));
                 if (!file_exists($rpath))
                 {
                     mkdir($rpath, 0777, TRUE);
@@ -1012,7 +1043,7 @@ abstract class ApplicationBase implements IExceptionHandler
             $this->properties[$p] = $this->path . $path;
         }
     }
-
+    
     /**
      * 初始化加载类库
      *
@@ -1026,7 +1057,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return;
         }
-
+        
         if ($this->_prop['import_no_replacepath'])
         {
             foreach ($this->_prop['imports'] as $ns => $p)
@@ -1040,7 +1071,7 @@ abstract class ApplicationBase implements IExceptionHandler
             $runtime->import($this->properties[$p], $ns);
         }
     }
-
+    
     /**
      * 初始化请求
      *
@@ -1052,7 +1083,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return;
         }
-
+        
         $this->request->setApplication($this);
         $prop = $this->_prop;
         $this->request->setController($prop['controller']['default']);
@@ -1060,7 +1091,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->request->setAction($prop['action']['default']);
         $this->request->setActionParam($prop['action']['param']);
     }
-
+    
     /**
      * 初始化响应
      *
@@ -1072,25 +1103,17 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->response->setLocale($this->properties['lang']['locale']);
         $this->response->setCharset($this->properties['charset']);
     }
-
+    
     /**
      * 通过魔法函数触发插件的事件
      *
      *
-     * @param string $method
-     *        函数名称
-     * @param array $params
-     *        参数数组
+     * @param string $method 函数名称
+     * @param array $params 参数数组
      * @return void
      */
     protected function _onPlugin($method, $params)
-    {
-        $method = strtolower($method);
-        if (!in_array($method, static::PLUGIN_EVENTS))
-        {
-            return;
-        }
-
+    {        
         foreach ($this->_plugins as $plugin)
         {
             $params[] = $this;
@@ -1100,9 +1123,10 @@ abstract class ApplicationBase implements IExceptionHandler
             ], $params);
         }
     }
-
+    
     /**
      * 获取bootstrap实例 考虑到在application的初始化，不提供外部获取方式，避免错误使用。
+     *
      * @throws ApplicationException
      * @return \Tiny\MVC\Bootstrap\Base
      */
@@ -1112,19 +1136,19 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return $this->_bootstrap;
         }
-        if (!$this->_prop['bootstrap']['enable'])
+        if (!$this->_prop['bootstrap']['enabled'])
         {
             return FALSE;
         }
         $className = $this->_prop['bootstrap']['class'];
-        if(!(class_exists($className) && $className instanceof BootstrapBase))
+        if (!(class_exists($className) && $className instanceof BootstrapBase))
         {
             throw new ApplicationException(sprintf('bootstrap faild:%s 不存在或没有继承\Tiny\Bootstrap\Base基类', $className));
         }
         $this->_bootstrap = new $className();
         return $this->_bootstrap;
     }
-
+    
     /**
      * 引导
      *
@@ -1138,7 +1162,7 @@ abstract class ApplicationBase implements IExceptionHandler
             $bootstrap->bootstrap($this);
         }
     }
-
+    
     /**
      * 执行路由
      *
@@ -1154,7 +1178,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $routers = $prop['routers'] ?: [];
         $rules = $prop['rules'] ?: [];
         $router = $this->getRouter();
-
+        
         foreach ($routers as $k => $r)
         {
             $router->regDriver($k, $r);
@@ -1165,13 +1189,23 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         $router->route();
     }
-
+    
     /**
      * 搜索模型
+     *
      * @param string $modelName
      */
     protected function _searchModel($mname)
     {
+        $mName = $mname;
+        if (FALSE === $this->_modelSearchNodes)
+        {
+            $this->_modelSearchNodes = $this->_appCache->get(self::RUNTIME_CACHE_ID['MODEL']);
+        }
+        if($this->_modelSearchNodes[$mName])
+        {
+            return $this->_modelSearchNodes[$mName];
+        }
         if (FALSE === strpos($mname, "\\"))
         {
             $mname = preg_replace('/([A-Z]+)/', '\\\\$1', ucfirst($mname));
@@ -1187,6 +1221,8 @@ abstract class ApplicationBase implements IExceptionHandler
             $modelFullName = $this->_mNamespace . $modelFullName;
             if (class_exists($modelFullName))
             {
+                $this->_modelSearchNodes[$mName] = $modelFullName;
+                $this->_appCache->set(self::RUNTIME_CACHE_ID['MODEL'], $this->_modelSearchNodes);
                 return $modelFullName;
             }
         }

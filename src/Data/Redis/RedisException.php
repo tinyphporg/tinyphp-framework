@@ -11,7 +11,7 @@
  *          King 2017年4月8日下午11:47:08 1 上午修改
  *          King 2020年3月2日11:31 stable 1.0.01 审定
  */
-namespace Tiny\Data;
+namespace Tiny\Data\Redis;
 
 /**
  * 数据异常类
