@@ -88,7 +88,7 @@ class Runtime
      * @var integer
      */
     const RUNTIME_MODE_RPC = 2;
-
+    
     /**
      * 环境参数类
      *
@@ -137,10 +137,10 @@ class Runtime
     protected $_exceptionHandler;
     
     /**
-     * 运行时缓存句柄
-     * @var RunTimeCacheHandler
+     * 运行时缓存实例集合
+     * @var array
      */
-    protected $_cacheHandler;
+    protected $_runtimeCaches = [];
 
     /**
      * 注册或者替换已有的Application
@@ -173,7 +173,26 @@ class Runtime
         }
         return self::$_instance;
     }
-
+    
+    /**
+     * 设置当前运行时的应用实例
+     * 
+     * @param $app ApplicationBase
+     */
+    public function setApplication(ApplicationBase $app)
+    {
+        $this->_app = $app;
+    }
+    
+    /**
+     * 获取当前运行时的应用实例
+     * @return \Tiny\MVC\ApplicationBase
+     */
+    public function getApplication()
+    {
+        return $this->_app;
+    }
+    
     /**
      * 根据运行环境创建应用实例
      *
@@ -233,6 +252,33 @@ class Runtime
     }
 
     /**
+     * 创建一个运行时缓存
+     * @param string $cacheId
+     */
+    public function createRuntimeCache($cacheId)
+    {
+        if (!$this->env['RUNTIME_CACHE_ENABLED'])
+        {
+            return FALSE;
+        }
+        if (!$this->_runtimeCaches[$cacheId])
+        {
+            $this->_runtimeCaches[$cacheId] = new Cache($cacheId);
+        }
+        return $this->_runtimeCaches[$cacheId];
+    }
+    
+    /**
+     *  是否开启运行时缓存
+     *  
+     * @return \Tiny\Runtime\Environment
+     */
+    public function isRuntimeCached()
+    {
+        return $this->env['RUNTIME_CACHE_ENABLED'];       
+    }
+    
+    /**
      * 构建基本运行环境所需的各种类
      *
      * @return void
@@ -240,26 +286,43 @@ class Runtime
     protected function __construct()
     {
         $this->env = Environment::getInstance();
-        
-        // 创建运行时的自动加载实例
         $this->_autoloader = Autoloader::getInstance();
         $this->_autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
-
-        // $this->_autoloader
         $this->_exceptionHandler = ExceptionHandler::getInstance();
     }
+    
 }
 
-class RuntimeCache
+/**
+* 运行时共享内存缓存
+* 
+* 
+* 设置缓存时间 Tiny::setENV[RUNTIME_CACHE_TTL] = INT
+* 是否开启运行时缓存 Tiny::setEnv[RUNTIME_CACHE_ENABLE] = TRUE|FALSE
+* 缓存内存大小设置 Tiny::setEnv[RUNTIME_CACHE_MEMORY] = TRUE|FALSE
+*  注意：当前版本需要shmop扩展支持，单独实例化使用时不支持>10MB存储
+* @package Tiny.Runtime
+* @since 2021年8月29日 下午12:28:43
+* @final 2021年8月29日下午12:28:43
+*/
+class Cache
 {
     /**
+     * 缓存句柄
      * 
      * @var CacheHandler
      */
     protected $_handler;
     
-    protected $_id;
     /**
+     * 唯一缓存ID
+     * 
+     * @var string
+     */
+    protected $_id;
+    
+    /**
+     * 创建缓存唯一句柄
      * 
      * @param string $id
      */
@@ -271,6 +334,7 @@ class RuntimeCache
     
     /**
      *  获取缓存内容
+     *  
      * @param string $key
      * @param mixed $value
      * @return mixed
@@ -301,23 +365,44 @@ class CacheHandler
     
     /**
      * 单一实例
-     * @var \Tiny\Runtime\RunTimeCache
+     * @var \Tiny\Runtime\Cache
      */
     protected static $_instance;
     
-    protected $_isShmop = FALSE;
-    
-    protected $_runtimePath;
-    
-    protected $_data = FALSE;
-    
+    /**
+     * 共享内存的缓存ID
+     * @var string
+     */
+    protected $_memoryId;
+  
+    /**
+     * 缓存过期时间
+     * @var integer
+     */
     protected $_ttl = 60;
     
+    /**
+     * 共享内存
+     * @var int
+     */
+    protected $_memorySize = 10000000;
+    
+    /**
+     * 缓存数据
+     * @var boolean
+     */
+    protected $_data = FALSE;
+    
+    /**
+     * 是否更新标识
+     * 
+     * @var boolean
+     */
     protected $_isUpdated = FALSE;
     
     /**
      * 获取单一实例
-     * @return \Tiny\Runtime\RunTimeCache
+     * @return \Tiny\Runtime\Cache
      */
     public static function getInstance()
     {
@@ -333,10 +418,22 @@ class CacheHandler
      */
     protected function __construct()
     {
-        $this->_isShmop = extension_loaded('shmop');
-        $this->_runtimePath = get_included_files()[0];
+        $env = Runtime::getInstance()->env;
+        if (!$env['RUNTIME_CACHE_ENABLED'])
+        {
+            throw new RuntimeException('运行时内存没有开启： 命令行下环境下不支持，或不支持shmop共享内存扩展');  
+        }
+        $this->_memoryId = $env['RUNTIME_CACHE_ID'];
+        $this->ttl = $env['RUNTIME_CACHE_TTL'];
+        $this->_memorySize = $env['RUNTIME_CACHE_MEMORY'];
     }
     
+    /**
+     * 获取缓存数据
+     * @param string $id 缓存数据节点ID
+     * @param string $key 缓存节点的key
+     * @return boolean
+     */
     public function get($id, $key)
     {
         if (FALSE  === $this->_data)
@@ -349,10 +446,15 @@ class CacheHandler
             $this->_isUpdated = TRUE;
            $this->_data[$id]  = []; 
         }
-        
         return $this->_data[$id][$key];
     }
     
+    /**
+     * 设置缓存数据节点的缓存kv对
+     * @param string $id 缓存数据节点ID
+     * @param string $key 缓存数据键
+     * @param mixed $value 值
+     */
     public function set($id, $key, $value)
     {
         if (FALSE  === $this->_data)
@@ -654,6 +756,12 @@ class Environment implements \ArrayAccess
         'OS_SYSTEM_VERSION_INFO' => NULL,
         'OS_MACHINE_TYPE' => NULL,
         'SCRIRT_DIR' => NULL,
+        'RUNTIME_CACHE_ENABLED' => TRUE,
+        'RUNTIME_CACHE_TTL' => 60,
+        'RUNTIME_CACHE_MEMORY_MIN' => 10 * 1024 * 1024,
+        'RUNTIME_CACHE_MEMORY_MAX' => 100 * 1024 * 1024,
+        'RUNTIME_CACHE_MEMORY' => 10 * 1024 * 1024,
+        'RUNTIME_CACHE_ID' => NULL,
         'RUNTIME_PATH' => NULL,
         'RUNTIME_CONF_PATH' => NULL,
         'RUNTIME_TICK_LINE' => 10,
@@ -662,7 +770,6 @@ class Environment implements \ArrayAccess
         'SCRIPT_FILENAME' => NULL,
         'SCRIPT_FILENAME' => NULL,
         'RUNTIME_MODE' => Runtime::RUNTIME_MODE_WEB,
-
         'RUNTIME_MODE_CONSOLE' => Runtime::RUNTIME_MODE_CONSOLE,
         'RUNTIME_MODE_WEB' => Runtime::RUNTIME_MODE_WEB,
         'RUNTIME_MODE_RPC' => Runtime::RUNTIME_MODE_RPC,
@@ -675,6 +782,11 @@ class Environment implements \ArrayAccess
      */
     protected static $_instance;
 
+    /**
+     * 默认环境参数数组
+     * 
+     * @var array
+     */
     protected static $_defENV = [];
 
     /**
@@ -796,6 +908,28 @@ class Environment implements \ArrayAccess
         {
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
         }
+        //cli 或者没有shmop共享内存模块下，默认不进行运行时缓存
+        if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'] || !extension_loaded('shmop'))
+        {
+            $env['RUNTIME_CACHE_ENABLED'] = FALSE;
+        }
+        
+        //缓存内存设置
+        if ($env['RUNTIME_CACHE_ENABLED'])
+        {
+            $cacheMemory = (int)$env['RUNTIME_CACHE_MEMORY'];
+            if ($cacheMemory < $env['RUNTIME_CACHE_MEMORY_MIN'])
+            {
+                $cacheMemory = $env['RUNTIME_CACHE_MEMORY_MIN'];
+            }
+            if ($cacheMemory > $env['RUNTIME_CACHE_MEMORY_MAX'])
+            {
+                $cacheMemory = $env['RUNTIME_CACHE_MEMORY_MAX'];
+            }
+            $env['RUNTIME_CACHE_MEMORY'] = $cacheMemory;
+            $env['RUNTIME_CACHE_ID'] = ftok(get_included_files()[0], 0);
+        }
+        //注入环境变量
         $this->_envdata = $env;
         $_ENV = $env;
     }

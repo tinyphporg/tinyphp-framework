@@ -35,14 +35,6 @@ require __DIR__ . '/Runtime/Runtime.php';
  */
 class Tiny
 {
-
-    /**
-     * 应用程序加载实例
-     *
-     * @var \Tiny\MVC\ApplicationBase
-     */
-    protected static $_app;
-
     /**
      * 注册或者替换已有的Application实例类
      *
@@ -66,7 +58,7 @@ class Tiny
      */
     public static function setApplication(ApplicationBase $app)
     {
-        self::$_app = $app;
+        return Runtime::getInstance()->setApplication($app);
     }
 
     /**
@@ -76,7 +68,7 @@ class Tiny
      */
     public static function getApplication()
     {
-        return self::$_app;
+        return Runtime::getInstance()->getApplication();
     }
 
     /**
@@ -92,11 +84,8 @@ class Tiny
      */
     public static function createApplication($appPath, $profile = NULL)
     {
-        if (!self::$_app)
-        {
-            self::$_app = Runtime::getInstance()->createApplication($appPath, $profile);
-        }
-        return self::$_app;
+        return Runtime::getInstance()->createApplication($appPath, $profile);
+
     }
 
     /**

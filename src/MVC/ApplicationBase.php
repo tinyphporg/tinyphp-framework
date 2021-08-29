@@ -301,13 +301,6 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     public function __construct($path, $profile = NULL)
     {
-        if (!Tiny::getApplication())
-        {
-            Tiny::setApplication($this);
-        }
-        $this->runtime = Runtime::getInstance();
-        $this->_appCache = new RuntimeCache(self::RUNTIME_CACHE_ID['APP']);
-        $this->env = $this->runtime->env;
         $this->path = $path;
         if (!$profile)
         {
@@ -315,6 +308,17 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         $this->profile = $profile;
         $this->_startTime = microtime(TRUE);
+        
+        /*runtime inited*/
+        $this->runtime = Runtime::getInstance();
+        if(!$this->runtime->getApplication())
+        {
+            $this->runtime->setApplication($this);
+        }
+        $this->env = $this->runtime->env;
+        $this->_appCache = $this->runtime->createRuntimeCache(self::RUNTIME_CACHE_ID['APP']);
+        
+        /*application inited*/
         $this->_init();
     }
     
