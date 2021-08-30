@@ -259,13 +259,32 @@ class Runtime
     {
         if (!$this->env['RUNTIME_CACHE_ENABLED'])
         {
-            return FALSE;
+            return NULL;
         }
         if (!$this->_runtimeCaches[$cacheId])
         {
-            $this->_runtimeCaches[$cacheId] = new Cache($cacheId);
+           $this->_runtimeCaches[$cacheId] = new RuntimeCache($cacheId);
         }
         return $this->_runtimeCaches[$cacheId];
+    }
+    
+    /**
+     * 获取加载器的运行时缓存实例
+     * 
+     * @return RuntimeCache|FALSE
+     */
+    public function getAutoloaderCache()
+    {
+        return $this->createRuntimeCache($this->env['RUNTIME_CACHE_ID_AUTOLOADER']);
+    }
+    
+    /**
+     * 获取当前应用实例的运行时缓存实例
+     * @return boolean
+     */
+    public function getApplicationCache()
+    {
+        return $this->createRuntimeCache($this->env['RUNTIME_CACHE_ID_APPLICATION']);
     }
     
     /**
@@ -287,6 +306,11 @@ class Runtime
     {
         $this->env = Environment::getInstance();
         $this->_autoloader = Autoloader::getInstance();
+        $acache = $this->getAutoloaderCache();
+        if($acache)
+        {
+            $this->_autoloader->setRuntimeCache($acache);
+        }
         $this->_autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
         $this->_exceptionHandler = ExceptionHandler::getInstance();
     }
@@ -305,12 +329,12 @@ class Runtime
 * @since 2021年8月29日 下午12:28:43
 * @final 2021年8月29日下午12:28:43
 */
-class Cache
+class RuntimeCache
 {
     /**
      * 缓存句柄
      * 
-     * @var CacheHandler
+     * @var RuntimeCacheHandler
      */
     protected $_handler;
     
@@ -329,7 +353,7 @@ class Cache
     public function __construct($id)
     {
         $this->_id = (string)$id;
-        $this->_handler = CacheHandler::getInstance();
+        $this->_handler = RuntimeCacheHandler::getInstance();
     }
     
     /**
@@ -360,12 +384,24 @@ class Cache
  * @author macbookpro
  *
  */
-class CacheHandler
+class RuntimeCacheHandler
 {   
     
     /**
+     * 缓存数据头部字节长度
+     * @var integer
+     */
+    const HEADER_LENGTH = 20;
+    
+    /**
+     * 缓存数据时间戳长度 10
+     * @var integer
+     */
+    const HEADER_TIMESTAMP_LENGTH = 10;
+    
+    /**
      * 单一实例
-     * @var \Tiny\Runtime\Cache
+     * @var \Tiny\Runtime\RuntimeCache
      */
     protected static $_instance;
     
@@ -373,7 +409,7 @@ class CacheHandler
      * 共享内存的缓存ID
      * @var string
      */
-    protected $_memoryId;
+    protected $_memoryId = FALSE;
   
     /**
      * 缓存过期时间
@@ -385,7 +421,7 @@ class CacheHandler
      * 共享内存
      * @var int
      */
-    protected $_memorySize = 10000000;
+    protected $_memorySize = 1000000;
     
     /**
      * 缓存数据
@@ -402,7 +438,7 @@ class CacheHandler
     
     /**
      * 获取单一实例
-     * @return \Tiny\Runtime\Cache
+     * @return \Tiny\Runtime\RuntimeCache
      */
     public static function getInstance()
     {
@@ -418,14 +454,14 @@ class CacheHandler
      */
     protected function __construct()
     {
-        $env = Runtime::getInstance()->env;
-        if (!$env['RUNTIME_CACHE_ENABLED'])
+        if (!extension_loaded('shmop'))
         {
-            throw new RuntimeException('运行时内存没有开启： 命令行下环境下不支持，或不支持shmop共享内存扩展');  
+            throw new RuntimeException('开启运行时内存需要shmop共享内存扩展支持');  
         }
+        $env = Environment::getInstance();
         $this->_memoryId = $env['RUNTIME_CACHE_ID'];
-        $this->ttl = $env['RUNTIME_CACHE_TTL'];
         $this->_memorySize = $env['RUNTIME_CACHE_MEMORY'];
+        $this->ttl = $env['RUNTIME_CACHE_TTL'];
     }
     
     /**
@@ -472,61 +508,67 @@ class CacheHandler
         }
     }
     
+    /**
+     * 检测更新 并保存到共享内存中
+     */
     public function __destruct()
     {
-        if ($this->_isUpdated)
-        {
-            return $this->_isShmop ? $this->_wrtieDataByShmop() : $this->_wrtieDataByShmop();
-        }
-    }
-    
-    protected function _loadData()
-    {
-        return $this->_isShmop ? $this->_loadDataByShmop() : $this->_loadDataByShmop();
-    }
-    
-    protected function _loadDataByShmop()
-    {
-        $shmKey = ftok($this->_runtimePath, 0);
-        $shmId = shmop_open($shmKey, 'c', 0644, 4 * 1024 * 1024);
-        if(!$shmId)
-        {
-            return [];
-        }
-        $cdata = shmop_read($shmId, 0, shmop_size($shmId));
-        if (!$cdata)
-        {
-            shmop_close($shmId);
-            return [];
-        }
-        
-        $data = unserialize($cdata);
-        if (!is_array($data) || ((int)$data['timestamp'] + $this->_ttl < time()))
-        {
-            shmop_delete($shmId);
-            shmop_close($shmId);
-            return [];
-        }
-        return $data['data'];
-    }
-        
-    protected function _wrtieDataByShmop()
-    {
-        $data = [];
-        $data['timestamp'] = time();
-        $data['data'] = $this->_data;
-        $cdata = serialize($data);
-        //echo $cdata;
-        $shmKey = ftok($this->_runtimePath, 0);
-        $shmId = shmop_open($shmKey, 'c', 0644, 4 * 1024 * 1024);
-        if(!$shmId)
+        if (!$this->_isUpdated)
         {
             return;
         }
-        shmop_write($shmId, $cdata, 0);
-        shmop_close($shmId);
+        $this->_wrtieData();
     }
- 
+    
+    /**
+     * 从共享内存缓存中加载数据
+     * 
+     * @return array|mixed
+     */
+    protected function _loadData()
+    {
+        
+        $shmId = shmop_open($this->_memoryId, 'c', 0644, $this->_memorySize);
+        if(!$shmId)
+        {
+            return [];
+        }
+        $timestamp = shmop_read($shmId, 0, self::HEADER_TIMESTAMP_LENGTH);
+        if (time() > $timestamp)
+        {
+            shmop_close($shmId);
+            return [];
+        }
+        $dataLength = (int)shmop_read($shmId, self::HEADER_TIMESTAMP_LENGTH, self::HEADER_LENGTH);
+        $cdata = (string)shmop_read($shmId, self::HEADER_LENGTH, $dataLength);
+        shmop_close($shmId);
+        $data = unserialize($cdata);
+        return $data ?:[];
+    }
+    
+    /**
+     * 写入共享缓存数据
+     * @return void
+     */
+    protected function _wrtieData()
+    {
+        $data = serialize($this->_data);
+        $timestamp = time() + $this->_ttl;
+        $dataLength = str_pad(strlen($data), 10, 0, STR_PAD_LEFT);
+        $cdata =  (string)$timestamp . $dataLength . $data;
+        if (self::HEADER_LENGTH + $dataLength >= $this->_memorySize)
+        {
+            return FALSE;
+        }
+        $shmId = shmop_open($this->_memoryId, 'c', 0644, $this->_memorySize);
+        if(!$shmId)
+        {
+            return FALSE;
+        }
+        $ret  = shmop_write($shmId, $cdata, 0);
+        shmop_close($shmId);
+        return $ret;
+    }
 }
 
 /**
@@ -545,12 +587,14 @@ class Autoloader
      * @var Runtime
      */
     protected static $_instance;
-
+    
     /**
+     * 运行时缓存实例
      * 
      * @var RuntimeCache
      */
-    protected $_runtimeCache;
+    protected $_runtimeCache = FALSE;
+    
     /**
      * 库的缓存数组
      *
@@ -616,6 +660,11 @@ class Autoloader
         $this->_libs[$namespace][] = $path;
     }
 
+    /**
+     * 获取加载的库路径
+     * 
+     * @return array
+     */
     public function getImports()
     {
         return $this->_libs;
@@ -629,18 +678,16 @@ class Autoloader
      */
     public function load($cname)
     {
-        $ipath = $this->_runtimeCache->get($cname);
+        $ipath = $this->_getPathFromRuntimeCache($cname);
         if ($ipath)
         {
-            return include($ipath);
+            return include_once($ipath);
         }
-        //echo $cname . '|' . strrpos($cname, "\\") . "\n";
         if (FALSE === strpos($cname, "\\"))
         {
             $ipath =  $cname . '.php';
-            $this->_runtimeCache->set($cname, $ipath);
-            include $ipath;
-            return;
+            $this->_saveToRuntimeCache($cname, $ipath);
+            return include_once($ipath);
         }
         $searchParams = [];
         $params = explode("\\", $cname);
@@ -660,6 +707,44 @@ class Autoloader
         }
     }
 
+    /**
+     * 设置加载器的运行时缓存实例 初始化时自动调用
+     * @param RuntimeCache $runtimecache
+     */
+    public function setRuntimeCache(RuntimeCache $runtimecache)
+    {
+        $this->_runtimeCache = $runtimecache;
+    }
+    
+    /**
+     * 保存class对应的路径到runtimecache实例中
+     * @param string $cname
+     * @param string $fpath
+     * @return boolean
+     */
+    protected function _saveToRuntimeCache($cname, $fpath)
+    {
+        if (!$this->_runtimeCache)
+        {
+            return FALSE;
+        }
+        return $this->_runtimeCache->set($cname, $fpath);
+    }
+    
+    /**
+     * 从runtime中获取类名对应的fpath
+     * @param string $cname
+     * @return boolean|string
+     */
+    protected function _getPathFromRuntimeCache($cname)
+    {
+        if (!$this->_runtimeCache)
+        {
+            return FALSE;
+        }
+        return $this->_runtimeCache->get($cname);
+    }
+    
     /**
      * 寻找和加载类路径
      *
@@ -694,8 +779,8 @@ class Autoloader
                     return FALSE;
                 }
             }
-            $this->_runtimeCache->set($cname, $ipath);
-            include_once ($ipath);
+            $this->_saveToRuntimeCache($cname, $ipath);
+            include_once($ipath);
         }
         return FALSE;
     }
@@ -709,7 +794,6 @@ class Autoloader
      */
     protected function __construct()
     {
-        $this->_runtimeCache = new RuntimeCache('autoloader');
         spl_autoload_register([
             $this,
             'load'
@@ -758,10 +842,12 @@ class Environment implements \ArrayAccess
         'SCRIRT_DIR' => NULL,
         'RUNTIME_CACHE_ENABLED' => TRUE,
         'RUNTIME_CACHE_TTL' => 60,
-        'RUNTIME_CACHE_MEMORY_MIN' => 10 * 1024 * 1024,
+        'RUNTIME_CACHE_MEMORY_MIN' => 1 * 1024 * 1024,
         'RUNTIME_CACHE_MEMORY_MAX' => 100 * 1024 * 1024,
         'RUNTIME_CACHE_MEMORY' => 10 * 1024 * 1024,
         'RUNTIME_CACHE_ID' => NULL,
+        'RUNTIME_CACHE_ID_AUTOLOADER' => 'autoloader',
+        'RUNTIME_CACHE_ID_APPLICATION' => 'application',
         'RUNTIME_PATH' => NULL,
         'RUNTIME_CONF_PATH' => NULL,
         'RUNTIME_TICK_LINE' => 10,
@@ -911,7 +997,7 @@ class Environment implements \ArrayAccess
         //cli 或者没有shmop共享内存模块下，默认不进行运行时缓存
         if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'] || !extension_loaded('shmop'))
         {
-            $env['RUNTIME_CACHE_ENABLED'] = FALSE;
+            //$env['RUNTIME_CACHE_ENABLED'] = FALSE;
         }
         
         //缓存内存设置

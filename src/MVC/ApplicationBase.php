@@ -61,11 +61,10 @@ abstract class ApplicationBase implements IExceptionHandler
     ];
     
     /**
-     * 应用层 运行时缓存ID
+     * 应用层 运行时缓存KEY
      * @var array
      */
-    const RUNTIME_CACHE_ID = [
-    'APP' => 'app',
+    const RUNTIME_CACHE_KEY = [
     'CONFIG' => 'app.config',
     'LANG' => 'app.lang',
     'MODEL' => 'app.model'
@@ -282,9 +281,10 @@ abstract class ApplicationBase implements IExceptionHandler
     
     /**
      * 运行时缓存
+     * 
      * @var RuntimeCache
      */
-    protected $_appCache;
+    protected $_runtimeCache;
     
     /**
      * model搜索节点列表
@@ -301,6 +301,22 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     public function __construct($path, $profile = NULL)
     {
+        /*runtime inited*/
+        $this->runtime = Runtime::getInstance();
+        $this->env = $this->runtime->env;
+        if(!$this->runtime->getApplication())
+        {
+            $this->runtime->setApplication($this);
+        }
+     
+        /*设置应用实例的运行时缓存*/
+        $runtimeCache = $this->runtime->getApplicationCache();
+        if ($runtimeCache)
+        {
+            $this->_runtimeCache = $runtimeCache;
+        }
+        
+        /*应用实例路径配置和初始化*/
         $this->path = $path;
         if (!$profile)
         {
@@ -308,17 +324,6 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         $this->profile = $profile;
         $this->_startTime = microtime(TRUE);
-        
-        /*runtime inited*/
-        $this->runtime = Runtime::getInstance();
-        if(!$this->runtime->getApplication())
-        {
-            $this->runtime->setApplication($this);
-        }
-        $this->env = $this->runtime->env;
-        $this->_appCache = $this->runtime->createRuntimeCache(self::RUNTIME_CACHE_ID['APP']);
-        
-        /*application inited*/
         $this->_init();
     }
     
@@ -398,7 +403,8 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return $this->_config;
         }
-        $data = $this->_appCache->get(self::RUNTIME_CACHE_ID['CONFIG']);
+        
+        $data = $this->_runtimeCache->get(self::RUNTIME_CACHE_KEY['CONFIG']);
         if ($data && is_array($data))
         {
             $this->_config->setData($data);
@@ -406,7 +412,7 @@ abstract class ApplicationBase implements IExceptionHandler
         else 
         {
             $data = $this->_config->get();
-            $this->_appCache->set(self::RUNTIME_CACHE_ID['CONFIG'], $data);
+            $this->_runtimeCache->set(self::RUNTIME_CACHE_KEY['CONFIG'], $data);
         }
         return $this->_config;
     }
@@ -588,7 +594,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return $this->_lang;
         }
-        $data = $this->_appCache->get(self::RUNTIME_CACHE_ID['LANG']);
+        $data = $this->_runtimeCache->get(self::RUNTIME_CACHE_KEY['LANG']);
         if ($data && is_array($data))
         {
             $this->_config->setData($data);
@@ -596,7 +602,7 @@ abstract class ApplicationBase implements IExceptionHandler
         else
         {
             $data = $this->_config->get();
-            $this->_appCache->set(self::RUNTIME_CACHE_ID['LANG'], $data);
+            $this->_runtimeCache->set(self::RUNTIME_CACHE_KEY['LANG'], $data);
         }
         return $this->_lang;
     }
@@ -1201,15 +1207,13 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _searchModel($mname)
     {
+        $modelFullName = $this->_getModelDataFromRuntimeCache($mname);
+        if ($modelFullName)
+        {
+            return $modelFullName;
+        }
         $mName = $mname;
-        if (FALSE === $this->_modelSearchNodes)
-        {
-            $this->_modelSearchNodes = $this->_appCache->get(self::RUNTIME_CACHE_ID['MODEL']);
-        }
-        if($this->_modelSearchNodes[$mName])
-        {
-            return $this->_modelSearchNodes[$mName];
-        }
+        
         if (FALSE === strpos($mname, "\\"))
         {
             $mname = preg_replace('/([A-Z]+)/', '\\\\$1', ucfirst($mname));
@@ -1225,11 +1229,115 @@ abstract class ApplicationBase implements IExceptionHandler
             $modelFullName = $this->_mNamespace . $modelFullName;
             if (class_exists($modelFullName))
             {
-                $this->_modelSearchNodes[$mName] = $modelFullName;
-                $this->_appCache->set(self::RUNTIME_CACHE_ID['MODEL'], $this->_modelSearchNodes);
+                $this->_saveModelDataToRuntimeCache($mName, $modelFullName);
                 return $modelFullName;
             }
         }
+    }
+    
+    /**
+     * 从运行时缓存获取模型类查找配置数据
+     *
+     * @return data|FALSE
+     */
+    protected function _getModelDataFromRuntimeCache($mname)
+    {
+        if (FALSE === $this->_modelSearchNodes)
+        {
+            $this->_modelSearchNodes = $this->_runtimeCache->get(self::RUNTIME_CACHE_KEY['MODEL']) ?: [];
+        }
+        if($this->_modelSearchNodes[$mname])
+        {
+            return $this->_modelSearchNodes[$mname];
+        }
+    }
+    
+    /**
+     * 保存模型类配置数据到运行时缓存
+     *
+     * @param array $data
+     * @return boolean
+     */
+    protected function _saveModelDataToRuntimeCache($mname, $modelFullName)
+    {
+        $this->_modelSearchNodes[$mname] = $modelFullName;
+        return $this->_saveDataToRuntimeCache(self::RUNTIME_CACHE_KEY['MODEL'], $this->_modelSearchNodes);
+    }
+    
+    /**
+     * 从运行时缓存获取语言包配置数据
+     *
+     * @return data|FALSE
+     */
+    protected function _getLangDataFromRuntimeCache()
+    {
+        return $this->_getDataFromRuntimeCache(self::RUNTIME_CACHE_KEY['LANG']);
+    }
+    
+    /**
+     * 保存语言包配置数据到运行时缓存
+     *
+     * @param array $data
+     * @return boolean
+     */
+    protected function _saveLangDataToRuntimeCache($data)
+    {
+        return $this->_saveDataToRuntimeCache(self::RUNTIME_CACHE_KEY['LANG'], $data);
+    }
+    
+    /**
+     * 从运行时缓存获取配置数据
+     *
+     * @return data|FALSE
+     */
+    protected function _getConfigDataFromRuntimeCache()
+    {
+        return $this->_getDataFromRuntimeCache(self::RUNTIME_CACHE_KEY['CONFIG']);
+    }
+    
+    /**
+     * 保存配置数据到运行时缓存
+     *
+     * @param array $data
+     * @return boolean
+     */
+    protected function _saveConfigDataToRuntimeCache($data)
+    {
+        return $this->_saveDataToRuntimeCache(self::RUNTIME_CACHE_KEY['CONFIG'], $data);
+    }
+    
+    /**
+     * 从运行时缓存获取数据
+     * 
+     * @return data|FALSE
+     */
+    protected function _getDataFromRuntimeCache($key)
+    {
+        if (!$this->_runtimeCache)
+        {
+            return FALSE;
+        }
+        $data = $this->_runtimeCache->get($key);
+        if (!$data || !is_array($data))
+        {
+            return FALSE;
+        }
+        return $data;
+    }
+    
+    /**
+     * 保存数据到运行时缓存
+     * 
+     * @param array $data
+     * @return boolean
+     */
+    protected function _saveDataToRuntimeCache($key, $data)
+    {
+        if (!$this->_runtimeCache)
+        {
+            return FALSE;
+        }
+        return $this->_runtimeCache->set($key, $data);
     }
 }
 ?>
