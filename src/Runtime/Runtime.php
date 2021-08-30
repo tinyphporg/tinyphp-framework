@@ -421,7 +421,7 @@ class RuntimeCacheHandler
      * 共享内存
      * @var int
      */
-    protected $_memorySize = 1000000;
+    protected $_memorySize = 1048576;
     
     /**
      * 缓存数据
@@ -527,8 +527,7 @@ class RuntimeCacheHandler
      */
     protected function _loadData()
     {
-        
-        $shmId = shmop_open($this->_memoryId, 'c', 0644, $this->_memorySize);
+        @$shmId = shmop_open($this->_memoryId, 'a', 0644, 0);
         if(!$shmId)
         {
             return [];
@@ -548,6 +547,7 @@ class RuntimeCacheHandler
     
     /**
      * 写入共享缓存数据
+     * 
      * @return void
      */
     protected function _wrtieData()
@@ -842,9 +842,9 @@ class Environment implements \ArrayAccess
         'SCRIRT_DIR' => NULL,
         'RUNTIME_CACHE_ENABLED' => TRUE,
         'RUNTIME_CACHE_TTL' => 60,
-        'RUNTIME_CACHE_MEMORY_MIN' => 1 * 1024 * 1024,
-        'RUNTIME_CACHE_MEMORY_MAX' => 100 * 1024 * 1024,
-        'RUNTIME_CACHE_MEMORY' => 10 * 1024 * 1024,
+        'RUNTIME_CACHE_MEMORY_MIN' => 1048576,
+        'RUNTIME_CACHE_MEMORY_MAX' => 104857600,
+        'RUNTIME_CACHE_MEMORY' => 10485760,
         'RUNTIME_CACHE_ID' => NULL,
         'RUNTIME_CACHE_ID_AUTOLOADER' => 'autoloader',
         'RUNTIME_CACHE_ID_APPLICATION' => 'application',
@@ -997,7 +997,7 @@ class Environment implements \ArrayAccess
         //cli 或者没有shmop共享内存模块下，默认不进行运行时缓存
         if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'] || !extension_loaded('shmop'))
         {
-            //$env['RUNTIME_CACHE_ENABLED'] = FALSE;
+            $env['RUNTIME_CACHE_ENABLED'] = FALSE;
         }
         
         //缓存内存设置
