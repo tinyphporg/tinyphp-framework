@@ -142,7 +142,7 @@ class Builder
     /**
      * 执行phar打包
      *
-     * @return void
+     * @return boolean
      */
     public function run()
     {
@@ -155,6 +155,7 @@ class Builder
         $this->_addImprot();
         $this->_addFrameWork();
         $this->_createrPharFile();
+        return TRUE;
     }
 
     /**
