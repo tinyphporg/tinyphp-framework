@@ -84,11 +84,13 @@ class Builder implements Iplugin
         {
             return;
         }
+        
         $paramName = (string)$config['param_name'] ?: 'build';
         if (!$this->_app->request->param[$paramName])
         {
             return;
         }
+        
         $bpath = $this->_app->properties['build.path'];
         if(!file_exists($bpath))
         {
@@ -96,33 +98,32 @@ class Builder implements Iplugin
         }
 
         $options = [];
-        if (file_exists($config['setting_path']))
+        if (file_exists($config['config_path']))
         {
-            $options['setting_path'] = $config['setting_path'];
+            $options['config_path'] = $config['config_path'];
         }
         $options['application_path'] = $this->_app->path;
         $options['properties']  = (new Configuration($this->_app->profile))->get();
         $options['config'] = $this->_app->getConfig()->get();
-
-        $options['attachments'][] = ['runtime', $this->_app->path . $this->_properties['app.runtime'], TRUE];
+        $options['home_attachments']['runtime'] = ['runtime', $this->_app->path . $this->_properties['app.runtime'], TRUE];
 
         //自定义config数据
-        $spath = $this->_app->properties['build.setting_path'];
+        $spath = $this->_app->properties['build.config_path'];
         if ($spath && file_exists($spath))
         {
-            $options['attachments']['setting'] = ['setting', $spath];
+            $options['home_attachments']['config'] = ['config', $spath];
         }
 
         //自定义properties
         $ppath = $this->_app->properties['build.profile_path'];
         if ($ppath && file_exists($ppath))
         {
-            $options['attachments']['profile'] = ['profile', $ppath];
+            $options['home_attachments']['profile'] = ['profile', $ppath];
         }
 
         //框架路径
         $options['framework_path'] = FRAMEWORK_PATH;
-        foreach ($this->_properties['imports'] as $ns => $path)
+        foreach ($this->_properties['autoloader']['librarys'] as $ns => $path)
         {
             $options['imports'][$ns] = $this->_properties[$path];
         }
@@ -140,9 +141,9 @@ class Builder implements Iplugin
             $ret = (new \Tiny\Build\Builder($buildOptions))->run();
             echo $buildOptions['name'] . " build ";
             echo $ret ? 'success' : 'faild';
-            echo "\n";
-            $this->_app->response->end();
+            echo "\n";   
         }
+        $this->_app->response->end();
     }
 
     /**

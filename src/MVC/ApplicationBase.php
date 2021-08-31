@@ -695,13 +695,14 @@ abstract class ApplicationBase implements IExceptionHandler
             throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_ERROR);
         }
         
-        $this->_controllers[$cname] = new $controllerName();
-        $this->_controllers[$cname]->setApplication($this);
-        if (!$this->_controllers[$cname] instanceof \Tiny\MVC\Controller\Base)
+        $controllerInstance = new $controllerName();
+        if (!$controllerInstance instanceof \Tiny\MVC\Controller\Base)
         {
             throw new ApplicationException("Controller:'{$controllerName}' is not instanceof Tiny\MVC\Controlller\Controller!", E_ERROR);
         }
-        return $this->_controllers[$cname];
+        $controllerInstance->setApplication($this);
+        $this->_controllers[$cname] = $controllerInstance;
+        return $controllerInstance;
     }
     
     /**
@@ -749,7 +750,7 @@ abstract class ApplicationBase implements IExceptionHandler
      * 
      * @return \Tiny\MVC\Model\Base
      */
-    public function getModelList()
+    public function getModels()
     {
         return $this->_models;
     }
@@ -857,7 +858,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->onRouterStartup();
         $this->_route();
         $this->onRouterShutdown();
-        $this->_doFilter();
+        //$this->_doFilter();
         $this->onPreDispatch();
         $this->dispatch();
         $this->onPostDispatch();
@@ -1063,20 +1064,20 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         $runtime = Runtime::getInstance();
         $runtime->import($this->path, $this->_namespace);
-        if (!is_array($this->_prop['imports']))
+        $prop = $this->_prop['autoloader'];
+        if (!is_array($prop['librarys']))
         {
             return;
         }
-        
-        if ($this->_prop['import_no_replacepath'])
+        if ($prop['no_realpath'])
         {
-            foreach ($this->_prop['imports'] as $ns => $p)
+            foreach ($prop['librarys'] as $ns => $p)
             {
                 $runtime->import($p, $ns);
             }
             return;
         }
-        foreach ($this->_prop['imports'] as $ns => $p)
+        foreach ($prop['librarys'] as $ns => $p)
         {
             $runtime->import($this->properties[$p], $ns);
         }
@@ -1151,11 +1152,16 @@ abstract class ApplicationBase implements IExceptionHandler
             return FALSE;
         }
         $className = $this->_prop['bootstrap']['class'];
-        if (!(class_exists($className) && $className instanceof BootstrapBase))
+        
+        if (!class_exists($className))
         {
-            throw new ApplicationException(sprintf('bootstrap faild:%s 不存在或没有继承\Tiny\Bootstrap\Base基类', $className));
+            throw new ApplicationException(sprintf('bootstrap faild:%s 不存在', $className));
         }
         $this->_bootstrap = new $className();
+        if (!$this->_bootstrap instanceof BootstrapBase)
+        {
+            throw new ApplicationException(sprintf('bootstrap faild:%s 没有继承\Tiny\Bootstrap\Base基类', $className));
+        }
         return $this->_bootstrap;
     }
     

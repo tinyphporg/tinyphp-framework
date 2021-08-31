@@ -30,16 +30,16 @@ $profile['exception']['logid'] = 'tinyphp_exception';
 /**
  * 应用设置 配置文件里的相对路径 都是基于application文件夹所在路径
  */
-$profile['app']['namespace'] = 'App';   /*命名空间*/
+$profile['app']['namespace'] = 'App';        /*命名空间*/
 $profile['app']['resources'] = 'resource/';  /*资源文件夹*/
-$profile['app']['runtime'] = 'runtime/';
-$profile['app']['tmp'] = 'runtime/tmp/';
-//$profile['app']['cached']['enabled'] = TRUE;
+$profile['app']['runtime'] = 'runtime/';     /*运行时文件夹*/
+$profile['app']['tmp'] = 'runtime/tmp/';     /*临时文件夹*/
+
 /**
  * 自动加载引导类
  */
-$profile['bootstrap']['enabled'] = FALSE;
-$profile['bootstrap']['class'] = '\App\Common\Bootstarp';
+$profile['bootstrap']['enabled'] = TRUE;
+$profile['bootstrap']['class'] = '\App\Common\Bootstrap';
 
 /**
  * 打包器设置
@@ -48,13 +48,12 @@ $profile['build']['enabled'] = TRUE;  /*不开启时 忽略build打包行为*/
 $profile['build']['param_name'] = 'build'; /*--build参数 开启打包工作*/
 $profile['build']['plugin'] = '\Tiny\MVC\Plugin\Builder';
 $profile['build']['path'] = 'build/builder'; /*打包配置文件夹*/
-$profile['build']['setting_path'] = 'build/setting';  /*打包器的设置文件夹，用来自定义application.config数据*/
+$profile['build']['config_path'] = 'build/config';  /*打包器的设置文件夹，用来自定义application.config数据*/
 $profile['build']['profile_path'] = 'build/profile';  /*打包器的属性文件夹,用来自定义application.properties数据*/
 
 /**
  * 调试器设置
  */
-//$profile['debug']['enable'] = TRUE;
 $profile['debug']['param_name'] = 'debug';
 $profile['debug']['class'] = '\Tiny\MVC\Plugin\Debug';
 
@@ -88,14 +87,13 @@ $profile['daemon']['policys'] = [
  * application的源码设置
  */
 $profile['src']['path'] = '';             /*源码路径*/
-$profile['src']['global'] = 'global/';       /*全局类*/
-$profile['src']['library'] = 'library/';       /*实例库*/
-
+$profile['src']['global'] = 'libs/global/';       /*全局类*/
+$profile['src']['library'] = 'libs/vendor/';       /*外部引入实例库*/
 $profile['src']['controller'] = 'controllers/web/'; /*控制类*/
 $profile['src']['model'] = 'models/';           /*模型类*/
 $profile['src']['console'] = 'controllers/console/';        /*命令行控制类*/
 $profile['src']['rpc'] = 'controllers/rpc/';               /*rpc控制类*/
-$profile['src']['common'] = 'common/';         /*通用类*/
+$profile['src']['common'] = 'libs/common/';         /*通用类*/
 $profile['src']['view'] = 'views/';             /*视图源码*/
 
 /**
@@ -244,7 +242,7 @@ $profile['view']['assign'] = [];
  * 路由规则设置
  */
 $profile['router']['enabled'] = TRUE; /* 是否开启router */
-$profile['router']['routers'] = []; /*注册自定义的router*/
+$profile['router']['routers'] = [];   /*注册自定义的router*/
 $profile['router']['rules'] = [
     ['router' => 'pathinfo', 'rule' => ['ext' => '.html'], 'domain' => ''],
     ];
@@ -262,7 +260,7 @@ $profile['path'] = [
             'app.assets',
             'build.path',
             'build.profile_path',
-            'build.setting_path',
+            'build.config_path',
             'config.path',
             'lang.path',
             'log.path',
@@ -285,7 +283,8 @@ $profile['path'] = [
 /**
  * 自动加载库的配置
  */
-$profile['imports'] = [
+$profile['autoloader']['no_realpath'] = FALSE;   /*是否替换加载库的路径为真实路径 phar兼容性*/
+$profile['autoloader']['librarys'] = [
 		'App\Controller' => 'src.controller',
 		'App\Controller\Console' => 'src.console',
 		'App\Controller\Rpc' => 'src.rpc',
@@ -293,9 +292,4 @@ $profile['imports'] = [
 		'App\Common' => 'src.common',
 		'*' => 'src.global',
 ];
-
-/**
- * 是否需要替换加载库里的路径为真实路径
- */
- $profile['import_no_replacepath'] = FALSE;
 ?>

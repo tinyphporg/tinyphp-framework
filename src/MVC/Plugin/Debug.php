@@ -99,7 +99,7 @@ class Debug implements Iplugin
         $viewPaths = $viewer->getParsePaths();
         $viewAssign = $viewer->getAssigns();
         
-        $modelList  = $this->_app->getModelList();
+        $modelList  = $this->_app->getModels();
         $models = [];
         foreach ($modelList as $model)
         {

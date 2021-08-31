@@ -44,7 +44,7 @@ class WebFilter implements IFilter
      * @param array $data
      * @return array
      */
-    public function filterXSS($data)
+    public function formatXSS($data)
     {
         return htmlspecialchars($data);
     }
