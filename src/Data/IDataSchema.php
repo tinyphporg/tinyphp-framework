@@ -38,7 +38,7 @@ interface IDataSchema
     /**
      * 返回连接后的句柄
      *
-     * @return ISchema
+     * @return IDataSchema
      *
      */
     public function getConnector();

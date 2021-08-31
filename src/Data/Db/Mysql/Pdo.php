@@ -256,7 +256,7 @@ class Pdo implements IDb
         /**
          * PDB query statement
          *
-         * @var PDOStatement $statement
+         * @var \PDOStatement $statement
          */
         $count = $conn->exec($sql);
 
