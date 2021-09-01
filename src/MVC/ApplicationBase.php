@@ -594,7 +594,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return $this->_lang;
         }
-        $data = $this->_runtimeCache->get(self::RUNTIME_CACHE_KEY['LANG']);
+        $data = $this->_getLangDataFromRuntimeCache();
         if ($data && is_array($data))
         {
             $this->_config->setData($data);
@@ -602,7 +602,7 @@ abstract class ApplicationBase implements IExceptionHandler
         else
         {
             $data = $this->_config->get();
-            $this->_runtimeCache->set(self::RUNTIME_CACHE_KEY['LANG'], $data);
+            $this->_saveLangDataToRuntimeCache($data);
         }
         return $this->_lang;
     }
