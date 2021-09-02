@@ -953,7 +953,7 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function _initProperties()
     {
         $this->properties = new Configuration($this->profile);
-        if ($this->properties['debug'])
+        if ($this->properties['debug']['enabled'])
         {
             $this->isDebug = TRUE;
         }
@@ -997,7 +997,6 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         if ($this->properties['debug']['enabled'])
         {
-            $this->isDebug = TRUE;
             $this->_debug = new \Tiny\MVC\Plugin\Debug($this);
             $this->regPlugin($this->_debug);
         }
