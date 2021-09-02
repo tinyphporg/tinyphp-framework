@@ -601,7 +601,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         else
         {
-            $data = $this->_lang->get();
+            $data = $this->_lang->getData();
             $this->_saveLangDataToRuntimeCache($data);
         }
         return $this->_lang;
