@@ -1249,7 +1249,7 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         if (FALSE === $this->_modelSearchNodes)
         {
-            $this->_modelSearchNodes = $this->_runtimeCache->get(self::RUNTIME_CACHE_KEY['MODEL']) ?: [];
+            $this->_modelSearchNodes = $this->_getDataFromRuntimeCache(self::RUNTIME_CACHE_KEY['MODEL']) ?: [];
         }
         if($this->_modelSearchNodes[$mname])
         {
