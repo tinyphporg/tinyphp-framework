@@ -1,5 +1,5 @@
 {
-    "name": "tinycn/tinyphp",
+    "name": "saasjit/tinyphp",
     "description": "a framework for php",
     "type" : "project",
     "require" :{
