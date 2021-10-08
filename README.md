@@ -7,31 +7,25 @@ Manual
 * [序言](#序言)
     * [简介](#简介)
     
-* 入门指引
+* [入门指引](#入门指引)
 
-    * 安装
-        + 运行环境
-        + 框架安装
+    * [安装](#安装)
+        + [运行环境](#运行环境)
+            + [开发环境/docker](#docker)
+            + [生产环境/CentOS7X](#centos)
+            
+        + [框架安装](#框架安装)
+            + [git安装](#git)
+            + [composer安装](#composer)
+            + [demo/simple](#simple)
+            + [demo/tinyphp-bootstrap（推荐）](#tinyphp-bootstrap) 
 
-    * 编码规范
+    * [编码规范](#编码规范)
         + PHP编码规范
         + SQL编码规范
 
 * 框架入门 
 
-[简介]
-
-[一键搭建lnmp运行环境](#一键搭建lnmp运行环境)
-
-[框架安装](#安装)
-
-
-
-[框架编码规范](#框架开发规范)
-
-[一、PHP编码规范](#一、PHP编码规范)
-	
-[SQL规范](#SQL规范)
 
 
 序言
@@ -41,16 +35,16 @@ Manual
 简介
 ----
 
-> 一款经过生产环境检验(日PV10亿级)的轻量级PHP框架。
+>一款经过生产环境检验(日PV10亿级)的轻量级PHP框架。
 
-> ```shell
+```shell
 #支持Web和Console两种模式，单文件入口，自动识别web和cli环境，创建web下/console的application。
 php index.php or curl 127.0.0.1
 ```
 
-> 支持Console环境下(适应于LINUX CENTOS 7)的Daemon守护进程模式。
+>支持Console环境下(适应于LINUX CENTOS 7)的Daemon守护进程模式。
 
-> ```shell
+```shell
    #实现了经典的Master-Worker模式。
    php index.php -daemon=start
    #可扩展为TCP服务端程序，定时器，IO异步事件驱动等模式，能够365xx24稳定运行。
@@ -58,7 +52,7 @@ php index.php or curl 127.0.0.1
    
 > 支持一键打包成单文件可执行程序。
 
-> ```shell
+```shell
    #编译
    php index.php --build
    #运行生成的phar单文件程序
@@ -73,15 +67,14 @@ php index.php or curl 127.0.0.1
 ----
 
 
-#    运行环境
-##    CentOS 7x.x86_64/生产环境
-> 依赖于lnmp-utils
+## 运行环境
 
-> Linux(CentOS7X_64) +openresty(nginx)+Mysql+PHP+Redis一键安装包.
+### centos
+> 本方式适应于高度定制的生产环境，依赖于lnmp-utils
+
+> lnmp-utils: Linux(CentOS7X_64) +openresty(nginx)+Mysql+PHP+Redis一键安装包.
 
 > 项目地址: https://github.com/saasjit/lnmp-utils.git
-
-> 本方式适应于高度定制的生产环境
 
 ```shell
 git clone https://github.com/saasjit/lnmp-utils.git
@@ -91,12 +84,11 @@ cd /data/www/tinyphp-boostrap
 php public/index.php
 ```
 
-docker/开发环境
-----
-
+### docker
+>  开发环境
 ```shell
 
-#可自定义IDE工作目录
+#可更改/data/workspace/tinyphp-bootstrap为自定义IDE工作目录
 workspace=/data/workspace/tinyphp-bootstrap
 
 docker pull centos:7
@@ -114,37 +106,68 @@ curl http://127.0.0.1
 
 ```
 
-# 框架安装
+## 框架安装
 
+### git
 ```shell
-git clone https://github.com/saasjit/tinyphp-bootstrap.git
+git clone https://github.com/saasjit/tinyphp.git
+cd tinyphp
+```
+
+### composer
+```shell
+composer create-project saasjit/tinyphp 
+```
+
+### simple
+```shell
+#运行
+php demo/public/index.php
+
+#编译
+php demo/public/index.php --build
+
+#开启守护进程
+php demo/public/index.php -d
+
+#编辑具体配置文件
+vi application/config/profile.php
+```
+
+### tinyphp-bootstrap
+> 推荐于面向无前端工程师情况下的后台项目开发。
+> 
+> 依赖于 https://github.com/saasjit/tinyphp-bootstrap.git
+
+> tinyphp-bootstrap: 轻量级的tinyphp demo脚手架
+
+> 前端:webpack5+bootstrap5+adminlte
+> 
+> 后端:tinyphp 
+> 
+
+> 
+```shell
+
+composer create-project saasjit/tinyphp-bootstrap
 
 cd tinyphp-bootstrap
 
-#兼容composer安装saasjit/tinyphp库
-composer install saasjit/tinyphp@dev
-
-#直接git下载
-mkdir  lib/ && cd lib
-git clone https://github.com/saasjit/zeroai-php.git
-
 #运行
-php index.php
+php public/index.php
 
 #编译
-php index.php --build
+php public/index.php --build
 
 #开启守护进程
-php index.php -d
+php public/index.php -d
 
-#具体配置文件
+#编辑具体配置文件
 vi application/config/profile.php
-
 ```
 
 
-
-框架开发规范
+编码规范
 ====
 
 一、PHP编码规范
