@@ -1,80 +1,48 @@
   TinyPHP For Framework
 ====
 
-Manual
-====
-
-* [序言](#序言)
-    * [简介](#简介)
+* [简介](#简介)
     
-* [入门指引](#入门指引)
-
-    * [安装](#安装)
-        + [运行环境](#运行环境)
-            + [开发环境/docker](#docker)
-            + [生产环境/CentOS7X](#centos)
+* [运行环境](#运行环境)
+    * [开发环境部署，docker](#docker)
+    * [生产环境部署，CentOS7X.X86_64](#centos)
             
-        + [框架安装](#框架安装)
-            + [git安装](#git)
-            + [composer安装](#composer)
-            + [demo/simple](#simple)
-            + [demo/tinyphp-bootstrap（推荐）](#tinyphp-bootstrap) 
+* [框架安装](#框架安装)
+    * [git安装](#git)
+    * [composer安装](#composer)
+* [Demo](#DEMO)    
+    * [simple](#simple)
+    * [tinyphp-bootstrap（推荐）](#tinyphp-bootstrap) 
 
-    * [编码规范](#编码规范)
-        + PHP编码规范
-        + SQL编码规范
+* [编码规范](#编码规范)
+    * [团队协作规范](#团队协作规范) 
+    * [PHP编码规范](#PHP编码规范)
+    * [SQL编码规范](#SQL编码规范)
 
-* 框架入门 
+* [框架使用](#框架使用) 
 
-
-
-序言
-====
 
 
 简介
-----
-
->一款经过生产环境检验(日PV10亿级)的轻量级PHP框架。
-
-```shell
-#支持Web和Console两种模式，单文件入口，自动识别web和cli环境，创建web下/console的application。
-php index.php or curl 127.0.0.1
-```
-
->支持Console环境下(适应于LINUX CENTOS 7)的Daemon守护进程模式。
-
-```shell
-   #实现了经典的Master-Worker模式。
-   php index.php -daemon=start
-   #可扩展为TCP服务端程序，定时器，IO异步事件驱动等模式，能够365xx24稳定运行。
-   ```
-   
-> 支持一键打包成单文件可执行程序。
-
-```shell
-   #编译
-   php index.php --build
-   #运行生成的phar单文件程序
-   php tinyphp-demo.phar
-   ```
-
-
-入门指引
 ====
 
-安装
-----
+> 一款简单的，轻量级的，经过生产环境检验，(日PV10亿级)的PHP MVC框架。    
+> 主要应用于分布式的高并发环境，和多人团队协作;    
+> 支持多环境和分布式处理；    
+> 适用于 Web/微服务，RPC，命令行，单一命令行文件执行，服务端多任务守护进程的编码。   
+
+> demo地址：[https://github.com/saasjit/tinyphp-bootstrap](https://github.com/saasjit/tinyphp-bootstrap)。   
+> 提供前端框架(webpack5+bootstrap+jquery+adminlte)支持。   
+> 可快速开发面向客户端应用后端api，和标准易用的管理后台。   
 
 
-## 运行环境
+运行环境
+====
 
 ### centos
-> 本方式适应于高度定制的生产环境，依赖于lnmp-utils
-
-> lnmp-utils: Linux(CentOS7X_64) +openresty(nginx)+Mysql+PHP+Redis一键安装包.
-
-> 项目地址: https://github.com/saasjit/lnmp-utils.git
+> 本方式适应于高度定制的生产环境，依赖于lnmp-utils。   
+> lnmp-utils: Linux(CentOS7X_64) +openresty(nginx)+Mysql+PHP+Redis一键安装包。    
+> 项目地址: https://github.com/saasjit/lnmp-utils    
 
 ```shell
 git clone https://github.com/saasjit/lnmp-utils.git
@@ -85,7 +53,7 @@ php public/index.php
 ```
 
 ### docker
->  开发环境
+>  适应于开发环境
 ```shell
 
 #可更改/data/workspace/tinyphp-bootstrap为自定义IDE工作目录
@@ -106,7 +74,8 @@ curl http://127.0.0.1
 
 ```
 
-## 框架安装
+框架安装
+====
 
 ### git
 ```shell
@@ -118,6 +87,9 @@ cd tinyphp
 ```shell
 composer create-project saasjit/tinyphp 
 ```
+
+DEMO
+====
 
 ### simple
 ```shell
@@ -170,42 +142,100 @@ vi application/config/profile.php
 编码规范
 ====
 
-一、PHP编码规范
+团队协作规范
 ----
 
->[第一章 文件结构](https://github.com/saasjit/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/001%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84.md)
+#### 语言基础能力   
+* 强调语言的基础能力；
+* 熟练掌握PHP常用函数库；
+* 深度理解Unix/Linux操作系统，IO/进程，Socket/TCP/UDP等基础知识。
 
->[第二章 程序的排版](https://github.com/saasjit/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/002%E7%A8%8B%E5%BA%8F%E7%9A%84%E6%8E%92%E7%89%88.md)
 
->[第三章 命名规则](https://github.com/saasjit/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/003%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99.md)
 
->[第四章 表达式和基本语句](https://github.com/saasjit/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/004%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%92%8C%E5%9F%BA%E6%9C%AC%E8%AF%AD%E5%8F%A5.md)
+#### MVC规范   
+* 需要遵守严格的面向对象编码规范，禁止全局变量穿透对象/高耦合/低内聚等不健康编码方式的滥用。
+* 模型层（Model）
+    * 专注于各种业务数据源的处理
+    * 模型层次划分清晰；
+    * 高度内聚；
+    * 面向外部调用的公共接口调用严格遵守确定性的输入输出，以兼容各种运行环境下的数据处理；
+* 视图层(View)：
+    * 保持轻量级
+    * 不加载复杂的模板工具去极大的损耗性能；
+    * 在面向客户端应用/API接口编码的情况下，完全省去视图层处理；
+    * 推荐JSON数据交互进行接口输出
+* 控制层(Controller)：
+    * 专注于业务流程和逻辑控制。
+    * 保持各种运行环境下的分布式处理和与模型层的低度耦合。
 
->[第五章 常量](https://github.com/tinycn/saasjit/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/005%E5%B8%B8%E9%87%8F.md)
+#### 在遵守规范的前提下，达到实用性与高性能的均衡   
+* 少即是多，不做过多封装，以免造成团队协作中的代码阅读，对框架的完整性和运行性能的损害。
+* 不依赖框架，框架仅为辅助编码和团队协作的规范约束工具，更多时候需要在一个基础的约束下，依赖自身的专业能力解决复杂环境下的复杂问题。
+* 不强调框架的全天候作业能力，什么都会意味着什么都做不好；
+* 通常情况下，如果花更多力气和编码技巧能达到更好性能，相对于简便省时但影响性能的情况下，倾向于前者，即不做对性能损伤明显的处理；
+* 需要保持性能和稳定的鲁棒性，在某些领域过分高级的处理会更多的损害编码的灵活性。
 
->[第六章 函数设计](https://github.com/saasjit/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/006%E5%87%BD%E6%95%B0%E8%AE%BE%E8%AE%A1.md)
-
->[第七章 IDE的选择](https://github.com/saasjit/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/007IDE%E7%9A%84%E9%80%89%E6%8B%A9.md)
-
->[第八章 编码规范的一些示例](https://github.com/saasjit/tinyphp/blob/master/docs/001-%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83/008%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83%E7%9A%84%E4%B8%80%E4%BA%9B%E7%A4%BA%E4%BE%8B.md)
-
-<br>
-<br>
-
-二、SQL使用规范
+PHP编码规范
 ----
 
->[第一章 查询规范](https://github.com/saasjit/tinyphp/blob/master/docs/002-SQL%E8%A7%84%E8%8C%83/001%E6%9F%A5%E8%AF%A2%E8%AF%AD%E5%8F%A5.md)
+> [第一章 文件结构](https://github.com/saasjit/tinyphp/blob/master/docs/coding/fileStructure-001.md)   
 
->[第二章 库和表的规范](https://github.com/saasjit/tinyphp/blob/master/docs/002-SQL%E8%A7%84%E8%8C%83/002%E5%BA%93%E5%92%8C%E8%A1%A8%E7%9A%84%E8%A7%84%E8%8C%83.md)
+> [第二章 程序的排版](https://github.com/saasjit/tinyphp/blob/master/docs/coding/programTypesetting-002.md)    
 
->[第三章 数据库设计原则](https://github.com/saasjit/tinyphp/blob/master/docs/002-SQL%E8%A7%84%E8%8C%83/003%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99.md)
+> [第三章 命名规则](https://github.com/saasjit/tinyphp/blob/master/docs/coding/rules-003.md)  
 
->[第四章 数据库优化原则](https://github.com/saasjit/tinyphp/blob/master/docs/002-SQL%E8%A7%84%E8%8C%83/004%E6%95%B0%E6%8D%AE%E5%BA%93%E4%BC%98%E5%8C%96%E5%8E%9F%E5%88%99.md)
+> [第四章 表达式和基本语句](https://github.com/saasjit/tinyphp/blob/master/docs/coding/expression-004.md)  
+
+> [第五章 常量](https://github.com/tinycn/saasjit/blob/master/docs/coding/constant-005.md)  
+
+> [第六章 函数设计](https://github.com/saasjit/tinyphp/blob/master/docs/coding/function-006.md)  
+
+> [第七章 IDE的选择](https://github.com/saasjit/tinyphp/blob/master/docs/coding/ide-007.md)  
+
+> [第八章 编码规范的一些示例](https://github.com/saasjit/tinyphp/blob/master/docs/coding/example-008.md)
 
 <br>
 <br>
 
-三、框架使用手册
+SQL使用规范
 ----
->[第一章 框架入门](https://github.com/saasjit/tinyphp/blob/master/manual/001框架入门.md)
+
+>[第一章 查询规范](https://github.com/saasjit/tinyphp/blob/master/docs/sql/select-001.md)
+
+>[第二章 库和表的规范](https://github.com/saasjit/tinyphp/blob/master/docs/sql/dbtable-002.md)
+
+>[第三章 数据库设计原则](https://github.com/saasjit/tinyphp/blob/master/docs/sql/design-003.md)
+
+>[第四章 数据库优化原则](https://github.com/saasjit/tinyphp/blob/master/docs/sql/optmization-004.md)
+
+<br>
+<br>
+
+
+框架使用
+----
+
+> 支持Web和Console两种模式，单文件入口，自动识别web和cli环境，实例化 web下/console的application。
+```shell
+php index.php
+```
+
+> 支持Console环境下(适应于LINUX CENTOS 7)的Daemon守护进程模式。
+
+```shell
+   #实现了经典的Master-Worker模式。
+   php index.php -daemon=start
+   #可扩展为TCP服务端程序，定时器，IO异步事件驱动等模式，能够365xx24稳定运行。
+   ```
+   
+> 支持一键打包成单文件可执行程序。
+
+```shell
+   #编译
+   php index.php --build
+   #运行生成的phar单文件程序
+   php tinyphp-demo.phar
+   ```
+   
+>[第一章 框架入门](https://github.com/saasjit/tinyphp/blob/master/manual/index-001.md)
+
