@@ -817,6 +817,11 @@ class Environment implements \ArrayAccess
      * @var array
      */
     const ENV_CUSTOM = [
+        'RUNTIME_CACHE_ENABLED',
+        'RUNTIME_CACHE_TTL',
+        'RUNTIME_CACHE_MEMORY_MIN',
+        'RUNTIME_CACHE_MEMORY_MAX',
+        'RUNTIME_CACHE_MEMORY'
     ];
 
     /**

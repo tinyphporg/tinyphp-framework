@@ -1,62 +1,113 @@
-第一篇 框架入门
+入口文件
 ====
 
-第一章 Hello world!
-====
+1.0 Hello world!
+----
 
-一个完整的、使用Tiny框架的应用（），一般包括三个部分，入口文件(index.php)，应用程序集合(application) 及 框架程序集合(Tiny Framework For PHP，以后将简称为Tiny).
+> 一个完整的Tiny框架应用，将包括三个部分:   
+* 入口文件(demo/public/index.php);   
+* 应用程序集合/application(demo/application/);   
+* 框架的标准库集合(Tiny Framework For PHP，下文将简称为Tiny)(src/Tiny)    
+
 
 1.1 通用程序目录结构
 ----
 
-lib
-     \Tiny
-             \docs
-             \编码规范
-             \SQL规范
-             \manual   
-              \src
-                    \Tiny        
-www
-       /web
-                      /index.php          #WEB目录入口文件
-       /console    
-                      /index.php          #命令行入口文件
-       /rpc        
-                      /index.php          #RPC 命令行入口文件
-                   
-       /application                       #应用程序文件夹
-        
-                      /assets             #程序内部资源文件夹
-                      /config
-                                    /profile.php             #应用程序的基本设置文件
-                                    /lang                    #程序语言包配置
-                                  
-                      /controllers                #控制器文件夹
-                                    ./            #web控制器文件夹
-                                    /console      #命令行控制器文件夹
-                                    /rpc          #RPC控制器文件夹
+```
+demo/   
+    application/
+    public/ 
+docs/
+    manual/
+    coding/
+    sql/
+    team/
+src/
+    Tiny/
+    
+tools/
+```
 
-                      /models                     #模型文件夹
-                      /plugins                    #插件文件夹
+1.2 入口文件实例
+----
+```php
+/* tinyphp根目录 该常量必须设置*/
+define('TINY_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
 
-              /global                   #全局性类文件夹
-              
-              /runtime                    #运行文件夹
-                        /cache
-                        /log
-                        /pid
-                        /tmp
-                        /view
-                               /cache
-                               /compile
-                               /config
-              /views                    #视图模板所在文件夹
-              
+/* 加载Tiny标准库 自动识别composer加载模式 并初始化运行时(\Tiny\Runtime\Runtime)唯一实例*/
+define('TINY_COMPOSER_FILE', TINY_ROOT_PATH . '/vendor/autoload.php');
+define('TINY_LIBRARY_FILE', TINY_ROOT_PATH . '/src/Tiny.php');
+include_once (is_file(TINY_COMPOSER_FILE) ? TINY_COMPOSER_FILE : TINY_LIBRARY_FILE);
+
+/* 设置application主目录 该常量必须设置 */
+define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
+
+/* application run 自动识别web/console模式
+ * profile.php 为应用配置文件
+*/
+\Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')->run();
+```
+
+#### 1.3.1 设置运行时环境参数  
+```php
+...
+include_once (is_file(TINY_COMPOSER_FILE) ? TINY_COMPOSER_FILE : TINY_LIBRARY_FILE);
+
+/* 设置application主目录 该常量必须设置 */
+define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
+
+/* 设置是否开启运行时缓存，设置缓存内存大小参数 */ //运行时缓存仅在WEB/RPC模式下，Linux生产环境，安装了shmop内存扩展时生效
+\Tiny\Tiny::setENV([  
+    'RUNTIME_CACHE_ENABLED' => TRUE,  //默认开启 FALSE为关闭
+    'RUNTIME_CACHE_TTL' => 60,    // 缓存时长 默认60s
+    'RUNTIME_CACHE_MEMORY_MIN' => 1048576, //最小共享内存 1M
+    'RUNTIME_CACHE_MEMORY_MAX' => 104857600, //最大共享内存 100M
+    'RUNTIME_CACHE_MEMORY' => 10485760  //共享内存 10M
+]);
+ 
+/* application run 自动识别web/console模式
+ * profile.php 为应用配置文件
+*/
+\Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')->run();
+```
+#### 1.3.2 入口文件设置自定义引导类  
+```php
+...
+/* 设置application主目录 该常量必须设置 */
+define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
+
+/* application run 自动识别web/console模式
+ * profile.php 为应用配置文件
+*/
+include_once(APPLICATION_PATH . 'libs/common/Bootstrap.php');
+$bootstrap = new App\Common\Bootstrap(); // Bootstrap 必须继承 Tiny\MVC\Bootstrap\Base;
+\Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')
+->setBootstrap($bootstrap)
+->run();
+```
+#### 1.3.3 注册自定义插件  
+
+### 1.2.1 入口文件流程解析
+### 1.2.2 必须的常量
+<b>TINY_ROOT_PATH</b> 定位项目文件根目录，可自定义，用于Builder打包后的执行文件目录定位，不设置会引起Builder工作异常;
+
+### 1.2.3 Tiny\Runtime
+类名 | 描述 | 功能 |
+-- | -- | -- |
+Tiny\Tiny | Runtime代理类 | 自动实例化Runtime并创建Application实例 |
+Tiny\Runtime\Runtime | 运行时类 | 初始化运行时环境参数/运行时缓存/类自动加载/异常处理 |
+Tiny\Runtime\Environment | 运行时环境参数类 | 运行时环境参数设置 |
+Tiny\Runtime\Autoloader | 自动类加载 | 自动类加载 |
+Tiny\Runtime\RuntimeCache | 运行时缓存 | 基于shmop内存扩展，缓存autoloader/model/controller/configuration等小数据，适应于web环境下 |
+Tiny\Runtime\ExceptionHandler | 异常处理句柄  | Tiny接管异常处理 |
+Tiny\Runtime\RuntimeException | 运行时异常  | 运行时异常提示 |
+
+### 1.3 其他用例  
 
 
-1.2 WEB应用
----
+
+
+
      # 1.2.1 入口文件
      
     WEB的入口文件一般文件名为index.php
