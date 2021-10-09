@@ -2,6 +2,7 @@
 ====
 
 ### 编码规范
+ * [团队协作规范](https://github.com/saasjit/tinyphp/blob/master/docs/team/README.md)
  * [PHP编码规范](https://github.com/saasjit/tinyphp/blob/master/docs/coding/README.md)
  * [SQL编码规范](https://github.com/saasjit/tinyphp/blob/master/docs/sql/README.md)
 
