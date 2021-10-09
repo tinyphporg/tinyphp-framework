@@ -206,7 +206,7 @@ SQL使用规范
 
 >[第三章 数据库设计原则](https://github.com/saasjit/tinyphp/blob/master/docs/sql/design-003.md)
 
->[第四章 数据库优化原则](https://github.com/saasjit/tinyphp/blob/master/docs/sql/optmization-004.md)
+>[第四章 数据库优化原则](https://github.com/saasjit/tinyphp/blob/master/docs/sql/optimization-004.md)
 
 <br>
 <br>

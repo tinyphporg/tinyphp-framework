@@ -126,28 +126,24 @@ if (($x >= -EPSINON) && (x <= EPSINON))
 有时候我们可能会看到 if (NULL == p) 这样古怪的格式。不是程序写错了，是程序员为了防止将 if (p == NULL) 误写成 if (p = NULL)，而有意把p和NULL颠倒。编译器认为 if (p = NULL) 是合法的，但是会指出 if (NULL = p)是错误的，因为NULL不能被赋值。
 
 程序中有时会遇到if/else/return的组合，应该将如下不良风格的程序
-```php
-    if ($condition) 
+```php    
 
-        return $x;
+if ($condition) 
+    return $x;
+return $y;
 
-    return $y;
 ```
 改写为
+
 ```php
-    if ($condition)
 
-    {
-
-        return $x;
-
-    }
-
-    else
-
-    {
-
-return $y;
+if ($condition)
+{
+    return $x;
+}
+else
+{
+    return $y;
 
 }
 ```
