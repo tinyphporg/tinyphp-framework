@@ -32,7 +32,7 @@
         * [Logger/日志收集:demo/application/runtime/log](https://github.com/saasjit/tinyphp/blob/master/docs/manual/logger-010.md)
         * [Dispatcher/派发器](https://github.com/saasjit/tinyphp/blob/master/docs/manual/dispatcher-011.md)
         * [Configuration/配置类](https://github.com/saasjit/tinyphp/blob/master/docs/manual/configuration-012.md)
-        * [Builder/打包单一可执行文件](https://github.com/saasjit/tinyphp/blob/docs/master/manual/builder-013.md)
+        * [Builder/打包单一可执行文件](https://github.com/saasjit/tinyphp/blob/master/docs/manual/builder-013.md)
         * [Daemon/守护进程](https://github.com/saasjit/tinyphp/blob/master/docs/manual/daemon-014.md)
         * [Filter/过滤器](https://github.com/saasjit/tinyphp/blob/master/docs/manual/filter-015.md)
         * [Plugin/插件](https://github.com/saasjit/tinyphp/blob/master/docs/manual/plugin-016.md)
