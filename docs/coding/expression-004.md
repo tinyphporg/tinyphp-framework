@@ -7,7 +7,7 @@
 
     PHP的运算符有数十个，运算符的优先级与结合律如表4-1所示。注意一元运算符 +  -  * 的优先级高于对应的二元运算符。
 
-![表4-1 运算符的优先级与结合律](https://github.com/tinycn/tinyphp/blob/master/docs/image/4E24CD78-D607-425A-BA5D-0B1E2CE0D2AC.png)
+![表4-1 运算符的优先级与结合律](https://github.com/tinycn/tinyphp/blob/master/docs/image/4.1.png)
 
 
 `【规则4-1-1】`如果代码行中的运算符比较多，用括号确定表达式的操作顺序，避免使用默认的优先级。
