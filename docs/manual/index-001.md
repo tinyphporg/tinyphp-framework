@@ -31,7 +31,7 @@ tools/
 1.2 入口文件实例
 ----
 ```php
-/* 该常量必须设置*/
+/* 项目根目录 */
 define('TINY_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
 
 /* 加载Tiny标准库*/
@@ -126,20 +126,27 @@ $app->regPlugin($plugin)->run();
 ```
 
 #### 1.2.4 必须的常量
-<b>TINY_ROOT_PATH</b> 定位项目文件根目录，可自定义，用于Builder打包后的执行文件目录定位，不设置会引起Builder工作异常;
+<b>APPLICATION_PATH</b> 定义为application程序集的文件夹路径，必须设置;
 
-### 1.2.3 Tiny\Runtime
-类名 | 描述 | 功能 |
--- | -- | -- |
-Tiny\Tiny | Runtime代理类 | 自动实例化Runtime并创建Application实例 |
-Tiny\Runtime\Runtime | 运行时类 | 初始化运行时环境参数/运行时缓存/类自动加载/异常处理 |
-Tiny\Runtime\Environment | 运行时环境参数类 | 运行时环境参数设置 |
-Tiny\Runtime\Autoloader | 自动类加载 | 自动类加载 |
-Tiny\Runtime\RuntimeCache | 运行时缓存 | 基于shmop内存扩展，缓存autoloader/model/controller/configuration等小数据，适应于web环境下 |
-Tiny\Runtime\ExceptionHandler | 异常处理句柄  | Tiny接管异常处理 |
-Tiny\Runtime\RuntimeException | 运行时异常  | 运行时异常提示 |
+#### 1.2.5 参考标准库
+> [Tiny\Runtime:运行时标准库](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/runtime.md)  
+> [Tiny\MVC:MVC库](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/mvc.md)  
 
-### 1.3 其他用例  
+
+### 1.3 入口文件在Nginx .conf里的设置
+```
+Nginx
+```
+#### 1.3.1 Nginx 不存在的访问全部指向index.php
+```
+
+```
+#### 1.3.2 Router为pathinfo模式下，在nginx里面的配置项
+
+
+#### 1.3.3 RPC运行模式下的Nginx配置项
+
+#### 1.3.4 Nginx 静态文件的前端缓存
 
 
 
