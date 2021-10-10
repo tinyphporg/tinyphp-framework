@@ -31,30 +31,36 @@ tools/
 1.2 入口文件实例
 ----
 ```php
-/* tinyphp根目录 该常量必须设置*/
+/* 该常量必须设置*/
 define('TINY_ROOT_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR);
 
-/* 加载Tiny标准库 自动识别composer加载模式 并初始化运行时(\Tiny\Runtime\Runtime)唯一实例*/
-define('TINY_COMPOSER_FILE', TINY_ROOT_PATH . '/vendor/autoload.php');
+/* 加载Tiny标准库*/
 define('TINY_LIBRARY_FILE', TINY_ROOT_PATH . '/src/Tiny.php');
-include_once (is_file(TINY_COMPOSER_FILE) ? TINY_COMPOSER_FILE : TINY_LIBRARY_FILE);
+include_once TINY_LIBRARY_FILE;
 
-/* 设置application主目录 该常量必须设置 */
-define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
+/* 自动加载composer库 */
+define('TINY_COMPOSER_FILE', TINY_ROOT_PATH . '/vendor/autoload.php');
+if (is_file(TINY_COMPOSER_FILE)) 
+{
+    include_once TINY_COMPOSER_FILE;
+}
 
-/* application run 自动识别web/console模式
- * profile.php 为应用配置文件
+/* 设置application主目录的常量; 该常量必须设置 
+*  Application run 自动识别web/console模式
+*  Profile.php 为应用配置文件
+*  ->setBootsrap(new \App\Common\Bootstrap()) 设置自定义引导类
+*  ->regPlugin(new \App\Common\Plugin()) 注册自定义插件
+*  ->run() Application运行
 */
+define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
 \Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')->run();
 ```
 
-#### 1.3.1 设置运行时环境参数  
+#### 1.2.1 设置运行时环境参数  
 ```php
 ...
-include_once (is_file(TINY_COMPOSER_FILE) ? TINY_COMPOSER_FILE : TINY_LIBRARY_FILE);
-
-/* 设置application主目录 该常量必须设置 */
-define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
+    include_once TINY_COMPOSER_FILE;
+}
 
 /* 设置是否开启运行时缓存，设置缓存内存大小参数 */ //运行时缓存仅在WEB/RPC模式下，Linux生产环境，安装了shmop内存扩展时生效
 \Tiny\Tiny::setENV([  
@@ -65,30 +71,61 @@ define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
     'RUNTIME_CACHE_MEMORY' => 10485760  //共享内存 10M
 ]);
  
-/* application run 自动识别web/console模式
- * profile.php 为应用配置文件
+/* 设置application主目录的常量; 该常量必须设置 
+*  Application run 自动识别web/console模式
+*  Profile.php 为应用配置文件
+*  ->setBootsrap(new \App\Common\Bootstrap()) 设置自定义引导类
+*  ->regPlugin(new \App\Common\Plugin()) 注册自定义插件
+*  ->run() Application运行
 */
+define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
 \Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')->run();
 ```
-#### 1.3.2 入口文件设置自定义引导类  
+#### 1.2.2 入口文件设置自定义引导类  
 ```php
 ...
-/* 设置application主目录 该常量必须设置 */
-define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
-
-/* application run 自动识别web/console模式
- * profile.php 为应用配置文件
+/* 设置application主目录的常量; 该常量必须设置 
+*  Application run 自动识别web/console模式
+*  Profile.php 为应用配置文件
+*  ->setBootsrap(new \App\Common\Bootstrap()) 设置自定义引导类
+*  ->regPlugin(new \App\Common\Plugin()) 注册自定义插件
+*  ->run() Application运行
 */
-include_once(APPLICATION_PATH . 'libs/common/Bootstrap.php');
-$bootstrap = new App\Common\Bootstrap(); // Bootstrap 必须继承 Tiny\MVC\Bootstrap\Base;
-\Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php')
-->setBootstrap($bootstrap)
-->run();
-```
-#### 1.3.3 注册自定义插件  
+define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
+$app = \Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php');
 
-### 1.2.1 入口文件流程解析
-### 1.2.2 必须的常量
+/* 
+* 自动加载Application目录下的类，需先创建Application实例;
+* Bootstrap 必须继承 Tiny\MVC\Bootstrap\Base;
+* Bootstrap设置时会替换已存在继承Tiny\MVC\Bootstrap\Base的其他实例；
+* Boostrap实例在Application生命周期内仅运行一次。
+*/
+$bootstrap = new App\Common\Bootstrap(); 
+$app->setBootstrap($bootstrap)->run();
+```
+#### 1.2.3 注册自定义插件
+```php
+...
+/* 设置application主目录的常量; 该常量必须设置 
+*  Application run 自动识别web/console模式
+*  Profile.php 为应用配置文件
+*  ->setBootsrap(new \App\Common\Bootstrap()) 设置自定义引导类
+*  ->regPlugin(new \App\Common\Plugin()) 注册自定义插件
+*  ->run() Application运行
+*/
+define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
+$app = \Tiny\Tiny::createApplication(APPLICATION_PATH, APPLICATION_PATH . 'config/profile.php');
+
+/* 
+* 自动加载Application目录下的类，需先创建Application实例;
+* Plugin必须实现接口类Tiny\MVC\Plugin\IPlugin
+* Plugin实例可注册多个，在Application生命周期内通过hooks函数多次触发
+*/
+$plugin = new App\Common\Plugin(); 
+$app->regPlugin($plugin)->run();
+```
+
+#### 1.2.4 必须的常量
 <b>TINY_ROOT_PATH</b> 定位项目文件根目录，可自定义，用于Builder打包后的执行文件目录定位，不设置会引起Builder工作异常;
 
 ### 1.2.3 Tiny\Runtime

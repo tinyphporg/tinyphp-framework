@@ -39,7 +39,24 @@
     * [Controller/控制器:demo/application/controllers/](https://github.com/saasjit/tinyphp/blob/master/docs/manual/controller-017.md)
     * [Model/模型:demo/application/models](https://github.com/saasjit/tinyphp/blob/master/docs/manual/model-018.md)
     * [Viewer/视图:demo/application/views](https://github.com/saasjit/tinyphp/blob/master/docs/manual/viewer-019.md)
-
+    
+* [框架标准库参考](#框架标准库参考)
+    * [Tiny：工具包](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/tiny.md)
+    * [Tiny\Runtime：运行时](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/runtime.md)
+    * [Tiny\Build：打包](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/build.md)
+    * [Tiny\Cache：缓存](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/cache.md)
+    * [Tiny\Config：配置](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/config.md)
+    * [Tiny\Console：命令行](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/console.md)
+    * [Tiny\Data：数据层](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/data.md)
+    * [Tiny\Filter：过滤器](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/filter.md)   
+    * [Tiny\Image：图片处理](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/image.md)
+    * [Tiny\Lang：语言包](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/lang.md)
+    * [Tiny\Log：日志处理](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/log.md)
+    * [Tiny\MVC：MVC](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/mvc.md)
+    * [Tiny\Net：网络](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/net.md)
+    * [Tiny\String：字符处理](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/string.md) 
+   
+                     
 简介
 ====
 
@@ -251,3 +268,21 @@ SQL使用规范
  * [Controller/控制器:demo/application/controllers/](https://github.com/saasjit/tinyphp/blob/master/docs/manual/controller-017.md)
  * [Model/模型:demo/application/models](https://github.com/saasjit/tinyphp/blob/master/docs/manual/model-018.md)
  * [Viewer/视图:demo/application/views](https://github.com/saasjit/tinyphp/blob/master/docs/manual/viewer-019.md)
+
+框架标准库参考
+====
+
+* [Tiny：工具包](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/tiny.md)
+* [Tiny\Runtime：运行时](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/runtime.md)
+* [Tiny\Build：打包](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/build.md) 
+* [Tiny\Cache：缓存](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/cache.md)
+* [Tiny\Config：配置](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/config.md)
+* [Tiny\Console：命令行](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/console.md)
+* [Tiny\Data：数据层](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/data.md)
+* [Tiny\Filter：过滤器](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/filter.md)   
+* [Tiny\Image：图片处理](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/image.md)
+* [Tiny\Lang：语言包](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/lang.md)
+* [Tiny\Log：日志处理](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/log.md)
+* [Tiny\MVC：MVC](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/mvc.md)
+* [Tiny\Net：网络](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/net.md)
+* [Tiny\String：字符处理](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/string.md) 
