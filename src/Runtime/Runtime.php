@@ -527,7 +527,8 @@ class RuntimeCacheHandler
      */
     protected function _loadData()
     {
-        @$shmId = shmop_open($this->_memoryId, 'a', 0644, 0);
+
+        @$shmId = shmop_open($this->_memoryId, 'c', 0644, $this->_memorySize);
         if(!$shmId)
         {
             return [];

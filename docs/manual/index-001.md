@@ -133,20 +133,38 @@ $app->regPlugin($plugin)->run();
 > [Tiny\MVC:MVC库](https://github.com/saasjit/tinyphp/blob/master/docs/manual/lib/mvc.md)  
 
 
-### 1.3 入口文件在Nginx .conf里的设置
+### 1.3 在不同运行环境下的入口文件使用
+
+#### 1.3.1 Web环境
+> 动态路由  
+> 参数c为控制器名称,缺省为main,参数c和缺省控制器可在profile.php中的controller节点修改
+> 参数a为动作名称，缺省为index,参数a和缺省动作名可在profile.php中的controller节点修改
+> Main控制器 即为调用 application/controllers/web/Main下的控制器类
+> 具体配置可参考: [Proptrites/应用配置:  demo/application/config/profile.php](https://github.com/saasjit/tinyphp/blob/master/docs/manual/profile-003.md)
+```shell
+curl "http://localhost/index.php?c=main&a=index"
+```
+
+> 伪静态路由
+
+```php
+
+```
+
+
+#### 1.3.2 Console
+
+
+### 1.4 入口文件在Nginx .conf里的设置
 ```
 Nginx
 ```
-#### 1.3.1 Nginx 不存在的访问全部指向index.php
+#### 1.4.1 Nginx 不存在的访问全部指向index.php
 ```
 
 ```
-#### 1.3.2 Router为pathinfo模式下，在nginx里面的配置项
+#### 1.4.2 Router为pathinfo模式下，在nginx里面的配置项
 
-
-#### 1.3.3 RPC运行模式下的Nginx配置项
-
-#### 1.3.4 Nginx 静态文件的前端缓存
 
 
 

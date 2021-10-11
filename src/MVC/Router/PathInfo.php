@@ -49,12 +49,17 @@ class PathInfo implements IRouter
         {
             return FALSE;
         }
-        list($c, $this->_params['a']) = $out;
+        list($c, $this->_params['a'], $paramText) = $out;
         if ($c[0] == "/" || $c[0] == "\\")
         {
             $c = substr($c, 1);
         }
         $this->_params['c'] = $c;
+        
+        if ($paramText)
+        {
+            
+        }
         return TRUE;
     }
 
@@ -71,24 +76,26 @@ class PathInfo implements IRouter
      */
     protected function _checkUrl($ext, $routerString)
     {
-        $pattern = "/^(.*?\.php)?((\/?[a-z][a-z0-9]+)*)(\/([a-z][a-z0-9]+))(\/|" . $ext . ")?$/i";
+        $pattern = "/^(.*?\.php)?((\/?[a-z][a-z0-9]+)*)(\/([a-z][a-z0-9]+))(\/|((\-[a-z][a-z0-9_]*\-[a-z0-9_]+)*)" . $ext . ")?$/i";
         $index = strpos($routerString, "?");
         if ($index)
         {
             $routerString = substr($routerString, 0, $index);
         }
-
+        
         $out = NULL;
         if (!preg_match($pattern, $routerString, $out))
         {
             return FALSE;
         }
+        $paramText = trim($out[7]);
         if (!$out[2] && (!$out[6] || ($ext && $ext != $out[6])))
         {
             $c = $out[5];
             return [
                 $c,
-                ''
+                '',
+                $paramText,
             ];
         }
         $c = $out[2];
@@ -107,7 +114,8 @@ class PathInfo implements IRouter
         }
         return [
             $c,
-            $a
+            $a,
+            $paramText
         ];
     }
 
