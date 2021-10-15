@@ -136,169 +136,94 @@ $app->regPlugin($plugin)->run();
 ### 1.3 在不同运行环境下的入口文件使用
 
 #### 1.3.1 Web环境
-> 动态路由  
-> 参数c为控制器名称,缺省为main,参数c和缺省控制器可在profile.php中的controller节点修改
-> 参数a为动作名称，缺省为index,参数a和缺省动作名可在profile.php中的controller节点修改
-> Main控制器 即为调用 application/controllers/web/Main下的控制器类
-> 具体配置可参考: [Proptrites/应用配置:  demo/application/config/profile.php](https://github.com/saasjit/tinyphp/blob/master/docs/manual/profile-003.md)
+* 动态路由  
+> 参数c为控制器名称,缺省为main,参数c和缺省控制器可在profile.php中的controller节点修改   
+> 参数a为动作名称，缺省为index,参数a和缺省动作名可在profile.php中的action节点修改   
+> Main控制器 即为调用 application/controllers/web/Main下的控制器类   
+> 具体配置可参考: [Proptrites/应用配置:  demo/application/config/profile.php](https://github.com/saasjit/tinyphp/blob/master/docs/manual/profile-003.md)   
 ```shell
+#以上部署在正确可运行的环境
 curl "http://localhost/index.php?c=main&a=index"
 ```
 
-> 伪静态路由
+* 伪静态路由   
+> 需在profile.php内 router.enable  = TRUE;   
+> 并配置对应域名下的router.rules为router.pathinfo   
+> 具体配置可参考: [Proptrites/应用配置:  demo/application/config/profile.php](https://github.com/saasjit/tinyphp/blob/master/docs/manual/profile-003.md)    
 
-```php
-
-```
 
 
 #### 1.3.2 Console
+* 命令行模式
+```php
+#缺省设置控制器和动作
+php demo/public/index.php main/index
+
+#长参输入
+php demo/public/index.php --c=main --a=index
+
+#短参输入 
+php demo/public/index.php -c main -a index -h -x=2
+```
 
 
+* 服务端服务  
+> 示例仅支持CentOS下的service/systemctl方式，除示例外也可自行编写脚本
+```shell
+cp tools/tiny-daemon.sh /etc/init.d/
+chkconfig --level 345 tiny-daemon on
+#修改tiny-daemon.sh文件夹中的SERVICE_INDEX_FILE 为正确的入口文件地址
+service tiny-daemon start
+service tiny-daemon stop
+````
+* --id 为profile.php的daemon.policys对应配置节点,缺省为daemon.id配置的默认节点 
+* -d --daemon=start/stop 控制守护进程开启/关闭
+> 具体配置可参考: [Proptrites/应用配置:  demo/application/config/profile.php](https://github.com/saasjit/tinyphp/blob/master/docs/manual/profile-003.md) 
+```php
+#缺省默认配置
+php demo/public/index.php -d
+
+#开启
+php demo/public/index.php --id=tinyd -d
+
+#关闭
+php demo/public/index.php --id=tinyd -d stop
+
+```
 ### 1.4 入口文件在Nginx .conf里的设置
-```
-Nginx
-```
+
 #### 1.4.1 Nginx 不存在的访问全部指向index.php
 ```
+location /
+{
+    try_files $uri $uri /index.php$is_args$args;
+}
+
+location ~ .*\.php(/.*)?
+{
+    fastcgi_pass 127.0.0.1:9000;
+    fastcgi_index index.php;
+    
+    #支持PHP中$_SERVER[pathinfo]显示,不影响框架路由正常工作
+    fastcgi_split_path_info ^(.+\.php)(/.+)$; 
+    fastcgi_param PATH_INFO $fastcgi_path_info; 
+    fastcgi_param PATH_TRANSLATED $document_root$fastcgi_path_info;    
+    
+    include fastcgi.conf;
+}
 
 ```
-#### 1.4.2 Router为pathinfo模式下，在nginx里面的配置项
 
 
-
-
-
-
-     # 1.2.1 入口文件
-     
-    WEB的入口文件一般文件名为index.php
-    一个最简单的入口文件只需要三行代码
- 
-    示例1-1
-    <?php
-
-    /*定义应用程序路径常量*/
-    define('APPLICATION_PATH', dirname(__DIR__) . '/App/');
- 
-   /*加载Tiny框架入口文件*/
-   include_once(dirname(dirname(__DIR__)) . '/library/Tiny/Tiny.php');
- 
-   /*运行MVC应用单一实例*/
-   Tiny::createApplication(APPLICATION_PATH . 'Profile.php')->run();
-   ?>
- 
-1.2.2 控制器/视图文件
-  简单的Hello World并不需要Model层，默认的控制器名称为Main，动作为Index
-  将在App\Controller下建立Main.php文件
-  
-  示例1-2
-  <?php
-  #头部注释省略
-  namespace App\Controller;
-  
-  /**
-   *@desc 实现HelloWorld的控制器
-   *@package App.Controller
-   *@since 日期
-   *@final  日期
-   */
-  class Main extends Tiny\MVC\Controller\Controller
-  {
-         /**
-          *@desc 输出HelloWorld的首页
-          *@access public
-          *@param void
-          *@return void
-         public function indexAction()
-         {
-                   $this->parse('index.htm');   //解析视图模板并添加到输出里面
-          }
-  }   
-?>
-       示例1-2 控制器文件
- 
- 示例1-3
-  <html>
-      <head>
-           <title>Hello World!</title>
-      </head>
-      <body>
-           <h1>Hello World!</h1>
-      </body>
-  </html>
-             示例1-3 视图文件
- 
- 
-1.2.3 服务器配置及运行
- 以Nginx为例，建立指向www/webroot的站点后
- 需要重写URL，将所有不存在的URL全部向框架的入口文件处理。
-     
-Nginx:
-if (!-f $request_filename) 
+#### 1.4.3 静态文件的前端缓存配置
+```
+location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$
 {
-     rewrite ^/(.*)$ /index.php;
+    expires      30d;
 }
- 
-Apache:
-RewriteCond %{SCRIPT_FILENAME} !-f
-RewriteCond %{SCRIPT_FILENAME} !-d
-RewriteCond %{REQUEST_URI} !^.*(\.xml|\.css|\.js|\.gif|\.png|\.jpg|\.swf|\.jpeg|\.doc|\.rar|\.ico)$
-RewriteRule ^(.*)$ index.php [L]
 
-   
-Apache的重写配置为
-接下来 敲入http://127.0.0.1/ 就可以看到Hello World
- 
-1.3 Console模式  
-    1.3.1 入口文件
- console的入口文件一般文件名为index.php
-  一个最简单的入口文件只需要三行代码
- 
-    示例1-4
-        #!/bin/php
-    <?php
-
-    /*定义应用程序路径常量*/
-    define('APPLICATION_PATH', dirname(__DIR__) . '/App/');
- 
-   /*加载Tiny框架入口文件*/
-   include_once(dirname(dirname(__DIR__)) . '/library/Tiny/Tiny.php');
- 
-   /*运行Console应用单一实例*/
-   Tiny::createApplication(APPLICATION_PATH . 'Profile.php', 'Main')->run();
-   ?>
- 
-1.2.2 控制器/视图文件
-  简单的Hello World并不需要Model层，默认的应用程序名称为Main，入口函数为Main
-  将在App\Module下建立Main.php文件
-  
-  示例1-5
-  <?php
-  #头部注释省略
-  namespace App\Module;
-  
-  /**
-   *@desc 实现HelloWorld的控制器
-   *@package App.Controller
-   *@since 日期
-   *@final  日期
-   */
-  class Main extends Tiny\Console\Application
-  {
-         /**
-          *@desc 输出HelloWorld的首页
-          *@access public
-          *@param void
-          *@return void
-         public function mainAction($argv, $argc)
-         {
-                   echo "hello World";
-          }
-  }   
-?>
-       示例1-5 应用程序文件
- 
- 
-1.2.3 服务器配置及运行
- ./index.php
+location ~ .*\.(js|css)?$
+{
+    expires      12h;
+}
+```

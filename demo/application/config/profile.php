@@ -23,9 +23,9 @@ $profile['charset'] = 'utf-8'; /*设置编码*/
 /**
  * 异常模块
  */
-$profile['exception']['enabled'] = TRUE;  /*异常处理:bool TRUE 开启异常统一处理|bool FALSE 屏蔽所有异常|string log 异常为日志输出*/
-$profile['exception']['log'] = TRUE;     /*是否以日志方式输出*/
-$profile['exception']['logid'] = 'tinyphp_exception';
+$profile['exception']['enabled'] = TRUE;  /*异常处理:bool TRUE 注册Application实例为Tiny\Runtime的异常处理句柄| bool FALSE 默认不处理 */
+$profile['exception']['log'] = TRUE;     /*是否以日志方式输出异常信息*/
+$profile['exception']['logid'] = 'tinyphp_exception';  /*日志ID*/
 
 /**
  * 应用设置 配置文件里的相对路径 都是基于application文件夹所在路径
