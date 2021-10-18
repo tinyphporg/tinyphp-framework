@@ -185,7 +185,7 @@ class Template extends Base
         $template = preg_replace("/\{\/for\}/is", "<? } ?>", $template);
         $template = preg_replace("/$this->const_regexp/", "<?=\\1?>", $template);
 
-        $template = "<? if(!defined('IN_ZEROAI_VIEW_TEMPLATE')) exit('Access Denied');?>\r\n$template";
+        $template = "<? if(!defined('IN_TINYPHP_VIEW_TEMPLATE')) exit('Access Denied');?>\r\n$template";
         $template = preg_replace("/(\\\$[a-zA-Z_]\w+\[)([a-zA-Z_]\w+)\]/i", "\\1'\\2']", $template);
         $template = preg_replace("/\<\?(\s{1})/is", "<?php\\1", $template);
         $template = preg_replace("/\<\?\=(.+?)\?\>/is", "<?php echo \\1;?>", $template);

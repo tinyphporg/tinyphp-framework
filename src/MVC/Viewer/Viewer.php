@@ -19,7 +19,7 @@
  */
 namespace Tiny\MVC\Viewer;
 
-define('IN_ZEROAI_VIEW_TEMPLATE', TRUE);
+define('IN_TINYPHP_VIEW_TEMPLATE', TRUE);
 
 
 /**
