@@ -28,14 +28,6 @@ $profile['exception']['log'] = TRUE;     /*是否以日志方式输出异常信�
 $profile['exception']['logid'] = 'tinyphp_exception';  /*日志ID*/
 
 /**
- * 应用设置 配置文件里的相对路径 都是基于application文件夹所在路径
- */
-$profile['app']['namespace'] = 'App';        /*命名空间*/
-$profile['app']['resources'] = 'resource/';  /*资源文件夹*/
-$profile['app']['runtime'] = 'runtime/';     /*运行时文件夹*/
-$profile['app']['tmp'] = 'runtime/tmp/';     /*临时文件夹*/
-
-/**
  * 自动加载引导类
  */
 $profile['bootstrap']['enabled'] = TRUE;
@@ -44,7 +36,7 @@ $profile['bootstrap']['class'] = '\App\Common\Bootstrap';
 /**
  * 打包器设置
  */
-$profile['build']['enabled'] = TRUE;  /*不开启时 忽略build打包行为*/
+$profile['build']['enabled'] = TRUE;    /*不开启时 忽略build打包行为*/
 $profile['build']['param_name'] = 'build'; /*--build参数 开启打包工作*/
 $profile['build']['plugin'] = '\Tiny\MVC\Plugin\Builder';
 $profile['build']['path'] = 'build/builder'; /*打包配置文件夹*/
@@ -83,18 +75,6 @@ $profile['daemon']['policys'] = [
     ],
 ];
 
-/**
- * application的源码设置
- */
-$profile['src']['path'] = '';             /*源码路径*/
-$profile['src']['global'] = 'libs/global/';       /*全局类*/
-$profile['src']['library'] = 'libs/vendor/';       /*外部引入实例库*/
-$profile['src']['controller'] = 'controllers/web/'; /*控制类*/
-$profile['src']['model'] = 'models/';           /*模型类*/
-$profile['src']['console'] = 'controllers/console/';        /*命令行控制类*/
-$profile['src']['rpc'] = 'controllers/rpc/';               /*rpc控制类*/
-$profile['src']['common'] = 'libs/common/';         /*通用类*/
-$profile['src']['view'] = 'views/';             /*视图源码*/
 
 /**
  * application配置模块设置
@@ -111,8 +91,7 @@ $profile['lang']['enabled'] = TRUE;   /*是否开启 */
 $profile['lang']['locale'] = 'zh_cn';
 $profile['lang']['path'] = 'lang/';   /*存放语言包的目录 */
 $profile['lang']['cache']['enabled'] = TRUE; /*配置模块缓存设置 提高性能*/
-$profile['lang']['cache']['id'] = 'default';
-$profile['lang']['cache']['ttl'] = 60;
+
 /**
  * 日志模块设置
  */
@@ -143,10 +122,11 @@ $profile['data']['policys'] = [
 /**
  * 缓存模块设置
  * id为 default时，即为默认缓存实例 可以用Cache::getInstance()使用 或者在controller以及Model中 直接以$this->cache使用
- * driver 1 FILE缓存  Warnning: 文件缓存填写相对application的路径，不允许绝对路径
- * 类型 2 : memcache缓存
- * 类型 3 ：memory内存缓存
- * 类型 5 Redis缓存 */
+ * driver 
+ *       driver=file     文件缓存  文件缓存填写相对application的路径，不允许绝对路径
+ *       driver=memcache memcache缓存 dataid=data数据池driver=memcache配置ID
+ *       driver=redis    Redis缓存    dataid=data数据池driver=redis配置ID
+ */
 $profile['cache']['enabled'] = TRUE; /* 是否默认开启缓存模块，若不开启，则以下设置无效 */
 $profile['cache']['lifetime'] = 3600;
 $profile['cache']['filepath'] = 'runtime/cache/'; /*文件缓存方式的缓存相对路径*/
@@ -194,12 +174,6 @@ $profile['controller']['namespace'] = 'Controller';
 $profile['controller']['console'] = 'Controller\Console';
 $profile['controller']['rpc'] = 'Controller\RPC';
 
-
-/**
- * 命令行
- */
-$profile['console']['namespace'] = 'Console';
-
 /**
  * 模型
  */
@@ -218,24 +192,18 @@ $profile['response']['formatJsonConfigId'] = 'status';
 
 /**
  * 视图设置
- */
-$profile['view']['src']     = 'views/';
-$profile['view']['cache']   = 'runtime/view/cache/';
-$profile['view']['compile'] = 'runtime/view/compile/';
-$profile['view']['config']  = 'runtime/view/config/';
-
-/**
  * 视图引擎绑定
  * 通过扩展名绑定解析引擎
  * php PHP原生引擎
  * 类型 tpl Smarty模板引擎
  * 类型 htm Template模板引擎
  */
+$profile['view']['src']     = 'views/';
+$profile['view']['lang']['enabled'] = TRUE;
+$profile['view']['cache']   = 'runtime/view/cache/';
+$profile['view']['compile'] = 'runtime/view/compile/';
+$profile['view']['config']  = 'runtime/view/config/';
 $profile['view']['engines'] = [];
-
-/**
- * 预先设置的视图变量
- */
 $profile['view']['assign'] = [];
 
 /**
@@ -253,7 +221,29 @@ $profile['router']['rules'] = [
 $profile['plugin']['enabled'] = FALSE;
 
 /**
- * 需要添加绝对路径的相对路径
+ * 应用基本设置
+ */
+$profile['app']['namespace'] = 'App';        /*命名空间*/
+$profile['app']['resources'] = 'resource/';  /*资源文件夹*/
+$profile['app']['runtime'] = 'runtime/';     /*运行时文件夹*/
+$profile['app']['tmp'] = 'runtime/tmp/';     /*临时文件夹*/
+
+/**
+ * application的源码设置
+ */
+$profile['src']['path'] = '';             /*源码路径*/
+$profile['src']['global'] = 'libs/global/';       /*全局类*/
+$profile['src']['library'] = 'libs/vendor/';       /*外部引入实例库*/
+$profile['src']['controller'] = 'controllers/web/'; /*控制类*/
+$profile['src']['model'] = 'models/';           /*模型类*/
+$profile['src']['console'] = 'controllers/console/';        /*命令行控制类*/
+$profile['src']['rpc'] = 'controllers/rpc/';               /*rpc控制类*/
+$profile['src']['common'] = 'libs/common/';         /*通用类*/
+$profile['src']['view'] = 'views/';             /*视图源码*/
+
+
+/**
+ * 需要添加绝对路径APPLICATION_PATH的配置项
  */
 $profile['path'] = [
             'src.path',
@@ -283,7 +273,7 @@ $profile['path'] = [
 /**
  * 自动加载库的配置
  */
-$profile['autoloader']['no_realpath'] = FALSE;   /*是否替换加载库的路径为真实路径 phar兼容性*/
+
 $profile['autoloader']['librarys'] = [
 		'App\Controller' => 'src.controller',
 		'App\Controller\Console' => 'src.console',
@@ -292,4 +282,5 @@ $profile['autoloader']['librarys'] = [
 		'App\Common' => 'src.common',
 		'*' => 'src.global',
 ];
+$profile['autoloader']['no_realpath'] = FALSE;   /*是否替换加载库的路径为真实路径 phar兼容性*/
 ?>

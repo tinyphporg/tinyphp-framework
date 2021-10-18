@@ -793,7 +793,7 @@ abstract class ApplicationBase implements IExceptionHandler
             $assign['config'] = $this->getConfig();
         }
         
-        if ($this->_prop['lang']['enabled'])
+        if ($this->_prop['lang']['enabled'] && $this->_prop['view']['lang']['enabled'] !== FALSE)
         {
             $assign['lang'] = $this->getLang();
             $this->_viewer->setBasePath($this->_prop['lang']['locale']);
