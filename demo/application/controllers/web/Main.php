@@ -47,6 +47,29 @@ class Main extends Controller
     }
     
     /**
+     * main/index
+     */
+    public function tplAction()
+    {
+        $actionName = $this->request->get->formatString('a');
+        $controllerName = $this->request->get->formatString('c');
+        $name = $this->request->get->formatString('name', 'tinyphp');
+        $isName = $this->request->get->isRequired('name') ? 'true' : 'false';
+        // 模型使用
+        $userInfo = $this->mainUserInfoModel->getUsers();
+        $this->assign([
+            'actionName' => $actionName,
+            'controllerName' => $controllerName,
+            'name' => $name,
+            'defName' => 'tinyphp',
+            'isName' => $isName,
+            'users' => $userInfo,
+            'users1' => $userInfo1
+        ]);
+        $this->parse('main/index.tpl');
+    }
+    
+    /**
      * template php file
      */
     public function indexRedisAction()

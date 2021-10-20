@@ -200,12 +200,14 @@ $profile['response']['formatJsonConfigId'] = 'status';
  */
 $profile['view']['src']     = 'views/';
 $profile['view']['lang']['enabled'] = TRUE;
-$profile['view']['cache']   = 'runtime/view/cache/';
+
 $profile['view']['compile'] = 'runtime/view/compile/';
 $profile['view']['config']  = 'runtime/view/config/';
 $profile['view']['engines'] = [];
 $profile['view']['assign'] = [];
-
+$profile['view']['cache']['enabled'] = FALSE;
+$profile['view']['cache']['dir']   = 'runtime/view/cache/';
+$profile['view']['cache']['lifetime']   = 120;
 /**
  * 路由规则设置
  */
@@ -256,7 +258,7 @@ $profile['path'] = [
             'log.path',
             'cache.path',
             'view.src',
-            'view.cache',
+            'view.cache.dir',
             'view.compile',
             'view.config',
             'src.library',

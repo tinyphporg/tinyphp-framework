@@ -798,6 +798,10 @@ abstract class ApplicationBase implements IExceptionHandler
             $assign['lang'] = $this->getLang();
             $this->_viewer->setBasePath($this->_prop['lang']['locale']);
         }
+        if ($prop['cache'] && $prop['cache']['enabled'])
+        {
+            $this->_viewer->setCache($prop['cache']['dir'], (int)$prop['cache']['lifetime']);
+        }
         
         foreach ($engines as $ext => $ename)
         {
@@ -805,7 +809,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         $this->_viewer->setTemplatePath($prop['src']);
         $this->_viewer->setCompilePath($prop['compile']);
-        $assign['view'] = $this->_viewer;
+        $assign['viewer'] = $this->_viewer;
         $this->_viewer->assign($assign);
         return $this->_viewer;
     }

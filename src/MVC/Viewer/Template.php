@@ -19,6 +19,8 @@
 namespace Tiny\MVC\Viewer;
 
 use Tiny\MVC\Viewer\Helper\Url;
+use Tiny\MVC\Viewer\Template\IPlugin;
+
 
 /**
  * 简单的解析引擎
@@ -27,37 +29,54 @@ use Tiny\MVC\Viewer\Helper\Url;
  * @since 2013-5-25上午08:21:38
  * @final 2013-5-25上午08:21:38
  */
-class Template extends Base
+class Template extends Base 
 {
-
+    
     /**
-     * 变量正则
-     *
+     * 匹配变量的正则
+     * 
      * @var string
      */
-    protected $var_regexp = "\@?\\\$[a-zA-Z_]\w*(?:\[[\w\.\"\'\[\]\$]+\])*";
-
+    const REGEXP_VARIABLE = "\@?\\\$[a-zA-Z_]\w*(?:(?:\-\>[a-zA-Z_]\w*)?(?:\[[\w\.\"\'\[\]\$]+\])?)*";
+    
     /**
-     * 对象正则
-     *
+     * 匹配标签里变量标识的正则
      * @var string
      */
-    protected $object_regexp = "\@?\\\$[a-zA-Z_]\w*(?:\[[\w\.\"\'\[\]\$]+\])*(\-\>\(.*?)*";
-
+    const REGEXP_VARIABLE_TAG =  "\<\?=(\@?\\\$[a-zA-Z_]\w*(?:(?:\-\>[a-zA-Z_]\w*)?(?:\[[\w\.\"\'\[\]\$]+\])?)*)\?\>";
+    
     /**
-     * 标签正则
-     *
+     * 匹配常量的正则
+     * 
      * @var string
      */
-    protected $vtag_regexp = "\<\?=(\@?\\\$[a-zA-Z_]\w*(?:\[[\w\.\"\'\[\]\$]+\])*)\?\>";
-
+    const REGEXP_CONST = "\{((?!else)[\w]+)\}";
+    
     /**
-     * 常量正则
-     *
-     * @var string
+     * 注册的模板插件实例
+     * 
+     * @var array
      */
-    protected $const_regexp = "\{([\w]+)\}";
+    protected $_plugins = [];
+    /**
+     * 注册函数
+     * @param IPlugin $plugin
+     */
+    public function regPlugin(IPlugin $plugin)
+    {
+        if (!in_array($plugin))
+        {
+            $this->_plugins = $plugin;
+        }
+    }
+    
 
+    
+    public function _onCloseTagMatch($match)
+    {
+        
+    }
+    
     /**
      * 获取输出的html内容
      *
@@ -93,7 +112,7 @@ class Template extends Base
         }
 
         $compilePath = $this->_compileFolder . md5($path) . '.php';
-        if (file_exists($compilePath) && filemtime($compilePath) > filemtime($path))
+        if ($this->_cacheEnabled && file_exists($compilePath) && filemtime($compilePath) > filemtime($path))
         {
             return $compilePath;
         }
@@ -127,30 +146,18 @@ class Template extends Base
      */
     protected function _parseTemplate($template)
     {
+        //去除注释标签
         $template = preg_replace("/\<\!\-\-\{(.+?)\}\-\-\>/s", "{\\1}", $template);
-        $template = preg_replace_callback("/\{url\|([^\}|]+)\|?([a-z]+)?\}/is", [
-            $this,
-            "_resolvUrl"
-        ], $template);
-        $template = preg_replace("/\{(" . $this->var_regexp . "(\->.*?)*)\}/", "<?=\\1?>", $template);
-        $template = preg_replace("/\{(" . $this->const_regexp . ")\}/", "<?=\\1?>", $template);
-        $template = preg_replace("/(?<!\<\?\=|\\\\)$this->var_regexp/", "<?=\\0?>", $template);
-        $template = preg_replace_callback("/\<\?=(\@?\\\$[a-zA-Z_]\w*)((\[[\\$\[\]\w]+\])+)\?\>/is", [
-            $this,
-            "_arrayindex"
-        ], $template);
-        $template = preg_replace_callback("/\{\{eval (.*?)\}\}/is", [
-            $this,
-            "_stripEvalTag"
-        ], $template);
-        $template = preg_replace_callback("/\{eval (.*?)\}/is", [
-            $this,
-            "_stripEvalTag"
-        ], $template);
-        $template = preg_replace_callback("/\{for (.*?)\}/is", [
-            $this,
-            '_stripForTag'
-        ], $template);
+        
+        // 解析变量和常量
+        $template = $this->_parseVariable($template);
+        
+        //解析标签
+        $template = $this->_parseTag($template);
+        
+        echo $template;
+        return; 
+         
         $template = preg_replace_callback("/\{elseif\s+(.+?)\}/is", [
             $this,
             "_stripElseIfTag"
@@ -160,17 +167,6 @@ class Template extends Base
             "_date"
         ], $template);
 
-        for ($i = 0; $i < 4; $i++)
-        {
-            $template = preg_replace_callback("/\{loop\s+$this->vtag_regexp\s+$this->vtag_regexp\s+$this->vtag_regexp\}(.+?)\{\/loop\}/is", [
-                $this,
-                "_loopsection"
-            ], $template);
-            $template = preg_replace_callback("/\{loop\s+$this->vtag_regexp\s+$this->vtag_regexp\}(.+?)\{\/loop\}/is", [
-                $this,
-                "_dLoopsection"
-            ], $template);
-        }
         $template = preg_replace_callback("/\{if\s+(.+?)\}/is", [
             $this,
             "_stripIfTag"
@@ -192,30 +188,159 @@ class Template extends Base
 
         return $template;
     }
-
+    
     /**
-     * 解析eval标签
-     *
-     * @param string $match
-     *        匹配字符串
+     * 解析变量标签
+     * 
+     * @param string $template
      * @return string
      */
-    protected function _stripEvalTag($match)
+    protected function _parseVariable($template)
     {
-        return "<? " . $this->_stripvtag($match) . ' ?>';
+        $patterns = [
+            "/\{(" . self::REGEXP_VARIABLE . ")\}/",  // {}包裹的变量
+            "/" . self::REGEXP_CONST . "/",  //{}包裹的常量
+            "/(?<!\<\?\=|\\\\)(" . self::REGEXP_VARIABLE . ")/" //没有{}包裹的变量
+        ];
+        
+        return preg_replace($patterns, "<?=\\1?>", $template);
     }
-
+    
     /**
-     * if标签
+     * 解析标签
+     * @param string $template
+     * @return string
+     */
+    protected function _parseTag($template) 
+    {
+        $pattents = [
+            "/\{([a-z]+)\s+(.*?)\}/is",
+            "/\{(\/)([a-z]+)\}/is",
+            "/\{(else)\}/"
+        ];
+        $template = preg_replace_callback($pattents, [
+            $this,
+            "_parseMatchingTag"
+        ], $template);
+        return $template;
+    }
+    
+    /**
+     * 解析匹配成功的标签
+     * 
+     * @param array $matchs
+     * @return boolean|string
+     */
+    protected function _parseMatchingTag($matchs)
+    {
+        $isCloseTag = ($matchs[1] == '/') ? TRUE : FALSE;
+        $tagName = $isCloseTag ? $matchs[2] : $matchs[1];
+        $tagBody = $isCloseTag ?  NULL : $matchs[2];
+        if ($tagBody) 
+        {
+            $tagBody = $this->_stripVariableTag($tagBody);
+        }
+        $tag = $this->onParseTag($tagName, $tagBody, $isCloseTag);
+        if ($tag !== FALSE)
+        {
+            return $tag;
+        }
+       return $matchs[0];
+    }
+    
+    /**
+     * 变量标签
+     *
+     * @param string $match
+     *        匹配字符串
+     * @return string
+     */
+    protected function _stripVariableTag($tagBody)
+    {
+        $patterns = ["/" .self::REGEXP_VARIABLE_TAG . "/is", "/\\\"/", "/\s+/"];
+        $replaces = ["\\1", '"', " "];
+        return preg_replace($patterns, $replaces, $tagBody);
+    }
+    
+    
+    public function onParseTag($tagName,  $tagBody, $isCloseTag = FALSE)
+    {
+        switch($tagName) 
+        {
+            case 'loop':
+                return $this->_parseLoopsection($tagBody, $isCloseTag);
+            case 'foreach':
+                return $this->_parseLoopsection($tagBody, $isCloseTag);
+            case 'for':
+                return $this->_parseForTag($tagBody, $isCloseTag);
+            case 'if':
+                return $this->_parseForTag($tagBody, $isCloseTag);
+            case 'else':
+                return $this->_parseElseTag($tagBody, $isCloseTag);
+            case 'elseif':
+                return $this->_parseElseIfTag($tagBody, $isCloseTag);
+            case 'eval':
+                return $this->_parseEvalTag($tagBody, $isCloseTag);
+            case 'template':
+                return $this->_parseTemplateTag($tagBody, $isCloseTag);
+        }
+       // return $tagBody;
+        return FALSE;
+    }
+    
+    /**
+     * 解析遍历数组循环
      *
      * @param string $match
      *        匹配字符串
      * @return string
      *
      */
-    protected function _stripIfTag($match)
+    protected function _parseLoopsection($tagBody, $isCloseTag)
     {
-        return '<? if(' . $this->_stripvtag($match) . ') { ?>';
+       if ($isCloseTag)
+       {
+           return '<? } ?>';
+       }
+       $tagNodes = explode(" ", $tagBody);
+       $nodeNum = count($tagNodes);
+       if (2 == $nodeNum || 3 == $nodeNum)
+       {
+           return (3 == $nodeNum) 
+           ? sprintf("<? foreach((array)%s as %s => %s) { ?>", $tagNodes[0], $tagNodes[1], $tagNodes[2])
+           : sprintf("<? foreach((array)%s as %s) { ?>", $tagNodes[0], $tagNodes[1]);
+       }
+       return FALSE; 
+    }
+    
+    /**
+     * 过滤标签
+     *
+     * @param string $match
+     *        匹配字符串
+     * @return string
+     *
+     */
+    protected function _parseForTag($tagBody, $isCloseTag)
+    {
+        if ($isCloseTag)
+        {
+            return '<? } ?>';
+        }
+        return sprintf('<? for ( %s ) { ?>', $tagBody);
+    }
+    
+    /**
+     * 过滤标签
+     *
+     * @param string $match
+     *        匹配字符串
+     * @return string
+     *
+     */
+    protected function _parseElseTag($tagBody, $isCloseTag)
+    {
+        return $isCloseTag ? '' : '<? else ?>';
     }
 
     /**
@@ -226,23 +351,50 @@ class Template extends Base
      * @return string
      *
      */
-    protected function _stripForTag($match)
+    protected function _parseIfTag($tagBody, $isCloseTag)
     {
-        return '<? for (' . $this->_stripvtag($match) . ') { ?>';
+        if ($isCloseTag)
+        {
+            return '<? } ?>';
+        }
+        return sprintf('<?  if( %s ) { ?>', $tagBody);
     }
-
+    
     /**
-     * ELSE标签
+     * 过滤标签
      *
      * @param string $match
      *        匹配字符串
      * @return string
      *
      */
-    protected function _stripElseIfTag($match)
+    protected function _parseElseIfTag($tagBody, $isCloseTag)
     {
-        return '<? } elseif(' . $this->_stripvtag($match) . ') { ?>';
+        if ($isCloseTag)
+        {
+            return '';
+        }
+        return sprintf('<? elseif( %s ) { ?>', $tagBody);
     }
+    
+    /**
+     * 过滤标签
+     *
+     * @param string $match
+     *        匹配字符串
+     * @return string
+     *
+     */
+    protected function _parseEvalTag($tagBody, $isCloseTag)
+    {
+        if ($isCloseTag)
+        {
+            return '';
+        }
+        return sprintf('<? %s ?>', $tagBody);
+    }
+    
+
 
     /**
      * include标签
@@ -252,27 +404,13 @@ class Template extends Base
      * @return string
      *
      */
-    protected function _stripvIncludeTag($match)
+    protected function _parseTemplateTag($tagBody, $isCloseTag)
     {
-        return '<? include $this->_getCompilePath("' . $this->_stripvtag($match) . '"); ?>';
-    }
-
-    /**
-     * 解析数组索引
-     *
-     * @param string $name
-     *        索引名称
-     * @param array $items
-     *        解析成的实体
-     * @return void
-     *
-     */
-    protected function _arrayindex($match)
-    {
-        $name = $match[1];
-        $items = $match[2];
-        $items = preg_replace("/\[([a-zA-Z_]\w*)\]/is", "['\\1']", $items);
-        return "<?=${name}${items}?>";
+        if ($isCloseTag)
+        {
+            return '';
+        }
+        return sprintf('<? include $this->_getCompilePath("%s"); ?>', $tagBody);
     }
 
     /**
@@ -289,17 +427,7 @@ class Template extends Base
         return $this->_doStripvtag($s);
     }
 
-    /**
-     * 变量标签
-     *
-     * @param string $match
-     *        匹配字符串
-     * @return string
-     */
-    protected function _doStripvtag($match)
-    {
-        return preg_replace("/$this->vtag_regexp/is", "\\1", str_replace("\\\"", '"', $match));
-    }
+
 
     /**
      * 解析时间标签
@@ -322,39 +450,7 @@ class Template extends Base
         return "<? echo date(\"$fromat\", $v)?>";
     }
 
-    /**
-     * 循环标签
-     *
-     * @param string $match
-     *        匹配字符串
-     * @return void
-     */
-    protected function _dLoopsection($match)
-    {
-        return $this->_loopsection([
-            $match[1],
-            '',
-            $match[2],
-            $match[3]
-        ]);
-    }
 
-    /**
-     * 解析遍历数组循环
-     *
-     * @param string $match
-     *        匹配字符串
-     * @return string
-     *
-     */
-    protected function _loopsection($match)
-    {
-        $arr = $this->_doStripvtag($match[1]);
-        $k = $this->_doStripvtag($match[2]);
-        $v = $this->_doStripvtag($match[3]);
-        $statement = $match[4];
-        return $k ? "<? foreach((array)$arr as $k => $v) {?>$statement<? }?>" : "<? foreach((array)$arr as $v) {?>$statement<? } ?>";
-    }
 
     /**
      * 解析URL模板
@@ -367,8 +463,8 @@ class Template extends Base
      */
     protected function _resolvUrl($match)
     {
-        $param = $match[1];
-        $type = $match[2];
+        $param = $match[2];
+        $type = $match[3];
         $params = explode(',', $param);
         $ps = [];
         if (is_array($params))

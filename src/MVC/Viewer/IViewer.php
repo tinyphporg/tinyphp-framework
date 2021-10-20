@@ -56,5 +56,28 @@ interface IViewer
      * @return string
      */
     public function display($file, $isAbsolute = FALSE);
+    
+    /**
+     * 设置模板存放路径
+     * 
+     * @param string $path
+     */
+    public function setTemplateFolder($path);
+    
+    /**
+     * 设置模板编译后的存放路径
+     * 
+     * @param string $path
+     */
+    public function setCompileFolder($path);
+    
+    /**
+     * 设置模板缓存参数
+     * 
+     * @param string $cacheDir 缓存文件夹
+     * @param int $cacheLifetime 缓存时间
+     */
+    public function setCache($cacheDir, int $cacheLifetime = 120);
+    
 }
 ?>

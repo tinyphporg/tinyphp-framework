@@ -687,8 +687,12 @@ class Autoloader
         if (FALSE === strpos($cname, "\\"))
         {
             $ipath =  $cname . '.php';
-            $this->_saveToRuntimeCache($cname, $ipath);
-            return include_once($ipath);
+            if (is_file($ipath))
+            {
+                $this->_saveToRuntimeCache($cname, $ipath);
+                include_once($ipath);
+            }
+            return;
         }
         $searchParams = [];
         $params = explode("\\", $cname);

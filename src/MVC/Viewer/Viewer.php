@@ -30,8 +30,7 @@ define('IN_TINYPHP_VIEW_TEMPLATE', TRUE);
  * @final : Mon Dec 12 01:15 51 CST 2011
  */
 class Viewer implements \ArrayAccess
-{
-
+{    
     /**
      * View当前实例
      *
@@ -49,6 +48,7 @@ class Viewer implements \ArrayAccess
         'tpl' => '\Tiny\MVC\Viewer\Smarty',
         'htm' => '\Tiny\MVC\Viewer\Template'
     );
+
 
     /**
      * 视图层预设的值
@@ -100,6 +100,25 @@ class Viewer implements \ArrayAccess
     protected $_parsePaths = [];
 
     /**
+     * 是否开启模板缓存
+     *
+     * @var boolean
+     */
+    protected $_cacheEnabled = FALSE;
+    
+    /**
+     * 模板缓存路径
+     * @var string
+     */
+    protected $_cacheDir = '';
+    
+    /**
+     * 模板缓存时间
+     * @var integer
+     */
+    protected $_cacheLifetime = 120;
+    
+    /**
      * 获取当前视图单一实例
      *
      * @return Viewer
@@ -112,7 +131,7 @@ class Viewer implements \ArrayAccess
         }
         return self::$_instance;
     }
-
+    
     /**
      * 通过扩展名绑定视图处理引擎
      *
@@ -276,6 +295,27 @@ class Viewer implements \ArrayAccess
     {
         unset($this->_variables[$key]);
     }
+    
+    /**
+     * 设置模板缓存参数
+     * @param string $cacheDir 模板缓存存放文件夹
+     * @param int $cacheLifetime 模板缓存时间 <=0时不开启cache >0时开启缓存
+     * @return boolean 是否开启
+     */
+    public function setCache($cacheDir, int $cacheLifetime = 120) 
+    {
+        if ($cacheLifetime < 0) 
+        {
+            $this->_cacheEnabled = FALSE;
+            $this->_cacheLifetime = 0;
+            $this->_cacheDir = '';
+            return $this->_cacheEnabled;
+        }
+        $this->_cacheLifetime = $cacheLifetime;
+        $this->_cacheDir = $cacheDir;
+        $this->_cacheEnabled = TRUE;
+        return $this->_cacheEnabled;
+    }
 
     /**
      * 生成url
@@ -323,6 +363,7 @@ class Viewer implements \ArrayAccess
      */
     protected function __construct()
     {
+        
     }
 
     /**
@@ -370,6 +411,10 @@ class Viewer implements \ArrayAccess
         $basePath = $this->_basePath;
         $viewer->setTemplateFolder($this->_templatePath . $basePath);
         $viewer->setCompileFolder($this->_compilePath);
+        if ($this->_cacheEnabled)
+        {
+            $viewer->setCache($this->cacheDir, $this->cacheLifetime);
+        }
         $viewer->assign($this->_variables);
         return $viewer;
     }

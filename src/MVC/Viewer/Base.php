@@ -44,7 +44,25 @@ abstract class Base implements IViewer
      * @var array
      */
     protected $_variables = [];
+    
+    /**
+     * 是否缓存编译后的模板
+     * @var boolean
+     */
+    protected $_cacheEnabled = FALSE;
 
+    /**
+     * 模板缓存路径
+     * @var string
+     */
+    protected $_cacheDir = '';
+    
+    /**
+     * 模板缓存时间
+     * @var integer
+     */
+    protected $_cacheLifetime = 120;
+    
     /**
      * 设置模板引擎的模板文件夹
      *
@@ -124,6 +142,22 @@ abstract class Base implements IViewer
     public function display($file, $isAbsolute = FALSE)
     {
         echo $this->fetch($file, $isAbsolute);
+    }
+    
+    /**
+     * 设置模板缓存
+     * 
+     * @see \Tiny\MVC\Viewer\IViewer::setCache()
+     */
+    public function setCache($cacheDir, int $cacheLifetime = 120)
+    {
+        $this->_cacheEnabled = ($cacheLifetime <= 0) ? FALSE : TRUE;
+        $this->_cacheDir = $cacheDir;
+        if (!is_dir($cacheDir))
+        {
+            throw new ViewerException('cachedir is not exists!');
+        }
+        $this->_cacheLifetime = $cacheLifetime;
     }
 }
 ?>
