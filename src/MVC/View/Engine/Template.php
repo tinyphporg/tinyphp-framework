@@ -469,7 +469,7 @@ class Template extends Base
         }
         else
         {
-            return sprintf('<? $view->fetch("%s"); ?>', $tagBody);
+          return $engineInstance->fetch($tagBody);
         }
     }
 

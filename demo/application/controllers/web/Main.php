@@ -43,7 +43,7 @@ class Main extends Controller
             'users' => $userInfo,
             'users1' => $userInfo1
         ]);
-        $this->parse('main/index.tpl');
+        $this->parse('main/index.htm');
     }
     
     /**

@@ -441,7 +441,7 @@ class View implements \ArrayAccess
         }
         $engineInstance = new $ename();
         $engineInstance->setTemplateDir($this->_templateDir);
-        $engineInstance->setCompileDir($this->_compilePath);   
+        $engineInstance->setCompileDir($this->_compileDir);   
         
         if ($this->_cacheEnabled)
         {

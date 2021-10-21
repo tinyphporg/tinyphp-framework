@@ -26,15 +26,6 @@ namespace Tiny\MVC\View\Engine;
 class Smarty extends \Smarty
 {
 
-    public function setTemplatePath($path, $isConfig = false)
-    {
-        $this->template_dir = $path;
-    }
-
-    public function setCompileDir($path)
-    {
-        $this->compile_dir = $path;
-    }
 
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
