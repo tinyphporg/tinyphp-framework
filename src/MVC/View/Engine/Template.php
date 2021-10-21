@@ -16,12 +16,16 @@
  *           King 2020年6月1日14:21 stable 1.0.01 审定
  *
  */
-namespace Tiny\MVC\Viewer;
+namespace Tiny\MVC\View\Engine;
 
-use Tiny\MVC\Viewer\Helper\Url;
-use Tiny\MVC\Viewer\Template\IPlugin;
+use Tiny\MVC\View\Helper\Url;
 
+use Tiny\MVC\View\Engine\Template\IPlugin;
+use Tiny\MVC\View\Engine\Base;
+use Tiny\MVC\View\ViewException;
+use Tiny\MVC\View\View;
 
+define('IN_TINYPHP_VIEW_TEMPLATE', TRUE);
 /**
  * 简单的解析引擎
  *
@@ -29,7 +33,7 @@ use Tiny\MVC\Viewer\Template\IPlugin;
  * @since 2013-5-25上午08:21:38
  * @final 2013-5-25上午08:21:38
  */
-class Template extends Base 
+class Template extends Base
 {
     
     /**
@@ -77,22 +81,65 @@ class Template extends Base
         
     }
     
+    
     /**
      * 获取输出的html内容
      *
      * {@inheritdoc}
-     * @see \Tiny\MVC\Viewer\IViewer::fetch()
+     * @see \Tiny\MVC\View\Engine\IEngine::fetch()
      */
-    public function fetch($file, $isAbsolute = FALSE)
+    public function fetch($tpath, $isAbsolute = FALSE)
     {
+        $compileFile = $this->_getCompileFile($tpath, $isAbsolute);
+        
         ob_start();
         extract($this->_variables, EXTR_SKIP);
-        include $this->_getCompilePath($file, $isAbsolute);
+        include $compileFile;
         $content = ob_get_contents();
         ob_end_clean();
         return $content;
+        return $content;
     }
-
+    
+    
+    /**
+     * 获取template真实路径
+     * @param string $tpath
+     * @param boolean $isAbsolute
+     * @return mixed
+     */
+    protected function _getTemplateRealPath($tpath, $isAbsolute = FALSE)
+    {
+        if ($isAbsolute && is_file($tpath))
+        {
+            return $tpath;
+        }
+        
+        if ($isAbsolute)
+        {
+            return FALSE;
+        }
+        
+        if (is_array($this->_templateDir))
+        {
+            foreach($this->_templateDir as $tdir)
+            {
+                $tePath = $tdir . $tpath;
+                if (is_file($tePath))
+                {
+                    return $tePath;
+                }
+            }
+            return FALSE;
+        }
+        
+        $tpath = $this->_templateDir . $tpath;
+        if (!is_file($tpath))
+        {
+            return FALSE;
+        }
+        return $tpath;
+    }
     /**
      * 获取模板解析后的文件路径
      *
@@ -102,37 +149,42 @@ class Template extends Base
      *        是否绝对位置
      * @return string $path
      */
-    protected function _getCompilePath($file, $isAbsolute = FALSE)
+    protected function _getCompileFile($tpath, $isAbsolute = FALSE)
     {
-        $path = $isAbsolute ? $file : $this->_templateFolder . $file;
-
-        if (!is_file($path))
+        $tfile = $this->_getTemplateRealPath($tpath, $isAbsolute);
+        if (!$tfile)
         {
-            throw new ViewerException(sprintf("viewer error: the template file %s is not exists!", $path));
+            throw new ViewException(sprintf("viewer error: the template file %s is not exists!", $tpath));
         }
-
-        $compilePath = $this->_compileFolder . md5($path) . '.php';
-        if ($this->_cacheEnabled && file_exists($compilePath) && filemtime($compilePath) > filemtime($path))
+        
+        $compileFileName = md5($tfile) . '.template.php';
+        $compilePath = $this->_compileDir . $compileFileName;
+        
+        // 如果开启模板缓存 并且 模板存在且没有更改
+        if (false || $this->_cacheEnabled && file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile))
         {
             return $compilePath;
         }
-
-        if (!$fh = fopen($path, 'rb'))
+        
+        // 读取模板文件
+        $fh = fopen($tfile, 'rb');
+        if (!$fh)
         {
-            throw new ViewerException("viewer error: fopen $path is faild");
+            throw new ViewException("viewer error: fopen $tfile is faild");
         }
-
         flock($fh, LOCK_SH);
-        $templateContent = fread($fh, filesize($path));
+        $templateContent = fread($fh, filesize($tfile));
         flock($fh, LOCK_UN);
         fclose($fh);
-
+        
+        // 解析模板并写入编译文件
         $compileContent = $this->_parseTemplate($templateContent);
         $ret = file_put_contents($compilePath, $compileContent, LOCK_EX);
-        if (!$ret)
+        if (!$ret|| !is_file($compilePath))
         {
-            throw new ViewerException(sprintf("viewer compile error: file_put_contents %s is faild", $compilePath));
+            throw new ViewException(sprintf("viewer compile error: file_put_contents %s is faild", $compilePath));
         }
+        
         return $compilePath;
     }
 
@@ -156,7 +208,7 @@ class Template extends Base
         $template = $this->_parseTag($template);
         
         echo $template;
-        return; 
+        return $template; 
          
         $template = preg_replace_callback("/\{elseif\s+(.+?)\}/is", [
             $this,
@@ -274,7 +326,7 @@ class Template extends Base
             case 'for':
                 return $this->_parseForTag($tagBody, $isCloseTag);
             case 'if':
-                return $this->_parseForTag($tagBody, $isCloseTag);
+                return $this->_parseIfTag($tagBody, $isCloseTag);
             case 'else':
                 return $this->_parseElseTag($tagBody, $isCloseTag);
             case 'elseif':
@@ -340,7 +392,7 @@ class Template extends Base
      */
     protected function _parseElseTag($tagBody, $isCloseTag)
     {
-        return $isCloseTag ? '' : '<? else ?>';
+        return $isCloseTag ? '' : '<? } else { ?>';
     }
 
     /**
@@ -374,7 +426,7 @@ class Template extends Base
         {
             return '';
         }
-        return sprintf('<? elseif( %s ) { ?>', $tagBody);
+        return sprintf('<? } elseif( %s ) { ?>', $tagBody);
     }
     
     /**
@@ -410,7 +462,15 @@ class Template extends Base
         {
             return '';
         }
-        return sprintf('<? include $this->_getCompilePath("%s"); ?>', $tagBody);
+        $engineInstance = View::getInstance()->getEngineByPath($tagBody);
+        if ($engineInstance == $this)
+        {
+            return sprintf('<? include $this->_getCompileFile("%s"); ?>', $tagBody);
+        }
+        else
+        {
+            return sprintf('<? $view->fetch("%s"); ?>', $tagBody);
+        }
     }
 
     /**

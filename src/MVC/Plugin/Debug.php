@@ -95,9 +95,9 @@ class Debug implements Iplugin
         $routerStr = $this->_app->request->getRouterString();
         $routerStr .= '|' . var_export($this->_app->getRouter()->getParams(), TRUE);
         
-        $viewer = $this->_app->getViewer();
-        $viewPaths = $viewer->getParsePaths();
-        $viewAssign = $viewer->getAssigns();
+        $view = $this->_app->getView();
+        $viewPaths = $view->getTemplateFiles();
+        $viewAssign = $view->getAssigns();
         
         $modelList  = $this->_app->getModels();
         $models = [];
@@ -106,7 +106,7 @@ class Debug implements Iplugin
             $models[] = get_class($model);
         }
         $models = join('|', $models);
-        $viewer->assign([
+        $view->assign([
             'debug' => $this,
             'debugInterval' => $interval,
             'debugMemory' => $memory,
@@ -119,7 +119,7 @@ class Debug implements Iplugin
             'app' => $this->_app,
             'debugExceptions' => ExceptionHandler::getInstance()->getExceptions()
         ]);
-        $body = $viewer->fetch($path, TRUE);
+        $body = $view->fetch($path, TRUE);
         $this->_app->response->appendBody($body);
     }
 

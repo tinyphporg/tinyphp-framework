@@ -123,7 +123,7 @@ abstract class Base
      *
      * @return void
      */
-    public function onInitedViewer()
+    public function onViewInited()
     {
     }
 
@@ -225,7 +225,7 @@ abstract class Base
         }
         if ('view' == $key)
         {
-            $this->onInitedViewer();
+            $this->onViewInited();
         }
         return $ins;
     }
@@ -241,7 +241,7 @@ abstract class Base
         switch ($key)
         {
             case 'view':
-                return $this->application->getViewer();
+                return $this->application->getView();
             case 'config':
                 return $this->application->getConfig();
             case 'cache':

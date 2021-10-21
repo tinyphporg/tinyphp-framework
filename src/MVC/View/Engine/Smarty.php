@@ -12,7 +12,7 @@
  *          King 2021年10月19日下午2:40:02 1 修改
  *          King 2021年10月19日下午2:40:02 stable 1.0.01 审定
  */
-namespace Tiny\MVC\Viewer;
+namespace Tiny\MVC\View\Engine;
 
 /**
  * smarty的模板引擎本地化扩展
@@ -26,12 +26,12 @@ namespace Tiny\MVC\Viewer;
 class Smarty extends \Smarty
 {
 
-    public function setTemplateFolder($path)
+    public function setTemplatePath($path, $isConfig = false)
     {
         $this->template_dir = $path;
     }
 
-    public function setCompileFolder($path)
+    public function setCompileDir($path)
     {
         $this->compile_dir = $path;
     }

@@ -12,7 +12,7 @@
  *          King 2017年4月8日下午11:34:51 1 上午修改
  *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\MVC\Viewer;
+namespace Tiny\MVC\View;
 
 /**
  * 视图异常
@@ -21,7 +21,7 @@ namespace Tiny\MVC\Viewer;
  * @since 2017年4月8日下午11:35:21
  * @final 2017年4月8日下午11:35:21
  */
-class ViewerException extends \Exception
+class ViewException extends \Exception
 {
 }
 ?>

@@ -17,7 +17,7 @@
  *        King 2020年6月1日14:21 stable 1.0.01 审定
  *
  */
-namespace Tiny\MVC\Viewer\Helper;
+namespace Tiny\MVC\View\Helper;
 
 /**
  * 简单分页类

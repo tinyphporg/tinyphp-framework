@@ -12,7 +12,7 @@
  *          King 2021年10月19日下午5:28:32 1 修改
  *          King 2021年10月19日下午5:28:32 stable 1.0.01 审定
  */
-namespace Tiny\MVC\Viewer\Template;
+namespace Tiny\MVC\View\Engine\Template;
 
 interface IPlugin
 {    

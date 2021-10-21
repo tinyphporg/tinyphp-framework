@@ -23,7 +23,7 @@ use Tiny\Data\Data;
 use Tiny\Lang\Lang;
 use Tiny\MVC\Router\IRouter;
 use Tiny\MVC\Controller\Controller;
-use Tiny\MVC\Viewer\Viewer;
+use Tiny\MVC\View\View;
 use Tiny\MVC\Plugin\Iplugin;
 use Tiny\MVC\Bootstrap\Base as BootstrapBase;
 use Tiny\MVC\Router\Router;
@@ -758,31 +758,32 @@ abstract class ApplicationBase implements IExceptionHandler
     /**
      * 设置视图实例
      *
-     * @param Viewer $viewer 视图实例
+     * @param View $viewer 视图实例
      * @return Base
      */
-    public function setViewer(Viewer $viewer)
+    public function setView(View $view)
     {
-        $this->_viewer = $viewer;
+        $this->_view = $view;
         return $this;
     }
     
     /**
      * 获取视图类型
      *
-     * @return Viewer
+     * @return View
      */
-    public function getViewer()
+    public function getView()
     {
-        if ($this->_viewer)
+        if ($this->_view)
         {
-            return $this->_viewer;
+            return $this->_view;
         }
         $prop = $this->_prop['view'];
-        $this->_viewer = Viewer::getInstance();
+        $this->_view = View::getInstance();
         
         $assign = $prop['assign'] ?: [];
         $engines = $prop['engines'] ?: [];
+        $helpers = $prop['helpers'] ?: [];
         
         $assign['env'] = $this->runtime->env;
         $assign['request'] = $this->request;
@@ -793,25 +794,29 @@ abstract class ApplicationBase implements IExceptionHandler
             $assign['config'] = $this->getConfig();
         }
         
-        if ($this->_prop['lang']['enabled'] && $this->_prop['view']['lang']['enabled'] !== FALSE)
+        if ($this->_prop['lang']['enabled'])
         {
             $assign['lang'] = $this->getLang();
-            $this->_viewer->setBasePath($this->_prop['lang']['locale']);
+            if ($this->_prop['view']['lang']['enabled'] !== FALSE)
+            {
+                $srcLocale = $prop['src'] . $this->_prop['lang']['locale'] . DIRECTORY_SEPARATOR;
+                $prop['src'] = [$prop['src'], $srcLocale];
+            }
         }
+        $this->_view->setTemplateDir($prop['src']);
         if ($prop['cache'] && $prop['cache']['enabled'])
         {
-            $this->_viewer->setCache($prop['cache']['dir'], (int)$prop['cache']['lifetime']);
+            $this->_view->setCache($prop['cache']['dir'], (int)$prop['cache']['lifetime']);
         }
         
         foreach ($engines as $ext => $ename)
         {
-            $this->_viewer->bindEngineByExt($ext, $ename);
+            $this->_view->bindEngineByExt($ext, $ename);
         }
-        $this->_viewer->setTemplatePath($prop['src']);
-        $this->_viewer->setCompilePath($prop['compile']);
-        $assign['viewer'] = $this->_viewer;
-        $this->_viewer->assign($assign);
-        return $this->_viewer;
+        $this->_view->setCompileDir($prop['compile']);
+        
+        $this->_view->assign($assign);
+        return $this->_view;
     }
     
     /**

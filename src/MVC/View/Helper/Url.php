@@ -16,7 +16,7 @@
  *        King      2014-2-8上午1:00:17       第一次建立该文件
  *        King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\MVC\Viewer\Helper;
+namespace Tiny\MVC\View\Helper;
 
 use Tiny\MVC\Request\WebRequest;
 

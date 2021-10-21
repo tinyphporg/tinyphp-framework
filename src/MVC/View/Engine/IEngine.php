@@ -12,7 +12,7 @@
  *          King 2017年3月13日上午12:17:34 1 上午修改
  *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\MVC\Viewer;
+namespace Tiny\MVC\View\Engine;
 
 /**
  * 视图模板引擎接口
@@ -21,7 +21,7 @@ namespace Tiny\MVC\Viewer;
  * @since : Mon Dec 12 01:06 15 CST 2011
  * @final : Mon Dec 12 01:06 15 CST 2011
  */
-interface IViewer
+interface IEngine
 {
 
     /**
@@ -62,14 +62,14 @@ interface IViewer
      * 
      * @param string $path
      */
-    public function setTemplateFolder($path);
+    public function setTemplateDir($path);
     
     /**
      * 设置模板编译后的存放路径
      * 
      * @param string $path
      */
-    public function setCompileFolder($path);
+    public function setCompileDir($path);
     
     /**
      * 设置模板缓存参数

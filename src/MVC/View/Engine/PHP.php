@@ -12,7 +12,9 @@
  *          King 2017年3月12日下午3:37:03 1 上午修改
  *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\MVC\Viewer;
+namespace Tiny\MVC\View\Engine;
+
+use Tiny\MVC\View\ViewException;
 
 /**
  * 原生的PHP解析引擎
@@ -38,7 +40,7 @@ class PHP extends Base
 
         if (!is_file($file))
         {
-            throw new ViewerException("viewer error: file $file is not a file");
+            throw new ViewException("viewer error: file $file is not a file");
         }
 
         ob_start();
