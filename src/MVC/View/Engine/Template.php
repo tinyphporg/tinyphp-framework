@@ -81,65 +81,6 @@ class Template extends Base
         
     }
     
-    
-    /**
-     * 获取输出的html内容
-     *
-     * {@inheritdoc}
-     * @see \Tiny\MVC\View\Engine\IEngine::fetch()
-     */
-    public function fetch($tpath, $isAbsolute = FALSE)
-    {
-        $compileFile = $this->_getCompileFile($tpath, $isAbsolute);
-        
-        ob_start();
-        extract($this->_variables, EXTR_SKIP);
-        include $compileFile;
-        $content = ob_get_contents();
-        ob_end_clean();
-        return $content;
-        return $content;
-    }
-    
-    
-    /**
-     * 获取template真实路径
-     * @param string $tpath
-     * @param boolean $isAbsolute
-     * @return mixed
-     */
-    protected function _getTemplateRealPath($tpath, $isAbsolute = FALSE)
-    {
-        if ($isAbsolute && is_file($tpath))
-        {
-            return $tpath;
-        }
-        
-        if ($isAbsolute)
-        {
-            return FALSE;
-        }
-        
-        if (is_array($this->_templateDir))
-        {
-            foreach($this->_templateDir as $tdir)
-            {
-                $tePath = $tdir . $tpath;
-                if (is_file($tePath))
-                {
-                    return $tePath;
-                }
-            }
-            return FALSE;
-        }
-        
-        $tpath = $this->_templateDir . $tpath;
-        if (!is_file($tpath))
-        {
-            return FALSE;
-        }
-        return $tpath;
-    }
     /**
      * 获取模板解析后的文件路径
      *
@@ -149,8 +90,8 @@ class Template extends Base
      *        是否绝对位置
      * @return string $path
      */
-    protected function _getCompileFile($tpath, $isAbsolute = FALSE)
-    {
+    public function getCompiledFile($tpath, $isAbsolute = FALSE)
+    {              
         $tfile = $this->_getTemplateRealPath($tpath, $isAbsolute);
         if (!$tfile)
         {
@@ -184,7 +125,6 @@ class Template extends Base
         {
             throw new ViewException(sprintf("viewer compile error: file_put_contents %s is faild", $compilePath));
         }
-        
         return $compilePath;
     }
 
@@ -219,15 +159,7 @@ class Template extends Base
             "_date"
         ], $template);
 
-        $template = preg_replace_callback("/\{if\s+(.+?)\}/is", [
-            $this,
-            "_stripIfTag"
-        ], $template);
-        $template = preg_replace("/\{template\s+(\w+?)\}/is", "<? include \$this->_getCompilePath('\\1');?>", $template);
-        $template = preg_replace_callback("/\{template\s+(.+?)\}/is", [
-            $this,
-            "_stripvIncludeTag"
-        ], $template);
+
         $template = preg_replace("/\{else\}/is", "<? } else { ?>", $template);
         $template = preg_replace("/\{\/if\}/is", "<? } ?>", $template);
         $template = preg_replace("/\{\/for\}/is", "<? } ?>", $template);
@@ -335,6 +267,8 @@ class Template extends Base
                 return $this->_parseEvalTag($tagBody, $isCloseTag);
             case 'template':
                 return $this->_parseTemplateTag($tagBody, $isCloseTag);
+            case 'date': 
+                return $this->_parseDateTag($tagBody, $isCloseTag);
         }
        // return $tagBody;
         return FALSE;
@@ -449,12 +383,12 @@ class Template extends Base
 
 
     /**
-     * include标签
-     *
-     * @param string $match
-     *        匹配字符串
+     * 解析template标签
+     *  解析出的模板路径，会通过View的单例调用对应的模板引擎实例->fetch()内容替换
+     *  该模板引擎实例 是继承了Base的PHP/Template 直接替换为include运行, 可以共享变量空间。 
+     * @param string $tagBody 解析的模板路径
+     * @param boolean $isCloseTag 是否为闭合标签
      * @return string
-     *
      */
     protected function _parseTemplateTag($tagBody, $isCloseTag)
     {
@@ -463,16 +397,31 @@ class Template extends Base
             return '';
         }
         $engineInstance = View::getInstance()->getEngineByPath($tagBody);
-        if ($engineInstance == $this)
+        if ($engineInstance instanceof Base)
         {
-            return sprintf('<? include $this->_getCompileFile("%s"); ?>', $tagBody);
+            return sprintf('<? include "%s"; ?>', $engineInstance->getCompiledFile($tagBody));
         }
-        else
-        {
-          return $engineInstance->fetch($tagBody);
-        }
+        return sprintf('<? echo \Tiny\MVC\View\View::getInstance()->fetch("%s") ?>', $tagBody);
     }
-
+    
+    protected function _parseDateTag($tagBody, $isCloseTag)
+    {
+        if ($isCloseTag)
+        {
+            return '';
+        }
+        $tagBody = trim($tagBody);
+        $tagNodes = explode('|', trim($tagBody));
+        $time = trim($tagNodes[0]);
+        if (!preg_match("/^\d+$/", $time))
+        {
+            $time = strtotime($time) ?: time();
+            echo $time;
+        }
+        $format = trim($tagNodes[1]) ?: 'Y-m-d H:i';
+        return sprintf('<? echo date("%s", %d);?>', $format, $time);
+    }
+    
     /**
      * 解析脚本标签
      *

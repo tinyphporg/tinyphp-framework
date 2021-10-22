@@ -5,7 +5,10 @@
 <body>
 	<div>
 	{template main/index.php}
-	{include main/test.htm}
+	   {template main/index.tpl}
+	       {template main/test.htm}	
+	{date 2011020202|Y-m-d H:i:s} 
+	
 {eval $ssss="aaa";echo $ssss;}		
 {APPLICATION_PATH}
 {$ssss->a['aa']['aaa']->aaa}
@@ -43,7 +46,7 @@
         </ul>
               <ul>
         <li><b>Using model</b></li>
-        {for $i=0;$i< 100;$i++}  
+        {for $i=0;$i< 1;$i++}  
         <li>
         {loop $user $k $v}
         <span>$k : $v</span>

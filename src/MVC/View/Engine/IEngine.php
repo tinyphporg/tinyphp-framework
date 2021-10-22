@@ -23,7 +23,13 @@ namespace Tiny\MVC\View\Engine;
  */
 interface IEngine
 {
-
+    
+    /**
+     * 
+     * @param array $config
+     */
+    //public function setEngineConfig(array $config);
+    
     /**
      * 设置模板变量
      *

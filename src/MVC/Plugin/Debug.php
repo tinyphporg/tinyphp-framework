@@ -17,6 +17,7 @@ namespace Tiny\MVC\Plugin;
 use Tiny\MVC\ApplicationBase;
 use Tiny\Runtime\ExceptionHandler;
 use Tiny\Data\Db\Db;
+use const Tiny\MVC\TINYPHP_MVC_RESOURCES;
 
 /**
  * DEBUG插件
@@ -68,7 +69,7 @@ class Debug implements Iplugin
     {
         $this->_app = $app;
         $this->_startTime = microtime(true);
-        $this->_viewFolder = __DIR__ . '/__res/debug/view/';
+        $this->_viewFolder = TINYPHP_MVC_RESOURCES . 'view/debug/';
     }
 
     /**

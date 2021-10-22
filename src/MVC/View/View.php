@@ -113,6 +113,14 @@ class View implements \ArrayAccess
     protected $_cacheLifetime = 120;
 
     /**
+     * 助手实例
+     * @var array
+     */
+    protected $_helpers = [
+        '\Tiny\MVC\View\Helper\MessageBox' => NULL,
+    ];
+    
+    /**
      * 获取当前视图单一实例
      *
      * @return View
@@ -165,6 +173,20 @@ class View implements \ArrayAccess
         }
     }
 
+    /**
+     * 添加一个助手
+     * 
+     * @param string $helperName 助手类名
+     */
+    public function addHelper($helperName)
+    {
+        if (key_exists($helperName, $this->_helpers))
+        {
+            return FALSE;
+        }
+        $this->_helpers[$helperName] = NULL;
+    }
+    
     /**
      * 获取模板文件所在目录
      *
@@ -411,6 +433,65 @@ class View implements \ArrayAccess
     }
 
     /**
+     * 惰性加载视图助手作为成员变量
+     * @param string $hname
+     * 
+     * @return IHelper
+     */
+    public function __get($helperName)
+    {
+        $helperInstance = $this->_checkHelper($helperName);
+        if (!$helperInstance)
+        {
+            throw new ViewException('undefined member');
+        }
+        $this->{$helperName} = $helperInstance;
+        return $helperInstance;
+    }
+    
+    /**
+     * 惰性调用助手的成员方法
+     * @param string $method
+     * @param array $args
+     * @throws ViewException
+     * @return mixed
+     */
+    public function __call($method, $args)
+    {
+        $func = $this->_checkFunctionFromHelpers($method); 
+        if (!$func)
+        {
+            throw new ViewException('undefined method');
+        }
+        return call_user_func_array([$func, $method], $args);
+    }
+    
+    protected function _checkHelper($helperName)
+    {
+        $helpers = array_reverse($this->_helpers);
+        foreach ($helpers as $hname =>  $instance)
+        {
+            if (!$instance)
+            {
+                $instance = $this->_getHelperInstance($hname);
+                $this->_helpers[$hname] = $instance;
+            }
+            if($instance->checkHelperName($helperName))
+            {
+                return $instance;
+            }
+        }
+        return FALSE;
+    }
+    
+    protected function _getHelperInstance($helperName)
+    {
+        $helperInstance = new $helperName();
+        $helperInstance->setView($this);
+        return $helperInstance;
+    }
+    
+    /**
      * 初始化视图层
      *
      * @return void
@@ -419,7 +500,7 @@ class View implements \ArrayAccess
     {
         $this->_variables['view'] = $this;
     }
-
+    
     /**
      * 根据类名获取Viewer实例
      *
@@ -432,13 +513,16 @@ class View implements \ArrayAccess
         
         if (key_exists($ename, $this->_engines))
         {
-            return $this->_engines[$ename];
+            $engineInstance = $this->_engines[$ename];
+            $engineInstance->assign($this->_variables);
+            return $engineInstance;
         }
        
         if (!in_array($ename, self::$_enginePolicys))
         {
             throw new ViewException(sprintf('模板引擎对象"%s"未注册', $ename));
         }
+        
         $engineInstance = new $ename();
         $engineInstance->setTemplateDir($this->_templateDir);
         $engineInstance->setCompileDir($this->_compileDir);   

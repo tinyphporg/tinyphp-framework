@@ -20,6 +20,8 @@
 namespace Tiny\MVC\View\Helper;
 
 use Tiny\MVC\Request\WebRequest;
+use Tiny\MVC\View\View;
+use Tiny\MVC\View\IHelper;
 
 /**
  *信息提示框
@@ -28,9 +30,30 @@ use Tiny\MVC\Request\WebRequest;
  *@final 2013-3-30下午01:03:02
  *
  */
-class MessageBox
+class MessageBox implements IHelper
 {
 
+    protected $_view;
+    
+    /**
+     * 设置View实例
+     *
+     * @param View $view
+     */
+    public function setView(View $view)
+    {
+        $this->_view = $view;    
+    }
+    
+    /**
+     * 是否支持指定的helper名检索
+     * @param string $hname
+     */
+    public function checkHelperName($hname)
+    {
+        return ($hname == 'messagebox') ? TRUE : FALSE;
+    }
+    
 	/**
     * 提示框标题
     * @var string

@@ -136,6 +136,17 @@ abstract class Base implements IEngine
     }
 
     /**
+     * 获取输出的HTML内容
+     *
+     * @return string
+     */
+    public function fetch($tpath, $isAbsolute = FALSE)
+    {
+        $compileFile  = $this->getCompiledFile($tpath, $isAbsolute);
+        return $this->_fetchCompiledContent($compileFile);
+    }
+    
+    /**
      * 输出解析内容
      *
      * @param string $template
@@ -143,9 +154,10 @@ abstract class Base implements IEngine
      * @return void
      *
      */
-    public function display($template, $isAbsolute = FALSE)
+    public function display($tpath, $isAbsolute = FALSE)
     {
-        echo $this->fetch($template, $isAbsolute);
+        $compileFile  = $this->getCompiledFile($tpath, $isAbsolute);
+        $this->_displayCompiledContent($compileFile);
     }
 
     /**
@@ -162,5 +174,80 @@ abstract class Base implements IEngine
         }
         $this->_cacheLifetime = $cacheLifetime;
     }
+    
+    /**
+     * 通过模板路径获取模板编译文件
+     * @param string $tpath
+     * @param boolean $isAbsolute
+     */
+    abstract public function getCompiledFile($tpath, $isAbsolute = FALSE);
+        
+    /**
+     * 通过模板文件的真实路径获取文件内容
+     *
+     * @param string $tfile
+     * @return string
+     */
+    protected function _fetchCompiledContent($compileFile)
+    {
+        ob_start();
+        extract($this->_variables, EXTR_SKIP);
+        include $compileFile;
+        $content = ob_get_contents();
+        ob_end_clean();
+        return $content;
+    }
+    
+    /**
+     * 输出编译后的内容
+     *
+     * @param string $compileFile
+     * @return void
+     */
+    protected function _displayCompiledContent($compileFile)
+    {
+        extract($this->_variables, EXTR_SKIP);
+        include $compileFile; 
+    }
+    
+    /**
+     * 获取template真实路径
+     * @param string $tpath
+     * @param boolean $isAbsolute
+     * @return mixed
+     */
+    protected function _getTemplateRealPath($tpath, $isAbsolute = FALSE)
+    {
+        if ($isAbsolute && is_file($tpath))
+        {
+            return $tpath;
+        }
+        
+        if ($isAbsolute)
+        {
+            return FALSE;
+        }
+        
+        if (is_array($this->_templateDir))
+        {
+            foreach($this->_templateDir as $tdir)
+            {
+                $tePath = $tdir . $tpath;
+                if (is_file($tePath))
+                {
+                    return $tePath;
+                }
+            }
+            return FALSE;
+        }
+        
+        $tpath = $this->_templateDir . $tpath;
+        if (!is_file($tpath))
+        {
+            return FALSE;
+        }
+        return $tpath;
+    }
+    
 }
 ?>

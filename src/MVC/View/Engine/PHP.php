@@ -25,30 +25,20 @@ use Tiny\MVC\View\ViewException;
  */
 class PHP extends Base
 {
-
     /**
-     * 获取输出的HTML内容
-     *
-     * @return string
+     * 获取编译后的文件路径
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\Base::getCompileFile()
      */
-    public function fetch($file, $isAbsolute = FALSE)
+    public function getCompiledFile($tpath, $isAbsolute = FALSE)
     {
-        if (!$isAbsolute)
+        $tfile  = $this->_getTemplateRealPath($tpath, $isAbsolute);
+        if (!$tfile)
         {
-            $file = $this->_templateFolder . $file;
+            throw new ViewException(sprintf("viewer error: file %s is not a file", $tfile));
         }
-
-        if (!is_file($file))
-        {
-            throw new ViewException("viewer error: file $file is not a file");
-        }
-
-        ob_start();
-        extract($this->_variables, EXTR_SKIP);
-        include $file;
-        $content = ob_get_contents();
-        ob_clean();
-        return $content;
+        return $tfile;
     }
 }
 ?>
