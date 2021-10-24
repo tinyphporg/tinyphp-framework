@@ -203,11 +203,29 @@ $profile['view']['lang']['enabled'] = TRUE;
 
 $profile['view']['compile'] = 'runtime/view/compile/';
 $profile['view']['config']  = 'runtime/view/config/';
-$profile['view']['engines'] = [];
 $profile['view']['assign'] = [];
+
 $profile['view']['cache']['enabled'] = FALSE;
 $profile['view']['cache']['dir']   = 'runtime/view/cache/';
 $profile['view']['cache']['lifetime']   = 120;
+
+// 设置视图引擎
+$profile['view']['engines'] = [
+    ['engine' => '\Tiny\MVC\View\Engine\Template', 'exts' => ['html', 'htm'], 'config' => []],
+    ['engine' => '\Tiny\MVC\View\Engine\Smarty', 'exts' => ['tpl'], 'config' => []],
+    ['engine' => '\Tiny\MVC\View\Engine\PHP', 'exts' => ['php'], 'config' => []],
+];
+
+// 设置视图助手
+$profile['view']['helpers'] = [
+    ['helper' => '\Tiny\MVC\View\Helper\MessageBox', 'config' => []]
+];
+
+// 设置自带视图模板引擎[\Tiny\MVC\View\Engine\Template]的插件
+$profile['view']['template']['plugins'] = [
+    ['plugin' => '\Tiny\MVC\View\Engine\Template\Url' , 'config' =>'']
+];
+
 /**
  * 路由规则设置
  */

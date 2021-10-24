@@ -207,9 +207,9 @@ abstract class ApplicationBase implements IExceptionHandler
     /**
      * 视图实例
      *
-     * @var Viewer
+     * @var View
      */
-    protected $_viewer;
+    protected $_view;
     
     /**
      * 过滤
@@ -783,9 +783,9 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         $prop = $this->_prop['view'];
         $this->_view = View::getInstance();
-        
+        $this->_view->setApplication($this);
         $assign = $prop['assign'] ?: [];
-        $engines = $prop['engines'] ?: [];
+        
         $helpers = $prop['helpers'] ?: [];
         
         $assign['env'] = $this->runtime->env;
@@ -812,10 +812,13 @@ abstract class ApplicationBase implements IExceptionHandler
             $this->_view->setCache($prop['cache']['dir'], (int)$prop['cache']['lifetime']);
         }
         
-        foreach ($engines as $ext => $ename)
+        // engine初始化
+        $engines = $prop['engines'] ?: [];
+        foreach ($engines as $econfig)
         {
-            $this->_view->bindEngineByExt($ext, $ename);
+            $this->_view->bindEngine($econfig);
         }
+        
         $this->_view->setCompileDir($prop['compile']);
         
         $this->_view->assign($assign);

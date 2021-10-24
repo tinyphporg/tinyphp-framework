@@ -140,10 +140,10 @@ abstract class Base implements IEngine
      *
      * @return string
      */
-    public function fetch($tpath, $isAbsolute = FALSE)
+    public function fetch($tpath, $assign = FALSE, $isAbsolute = FALSE)
     {
         $compileFile  = $this->getCompiledFile($tpath, $isAbsolute);
-        return $this->_fetchCompiledContent($compileFile);
+        return $this->_fetchCompiledContent($compileFile, $assign);
     }
     
     /**
@@ -154,10 +154,10 @@ abstract class Base implements IEngine
      * @return void
      *
      */
-    public function display($tpath, $isAbsolute = FALSE)
+    public function display($tpath, $assign = FALSE, $isAbsolute = FALSE)
     {
         $compileFile  = $this->getCompiledFile($tpath, $isAbsolute);
-        $this->_displayCompiledContent($compileFile);
+        $this->_displayCompiledContent($compileFile, $assign);
     }
 
     /**
@@ -186,12 +186,14 @@ abstract class Base implements IEngine
      * 通过模板文件的真实路径获取文件内容
      *
      * @param string $tfile
+     * @param mixed $assign
      * @return string
      */
-    protected function _fetchCompiledContent($compileFile)
+    protected function _fetchCompiledContent($compileFile, $assign = FALSE)
     {
+        $variables = is_array($assign) ? array_merge($this->_variables, $assign) : $this->_variables;
         ob_start();
-        extract($this->_variables, EXTR_SKIP);
+        extract($variables, EXTR_SKIP);
         include $compileFile;
         $content = ob_get_contents();
         ob_end_clean();
@@ -204,9 +206,10 @@ abstract class Base implements IEngine
      * @param string $compileFile
      * @return void
      */
-    protected function _displayCompiledContent($compileFile)
+    protected function _displayCompiledContent($compileFile, $assign = FALSE)
     {
-        extract($this->_variables, EXTR_SKIP);
+        $variables = is_array($assign) ? array_merge($this->_variables, $assign) : $this->_variables;
+        extract($variables, EXTR_SKIP);
         include $compileFile; 
     }
     

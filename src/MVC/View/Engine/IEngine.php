@@ -50,7 +50,7 @@ interface IEngine
      *        是否为绝对路径
      * @return string
      */
-    public function fetch($file, $isAbsolute = FALSE);
+    public function fetch($filepath, $assign = FALSE, $isAbsolute = FALSE);
 
     /**
      * 显示解析后的视图内容
@@ -61,7 +61,7 @@ interface IEngine
      *        是否为绝对路径
      * @return string
      */
-    public function display($file, $isAbsolute = FALSE);
+    public function display($filepath, $assign = FALSE, $isAbsolute = FALSE);
     
     /**
      * 设置模板存放路径

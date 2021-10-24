@@ -43,7 +43,7 @@ class Main extends Controller
             'users' => $userInfo,
             'users1' => $userInfo1
         ]);
-        $this->view->messagebox->show('aaa');
+        return $this->view->messagebox->show('aaa');
         $this->parse('main/index.htm');
     }
     
@@ -105,7 +105,7 @@ class Main extends Controller
         
         // 模型使用
         $userInfo = $this->mainUserInfoModel->getUsers();
-        print_r($userInfo1);
+        print_r($userInfo);
         $this->assign([
             'actionName' => $actionName,
             'controllerName' => $controllerName,

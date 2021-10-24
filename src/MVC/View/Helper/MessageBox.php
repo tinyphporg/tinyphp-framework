@@ -22,6 +22,8 @@ namespace Tiny\MVC\View\Helper;
 use Tiny\MVC\Request\WebRequest;
 use Tiny\MVC\View\View;
 use Tiny\MVC\View\IHelper;
+use Tiny\MVC\Response\WebResponse;
+use const Tiny\MVC\TINYPHP_MVC_RESOURCES;
 
 /**
  *信息提示框
@@ -33,14 +35,39 @@ use Tiny\MVC\View\IHelper;
 class MessageBox implements IHelper
 {
 
+    /**
+     * View 当前view实例
+     * @var View
+     */
     protected $_view;
+    
+    /**
+     * 提示框标题
+     * 
+     * @var string
+     */
+    protected $_subject = '提示信息';
+    
+    /**
+     *  跳转间隔时间
+     *  
+     * @var  int
+     */
+    protected $_timeout = 5;
+    
+    /**
+     * 模板文件
+     * 
+     * @var string
+     */
+    protected $_templateFile = TINYPHP_MVC_RESOURCES . 'view/helper/messagebox.htm';
     
     /**
      * 设置View实例
      *
      * @param View $view
      */
-    public function setView(View $view)
+    public function setView(View $view, $config = FALSE)
     {
         $this->_view = $view;    
     }
@@ -54,18 +81,25 @@ class MessageBox implements IHelper
         return ($hname == 'messagebox') ? TRUE : FALSE;
     }
     
-	/**
-    * 提示框标题
-    * @var string
-    */
-	protected static $_subject = '提示信息';
-
-	/**
-    *  跳转间隔时间
-    * @var  int
-    */
-	protected static $_timeout = 5;
-
+    /**
+     * 设置模板路径
+     * @param string $tpath
+     * @param  $isRealpath
+     */
+    public function setTimeplateFile($tpath, $isRealpath)
+    {
+        
+    }
+    
+    /**
+     * 初始化构造函数
+     */
+    public function __construct(View $view)
+    {
+        $this->_view = $view;
+    }
+    
+    
 	/**
     *
     * 显示信息框
@@ -75,58 +109,18 @@ class MessageBox implements IHelper
     * @param string $timeout 跳转延时/秒
     * @return string
     */
-	public static function show($message, $url = null, $subject = null, $timeout = null)
+	public function show($message, $toUrl = NULL, $subject = null, $timeout = null)
 	{
-		$subject = ($subject == null) ? self::$_subject : $subject;
-		$url = ($url == null) ? WebRequest::getInstance()->referer : $url;
-		$timeout = ($timeout == null) ? self::$_timeout : (int)$timeout;
-		$_messageTemplate = <<<EOT
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>{$subject}</title>
-<meta name="description" content="" />
-<style>
-html,body{padding:0;margin:0}
-.messageBody{background:#e2e2e2;margin:0 auto;width:1024px}
-.messageBox{height:500px;}
-.messageMain{height:150px;width:550px;border:1px solid #000;margin:100px auto;background:#fff}
-.messageTitle{font-size:13px;background:#93ddff;height:30px;line-height:30px;padding:0px 10px;border-bottom:1px solid #000}
-.messageContent{padding:10px;height:70px}
-.messageBottom{height:30px;padding-left:30px;line-height:30px;font-size:12px;}
-.messageBottom a{color:blue}
-#messageTimeout{color:red;font-weight:700;margin:0px 5px}
-</style>
-</head>
-<body class="messageBody">
-
-<div class="messageBox">
-<div class="messageMain">
-<div class="messageTitle">{$subject}</div>
-<div class="messageContent"><span>{$message}</span></div>
-<div class="messageBottom">请耐心等待<span id="messageTimeout">$timeout</span>秒，或点击<a href="$url">这里自动跳转</a>。</div>
-</div>
-</div>
-<script type="text/javascript">
-    function messageToUrl(timeout)
-    {
-        if (timeout == 0)
-        {
-            location.href = "$url";
-            return;
-        }
-
-        document.getElementById("messageTimeout").innerHTML = timeout;
-         timeout--;
-        setTimeout("messageToUrl(" + timeout + ")", 1000);
-}
-messageToUrl($timeout);
-</script>
-</body>
-</html>
-EOT;
-		die($_messageTemplate);
+		$subject = trim($subject) ?: $this->_subject;
+		$toUrl = trim($toUrl);
+		$timeout = (int)$timeout ?: $this->_timeout;
+        
+		$messageBox = [
+		    'subject' => $subject,
+		    'tourl' => $toUrl,
+		    'timeout' => $timeout
+		];
+		$this->_view->display($this->_templateFile, $messageBox, TRUE);
 	}
 }
 ?>

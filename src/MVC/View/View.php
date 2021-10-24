@@ -20,6 +20,7 @@
 namespace Tiny\MVC\View;
 
 use Tiny\MVC\View\Engine\IEngine;
+use Tiny\MVC\ApplicationBase;
 
 /**
  * 视图层
@@ -39,29 +40,38 @@ class View implements \ArrayAccess
     protected static $_instance;
 
     /**
-     * 引擎数组
+     * 引擎策略数组
+     * 
+     * @var array 
+     *      key 引擎类名 
+     *      value string 为支持解析的模板文件扩展名
+     *      value array 为支持解析的模板文件扩展名数组
+     */
+    protected $_enginePolicys = [
+        '\Tiny\MVC\View\Engine\PHP' => ['ext' => ['php'], 'config' => [], 'instance' => NULL],
+        '\Tiny\MVC\View\Engine\Smarty' => ['ext' => ['tpl'], 'config' => [], 'instance' => NULL],
+        '\Tiny\MVC\View\Engine\Template' => ['ext' => ['htm', 'html'], 'config' => []],
+    ];
+    
+    /**
+     * 加载的视图引擎实例
      *
      * @var array
      */
-    protected static $_enginePolicys = [
-        'php' => '\Tiny\MVC\View\Engine\PHP',
-        'tpl' => '\Tiny\MVC\View\Engine\Smarty',
-        'htm' => '\Tiny\MVC\View\Engine\Template'
-    ];
-
+    protected $_engineInstances = [];
+    
+    /**
+     * 当前application实例
+     * @var ApplicationBase
+     */
+    protected $_app;
+    
     /**
      * 视图层预设的值
      *
      * @var array
      */
     protected $_variables = [];
-
-    /**
-     * 加载的视图引擎实例
-     *
-     * @var array
-     */
-    protected $_engines = [];
 
     /**
      * 各种视图引擎配置
@@ -144,18 +154,35 @@ class View implements \ArrayAccess
      *            array 时可绑定多个扩展
      * @return bool
      */
-    public static function bindEngineName($engineName, $ext)
+    public function bindEngine($econfig)
     {
-        if (is_array($ext))
+        if (!is_array($econfig))
         {
-            foreach ($ext as $e)
-            {
-                self::bindEngine($engineName, $e);
-            }
-            return;
+            return FALSE;
         }
-        $ext = strtolower($ext);
-        self::$_enginePolicys[$ext] = $engineName;
+        if (!key_exists('engine', $econfig) || !is_string($econfig['engine']))
+        {
+            return FALSE;
+        }
+        
+        $engineName = $econfig['engine'];
+        $config = is_array($econfig['config']) ? $econfig['config'] : [];
+        $ext = is_array($econfig['ext']) ? $econfig['ext'] : [(string)$econfig['ext']];
+        array_walk($ext, strtolower);
+        foreach($ext as & $es)
+        {
+            
+        }
+        if (!key_exists($engineName, $this->_enginePolicys))
+        {
+            $this->_enginePolicys[$engineName] = ['config' => $config, 'ext' => $ext];
+            return TRUE;
+        }
+        
+        $enginePolicy = & $this->_enginePolicys[$engineName];
+        $enginePolicy['config'] = array_merge($enginePolicy['config'], $config);
+        $enginePolicy['ext'] = array_merge($enginePolicy['ext'], $ext);
+        return TRUE;        
     }
 
     /**
@@ -164,15 +191,32 @@ class View implements \ArrayAccess
      * @param string $ext
      * @return string
      */
-    public static function getEngineNameByExt($ext)
+    public function getEngineByExt($ext)
     {
         $ext = strtolower($ext);
+        foreach($this->_enginePolicys as $ename => $econfig)
+        {
+            if (in_array($ext, $econfig['ext']))
+            {
+                $engineName = $ename;
+            }
+        }
+        
         if (key_exists($ext, self::$_enginePolicys))
         {
             return self::$_enginePolicys[$ext];
         }
     }
 
+    /**
+     * 
+     * @param ApplicationBase $app
+     */
+    public function setApplication(ApplicationBase $app)
+    {
+        $this->_app = $app;
+    }
+    
     /**
      * 添加一个助手
      * 
@@ -274,18 +318,31 @@ class View implements \ArrayAccess
     }
 
     /**
+     * 将解析末班的内容注入到application的response中
+     * @param string $tpath
+     * @param boolean $assign 额外的assign变量 仅本次解析生效
+     * @param boolean $isAbsolute 是否为绝对的模板路径
+     * @return void
+     */
+    public function display($tpath, $assign = FALSE, $isAbsolute = FALSE)
+    {
+        $this->_templateFiles[] = $tpath;
+        $content = $this->getEngineByPath($tpath)->fetch($tpath, $assign, $isAbsolute);
+        $this->_app->response->appendBody($content);
+    }
+    
+    /**
      * 解析视图获取字符串
      *
-     * @param string $filepath
-     *            string 视图相对路径
-     * @param bool $isAbsolute
-     *            是否绝对位置
+     * @param string $tpath
+     * @param boolean $assign 额外的assign变量 仅本次解析生效
+     * @param boolean $isAbsolute 是否为绝对的模板路径
      * @return string
      */
-    public function fetch($filepath, $isAbsolute = FALSE)
+    public function fetch($tpath, $assign = FALSE, $isAbsolute = FALSE)
     {
-        $this->_templateFiles[] = $filepath;
-        return $this->getEngineByPath($filepath)->fetch($filepath, $isAbsolute);
+        $this->_templateFiles[] = $tpath;
+        return $this->getEngineByPath($tpath)->fetch($tpath, $assign, $isAbsolute);
     }
 
     /**
@@ -397,24 +454,6 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 弹出消息框并中断访问
-     *
-     * @param string $message
-     *            消息内容
-     * @param string $url
-     *            跳转地址
-     * @param string $subject
-     *            消息标题
-     * @param string $timeout
-     *            跳转延时/秒
-     * @return void exied
-     */
-    public function message($message, $url = '', $subject = '', $timeout = '')
-    {
-        return Helper\MessageBox::show($message, $url, $subject, $timeout);
-    }
-
-    /**
      * 返回简单的分页样式
      *
      * @return void
@@ -486,7 +525,8 @@ class View implements \ArrayAccess
     
     protected function _getHelperInstance($helperName)
     {
-        $helperInstance = new $helperName();
+        
+        $helperInstance = new $helperName($this, $config);
         $helperInstance->setView($this);
         return $helperInstance;
     }

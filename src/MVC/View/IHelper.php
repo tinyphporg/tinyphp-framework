@@ -36,6 +36,13 @@ interface IHelper
      * @param string $hname
      */
     public function checkHelperName($hname);
+    
+    /**
+     * 构造函数
+     * 
+     * @param View $view 输入当前view实例
+     */
+    public function __construct(View $view);
 }
 
 ?>

@@ -85,7 +85,6 @@ class Url
 
 	public static function getDUrl($params)
 	{
-		$req = WebRequest::getInstance();
 		$url = 'http://' . $req->host . $req->getServer('SCRIPT_NAME');
 		if ($params)
 		{

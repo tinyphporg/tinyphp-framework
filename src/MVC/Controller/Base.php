@@ -151,10 +151,19 @@ abstract class Base
      */
     public function parse($viewPath)
     {
-        $body = $this->view->fetch($viewPath);
-        $this->response->appendBody($body);
+        return $this->view->display($viewPath);
     }
-
+    
+    /**
+     * 解析视图模板并注入response
+     * @param string $viewPath
+     * @return void
+     */
+    public function display($viewPath)
+    {
+        return $this->view->display($viewPath);
+    }
+    
     /**
      * 解析视图模板，并返回解析后的字符串
      *

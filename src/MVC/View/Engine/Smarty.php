@@ -25,8 +25,6 @@ namespace Tiny\MVC\View\Engine;
  */
 class Smarty extends \Smarty
 {
-
-
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
         $this->caching = ($cacheLifetime <= 0) ? FALSE : TRUE;

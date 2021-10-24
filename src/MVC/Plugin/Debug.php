@@ -107,7 +107,7 @@ class Debug implements Iplugin
             $models[] = get_class($model);
         }
         $models = join('|', $models);
-        $view->assign([
+        $debugs = [
             'debug' => $this,
             'debugInterval' => $interval,
             'debugMemory' => $memory,
@@ -119,8 +119,8 @@ class Debug implements Iplugin
             'modelList' => $models,
             'app' => $this->_app,
             'debugExceptions' => ExceptionHandler::getInstance()->getExceptions()
-        ]);
-        $body = $view->fetch($path, TRUE);
+        ];
+        $body = $view->fetch($path, $debugs, TRUE);
         $this->_app->response->appendBody($body);
     }
 
