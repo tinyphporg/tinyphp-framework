@@ -16,6 +16,6 @@ namespace Tiny\MVC\View\Engine\Template;
 
 interface IPlugin
 {    
-    public function onTagMatch($match);
+    public function onParseTag($tagName, $tagBody, $isCloseTag = FALSE);
 }
 ?>

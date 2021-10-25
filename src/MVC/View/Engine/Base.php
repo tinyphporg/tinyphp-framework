@@ -15,6 +15,7 @@
 namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
+use Tiny\MVC\View\View;
 
 /**
  * 视图基类
@@ -26,6 +27,19 @@ use Tiny\MVC\View\ViewException;
 abstract class Base implements IEngine
 {
 
+    /**
+     * 当前的View对象
+     * @var View
+     */
+    protected $_view;
+    
+    /**
+     * 视图引擎配置
+     * 
+     * @var array
+     */
+    protected $_viewEngineConfig = [];
+    
     /**
      * 模板目录
      *
@@ -68,6 +82,17 @@ abstract class Base implements IEngine
      */
     protected $_cacheLifetime = 120;
 
+    /**
+     * 设置视图实例和初始化配置
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\IEngine::setView()
+     */
+    public function setEngineConfig(View $view, array $config)
+    {
+        $this->_view = $view;
+        $this->_viewEngineConfig += $config; 
+    }
+    
     /**
      * 设置模板引擎的模板文件夹
      *

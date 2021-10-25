@@ -19,6 +19,7 @@
 namespace Tiny\MVC\View\Helper;
 
 use Tiny\MVC\Request\WebRequest;
+use Tiny\MVC\View\Engine\Template\IPlugin;
 
 /**
 * url辅助类
@@ -26,9 +27,18 @@ use Tiny\MVC\Request\WebRequest;
 * @since 2014-2-8上午1:19:01
 * @final  2014-2-8上午1:19:01
 */
-class Url
+class Url implements IPlugin
 {
 
+    public function onParseTag($tagName, $tagBody, $isCloseTag = FALSE)
+    {
+        if($tagName == 'url')
+        {
+            return '';
+        }
+        return FALSE;
+    }
+    
 	/**
 	* 输出网址
 	*

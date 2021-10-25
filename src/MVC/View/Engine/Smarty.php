@@ -14,6 +14,8 @@
  */
 namespace Tiny\MVC\View\Engine;
 
+use Tiny\MVC\View\View;
+
 /**
  * smarty的模板引擎本地化扩展
  * 
@@ -23,8 +25,32 @@ namespace Tiny\MVC\View\Engine;
  * @final 2021年10月19日下午2:40:02 
  *
  */
-class Smarty extends \Smarty
+class Smarty extends \Smarty implements IEngine
 {
+    /**
+     * 当前的View对象
+     * @var View
+     */
+    protected $_view;
+    
+    /**
+     * 视图引擎配置
+     *
+     * @var array
+     */
+    protected $_viewEngineConfig = [];
+    
+    /**
+     * 设置视图实例和初始化配置
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\IEngine::setView()
+     */
+    public function setEngineConfig(View $view, array $config)
+    {
+        $this->_view = $view;
+        $this->_viewEngineConfig += $config;
+    }
+    
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
         $this->caching = ($cacheLifetime <= 0) ? FALSE : TRUE;

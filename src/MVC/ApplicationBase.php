@@ -786,7 +786,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_view->setApplication($this);
         $assign = $prop['assign'] ?: [];
         
-        $helpers = $prop['helpers'] ?: [];
+        
         
         $assign['env'] = $this->runtime->env;
         $assign['request'] = $this->request;
@@ -813,8 +813,13 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         
         // engine初始化
-        $engines = $prop['engines'] ?: [];
-        foreach ($engines as $econfig)
+        foreach ((array)$prop['engines'] as $econfig)
+        {
+            $this->_view->bindEngine($econfig);
+        }
+        
+        //helper初始化
+        foreach ((array)$prop['helpers'] as $econfig)
         {
             $this->_view->bindEngine($econfig);
         }

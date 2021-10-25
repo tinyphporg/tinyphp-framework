@@ -43,7 +43,7 @@ class Main extends Controller
             'users' => $userInfo,
             'users1' => $userInfo1
         ]);
-        return $this->view->messagebox->show('aaa');
+       // $this->view->messagebox->show('aaa');
         $this->parse('main/index.htm');
     }
     

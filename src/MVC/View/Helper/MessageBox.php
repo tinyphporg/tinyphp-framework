@@ -34,12 +34,21 @@ use const Tiny\MVC\TINYPHP_MVC_RESOURCES;
  */
 class MessageBox implements IHelper
 {
-
+    const HELPER_NAME_LIST = [        
+        'messagebox'
+    ];
+    
     /**
      * View 当前view实例
      * @var View
      */
     protected $_view;
+    
+    /**
+     * 配置
+     * @var array
+     */
+    protected $_config;
     
     /**
      * 提示框标题
@@ -67,9 +76,10 @@ class MessageBox implements IHelper
      *
      * @param View $view
      */
-    public function setView(View $view, $config = FALSE)
+    public function setViewHelper(View $view, array $hconfig)
     {
-        $this->_view = $view;    
+        $this->_view = $view;
+        $this->_config = $hconfig;
     }
     
     /**
@@ -78,7 +88,7 @@ class MessageBox implements IHelper
      */
     public function checkHelperName($hname)
     {
-        return ($hname == 'messagebox') ? TRUE : FALSE;
+        return in_array($hname, self::HELPER_NAME_LIST);
     }
     
     /**
@@ -89,14 +99,6 @@ class MessageBox implements IHelper
     public function setTimeplateFile($tpath, $isRealpath)
     {
         
-    }
-    
-    /**
-     * 初始化构造函数
-     */
-    public function __construct(View $view)
-    {
-        $this->_view = $view;
     }
     
     

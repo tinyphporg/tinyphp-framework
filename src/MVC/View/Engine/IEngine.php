@@ -14,6 +14,8 @@
  */
 namespace Tiny\MVC\View\Engine;
 
+use Tiny\MVC\View\View;
+
 /**
  * 视图模板引擎接口
  *
@@ -28,7 +30,7 @@ interface IEngine
      * 
      * @param array $config
      */
-    //public function setEngineConfig(array $config);
+    public function setEngineConfig(View $view, array $config);
     
     /**
      * 设置模板变量
