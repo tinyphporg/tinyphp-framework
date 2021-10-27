@@ -51,6 +51,12 @@ class Smarty extends \Smarty implements IEngine
         $this->_viewEngineConfig += $config;
     }
     
+    /**
+     * 设置缓存选项
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\IEngine::setCache()
+     */
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
         $this->caching = ($cacheLifetime <= 0) ? FALSE : TRUE;

@@ -1220,7 +1220,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         foreach ($rules as $rule)
         {
-            $router->addRule($rule['router'], $rule['rule'], $rule);
+            $router->addRule((array)$rule);
         }
         $router->route();
     }

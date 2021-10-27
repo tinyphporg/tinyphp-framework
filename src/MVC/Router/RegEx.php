@@ -79,5 +79,10 @@ class RegEx implements IRouter
     {
         return $this->_params;
     }
+    
+    public function rewriteUri($controllerName, $actionName, array $params)
+    {
+        
+    }
 }
 ?>

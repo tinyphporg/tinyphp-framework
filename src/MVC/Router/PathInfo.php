@@ -25,7 +25,28 @@ namespace Tiny\MVC\Router;
  */
 class PathInfo implements IRouter
 {
-
+    
+    /**
+     * URL正则
+     * 
+     * @var string
+     */
+    const PATHINFO_PATTERN = "/^(?:.*?\.php)?((?:\/[a-z][a-z0-9]*)*)(?:\/([a-z][a-z0-9]*)(?:\/|((?:\-[a-z][a-z0-9_]*\-[a-z0-9_%]+)*)(\.[a-z]+))?)?$/i";
+    
+    /**
+     * 默认扩展名
+     * 
+     * @var string
+     */
+    const DEFAULT_EXT  = '.html';
+    
+    /**
+     * 匹配时的扩展名
+     * 
+     * @var string
+     */
+    protected $_extName;
+    
     /**
      * 解析存放URL参数的数组
      *
@@ -44,25 +65,62 @@ class PathInfo implements IRouter
      */
     public function checkRule(array $regRule, $routerString)
     {
-        $ext = $regRule['ext'];
-        if (!$out = $this->_checkUrl($ext, $routerString))
+        $extName = $this->_formatExt($regRule['ext']);
+        $checkResult = $this->_checkUrl($extName, $routerString);
+        if (!$checkResult)
         {
             return FALSE;
         }
-        list($c, $this->_params['a'], $paramText) = $out;
-        if ($c[0] == "/" || $c[0] == "\\")
+        $this->_extName = $extName;
+        list($controllerName, $actionName, $paramText) = $checkResult;
+        if ($controllerName[0] == "/" || $controllerName[0] == "\\")
         {
-            $c = substr($c, 1);
+            $controllerName = substr($controllerName, 1);
         }
-        $this->_params['c'] = $c;
-        
-        if ($paramText)
+        $params = [];
+        if($paramText)
         {
-            
+            $paramList = explode('-', $paramText);
+            for ($i = 1; $i< count($paramList); $i++)
+            {
+                $params[$paramList[$i]] = $paramList[$i + 1];
+                $i++;
+            }
         }
+        $params['c'] = $controllerName;
+        $params['a'] = $actionName;
+        $this->_params = $params;
         return TRUE;
     }
 
+    
+    /**
+     * 获取路由解析后的URL参数
+     *
+     * @return array
+     */
+    public function getParams()
+    {
+        return $this->_params;
+    }
+    
+    /**
+     * 格式化扩展名
+     * 
+     * @param string $ext
+     * 
+     * @return string[]|mixed[]
+     */
+    protected function _formatExt($ext)
+    {
+        $ename = str_replace([' ', '.'], '', (string)$ext);
+        if(!$ename)
+        {
+            $ename = self::DEFAULT_EXT;
+        }
+        return '.' . $ename;
+    }
+    
     /**
      * 检测URL是否符合路由规则
      *
@@ -76,57 +134,50 @@ class PathInfo implements IRouter
      */
     protected function _checkUrl($ext, $routerString)
     {
-        $pattern = "/^(.*?\.php)?((\/?[a-z][a-z0-9]+)*)(\/([a-z][a-z0-9]+))(\/|((\-[a-z][a-z0-9_]*\-[a-z0-9_]+)*)" . $ext . ")?$/i";
-        $index = strpos($routerString, "?");
-        if ($index)
+        if ($index = strpos($routerString, "?"))
         {
             $routerString = substr($routerString, 0, $index);
         }
-        
-        $out = NULL;
-        if (!preg_match($pattern, $routerString, $out))
+        $out = [];
+        if (!preg_match(self::PATHINFO_PATTERN, $routerString, $out))
         {
             return FALSE;
         }
-        $paramText = trim($out[7]);
-        if (!$out[2] && (!$out[6] || ($ext && $ext != $out[6])))
+        if(!$out[2])
         {
-            $c = $out[5];
-            return [
-                $c,
-                '',
-                $paramText,
-            ];
+            $cparams = explode('/', $out[1]);
+            $actionName = array_pop($cparams);
+            $controllerName = join('/', $cparams);
+            return [$controllerName, $actionName];
         }
-        $c = $out[2];
-        if ($ext && $out[6] == $ext)
+        
+        // 检测扩展名
+        if($out[4] && $out[4] != $ext)
         {
-            $a = $out[5];
+            return FALSE;
         }
-        elseif ($out[6] == '/')
-        {
-            $c .= $out[4];
-            $a = 'index';
-        }
-        else
-        {
-            $a = $out[5];
-        }
-        return [
-            $c,
-            $a,
-            $paramText
-        ];
+        return array_slice($out, 1, 3);
     }
-
+    
     /**
-     * 获取路由解析后的URL参数
-     *
-     * @return array
+     * 根据参数重写并返回URL
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\Router\IRouter::rewriteUri()
      */
-    public function getParams()
+    public function rewriteUri($controllerName, $actionName, array $params)
     {
-        return $this->_params;
+        if(!$params)
+        {
+            return $controllerName . '/' . $actionName;
+        }
+        $uris = [];
+        foreach($params as $k => $v)
+        {
+            $uris[] = rawurlencode($k) . '-' . rawurlencode($v);
+        }
+        $uri = join('-', $uris);
+        return '/' . $controllerName . '/' . $actionName . ($uris  ? '-' . $uri . $this->_extName : '');
     }
 }
 ?>

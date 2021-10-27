@@ -41,5 +41,13 @@ interface IRouter
      * @return array|NULL
      */
     public function getParams();
+    
+    /**
+     * 
+     * @param string $controllerName
+     * @param string $actionName
+     * @param array $params
+     */
+    public function rewriteUri($controllerName, $actionName, array $params);
 }
 ?>

@@ -112,6 +112,8 @@ class WebRequest extends Base
             // return $this->_app->getFile();
             case 'files':
                 return $this->_data['files'];
+            case 'scriptname':
+                return $this->_server['SCRIPT_NAME'];
             case 'ip':
                 return $this->_getIp($this->_server);
             case 'url':

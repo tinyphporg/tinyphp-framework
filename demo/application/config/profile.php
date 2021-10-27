@@ -213,7 +213,7 @@ $profile['view']['cache']['lifetime']   = 120;
 $profile['view']['engines'] = [
     ['engine' => '\Tiny\MVC\View\Engine\Template', 'ext' => ['html', 'htm'], 'config' => [
         'plugins' => [
-            'plugin' => '\Tiny\MVC\View\Engine\Template\Url' , 'config' => []
+            ['plugin' => '\Tiny\MVC\View\Engine\Template\Url' , 'config' => []]
         ]
     ]],
     ['engine' => '\Tiny\MVC\View\Engine\Smarty', 'ext' => ['tpl'], 'config' => []],
@@ -232,7 +232,7 @@ $profile['view']['helpers'] = [
 $profile['router']['enabled'] = TRUE; /* 是否开启router */
 $profile['router']['routers'] = [];   /*注册自定义的router*/
 $profile['router']['rules'] = [
-    ['router' => 'pathinfo', 'rule' => ['ext' => '.html'], 'domain' => ''],
+    ['router' => 'pathinfo', 'rule' => ['ext' => '.html'], 'domain' => '*'],
     ];
 
 /**

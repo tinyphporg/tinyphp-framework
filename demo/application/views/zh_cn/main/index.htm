@@ -6,13 +6,14 @@
 	<div>
 	{template main/index.php}
 	   {template main/index.tpl}
-	       {template main/test.htm}	
+	       {template main/test.htm}
+	       {/template}	
 	{date 2011020202|Y-m-d H:i:s} 
 	
 {eval $ssss="aaa";echo $ssss;}		
 {APPLICATION_PATH}
 {$ssss->a['aa']['aaa']->aaa}
-{url c=main,a=index,b=aa|r}
+<a href="{url c=main,a=index,b = adfdf12321321 a|r}">aaaaa</a>
 		<ul>
 		<li><h3>Hello World!</h3></li>
 		  <li>Name: Tinyphp frameworks for PHP</li>

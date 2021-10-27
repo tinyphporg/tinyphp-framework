@@ -18,7 +18,6 @@
  */
 namespace Tiny\MVC\View\Engine;
 
-use Tiny\MVC\View\Helper\Url;
 use Tiny\MVC\View\Engine\Template\IPlugin;
 use Tiny\MVC\View\ViewException;
 use Tiny\MVC\View\View;
@@ -78,12 +77,9 @@ class Template extends Base
         {
             return FALSE;
         }
-        if (key_exists('config', $pconfig) && !is_array($pconfig['config']))
-        {
-            return FALSE;
-        }
         
-        $pluginName  = (string)$pluginName;
+        $pluginName  = (string)$pconfig['plugin'];
+        $config = (array)$pconfig['config'];
         if (!key_exists($pluginName, $this->_plugins))
         {
             $this->_plugins[$pluginName] = [
@@ -99,6 +95,7 @@ class Template extends Base
         {
             $plugin['plugin'] = $pluginName;
         }
+        return TRUE;
     }
 
     /**
@@ -110,10 +107,9 @@ class Template extends Base
     public function setEngineConfig(View $view, array $config)
     {
         parent::setEngineConfig($view, $config);
-        foreach((array)$config['plugins'] as $pconfig)
+        foreach($config['plugins'] as $pconfig)
         {
-            $this->regPlugin($pconfig); 
-            
+            $this->regPlugin($pconfig);  
         }
     }
 
@@ -218,8 +214,8 @@ class Template extends Base
     protected function _parseTag($template)
     {
         $pattents = [
-            "/\{([a-z]+)\s+(.*?)\}/is",
-            "/\{(\/)([a-z]+)\}/is",
+            "/\{([a-z]+)\s+(.*?)(?:\|([a-z][a-z0-9_]*?))?\}/is",
+            "/\{\/([a-z]+)\}/is",
             "/\{(else)\}/"
         ];
         $template = preg_replace_callback($pattents, [
@@ -237,19 +233,24 @@ class Template extends Base
      */
     protected function _parseMatchingTag($matchs)
     {
-        $isCloseTag = ($matchs[1] == '/') ? TRUE : FALSE;
-        $tagName = $isCloseTag ? $matchs[2] : $matchs[1];
-        $tagBody = $isCloseTag ? NULL : $matchs[2];
-        if ($tagBody)
+        $fullTagText = $matchs[0];
+        $isCloseTag = ($fullTagText[1] == '/') ? TRUE : FALSE;
+        $tagName = $matchs[1];
+        if ($isCloseTag)
         {
-            $tagBody = $this->_stripVariableTag($tagBody);
+            $ret = $this->onParseCloseTag($tagName);
         }
-        $tag = $this->onParseTag($tagName, $tagBody, $isCloseTag);
-        if ($tag !== FALSE)
+        else
         {
-            return $tag;
+            $tagBody = $this->_stripVariableTag($matchs[2]);
+            $extra = $matchs[3];
+            $ret = $this->onParseTag($tagName, $tagBody, $extra);
         }
-        return $matchs[0];
+        if ($ret !== FALSE)
+        {
+            return $ret;
+        }
+        return $fullTagText;
     }
 
     /**
@@ -261,6 +262,10 @@ class Template extends Base
      */
     protected function _stripVariableTag($tagBody)
     {
+        if(!$tagBody)
+        {
+            return '';
+        }
         $patterns = [
             "/" . self::REGEXP_VARIABLE_TAG . "/is",
             "/\\\"/",
@@ -275,62 +280,146 @@ class Template extends Base
     }
 
     /**
-     *
-     * @param unknown $tagName
-     * @param unknown $tagBody
-     * @param boolean $isCloseTag
-     * @return string|boolean
+     * 解析闭合标签
+     * 
+     * @param string $tagName
      */
-    public function onParseTag($tagName, $tagBody, $isCloseTag = FALSE)
+    public function onParseCloseTag($tagName)
     {
         switch ($tagName)
         {
             case 'loop':
-                return $this->_parseLoopsection($tagBody, $isCloseTag);
+                return '<? } ?>';
             case 'foreach':
-                return $this->_parseLoopsection($tagBody, $isCloseTag);
+                return '<? } ?>';
             case 'for':
-                return $this->_parseForTag($tagBody, $isCloseTag);
+                return '<? } ?>';
             case 'if':
-                return $this->_parseIfTag($tagBody, $isCloseTag);
+                return '<? } ?>';
             case 'else':
-                return $this->_parseElseTag($tagBody, $isCloseTag);
             case 'elseif':
-                return $this->_parseElseIfTag($tagBody, $isCloseTag);
             case 'eval':
-                return $this->_parseEvalTag($tagBody, $isCloseTag);
             case 'template':
-                return $this->_parseTemplateTag($tagBody, $isCloseTag);
             case 'date':
-                return $this->_parseDateTag($tagBody, $isCloseTag);
+            default:
+                return FALSE;
         }
-        
-        // return $tagBody;
+        return $this->_onPluginParseCloseTag($tagName);
+    }
+    
+    /**
+     * 解析tag
+     *
+     * @param string $tagName  标签名
+     * @param string $tagBody 标签主体内容
+     * @param string $extra 附加标识
+     * @return string|boolean 返回解析成功的字符串  FALSE为解析失败
+     */
+    public function onParseTag($tagName, $tagBody, $extra)
+    {
+        switch ($tagName)
+        {
+            case 'loop':
+                return $this->_parseLoopsection($tagBody, $extra);
+            case 'foreach':
+                return $this->_parseLoopsection($tagBody, $extra);
+            case 'for':
+                return $this->_parseForTag($tagBody, $extra);
+            case 'if':
+                return $this->_parseIfTag($tagBody, $extra);
+            case 'else':
+                return $this->_parseElseTag($tagBody, $extra);
+            case 'elseif':
+                return $this->_parseElseIfTag($tagBody, $extra);
+            case 'eval':
+                return $this->_parseEvalTag($tagBody, $extra);
+            case 'template':
+                return $this->_parseTemplateTag($tagBody, $extra);
+            case 'date':
+                return $this->_parseDateTag($tagBody, $extra);
+        }
+        return $this->_onPluginParseTag($tagName, $tagBody, $extra);
+    }
+    
+    /**
+     * 调用插件事件解析闭合tag
+     *
+     * @param string $tagName  标签名
+     * @param string $tagBody 标签主体内容
+     * @param boolean $isCloseTag 是否闭合标签
+     * @return string|boolean 返回解析成功的字符串  FALSE时没有找到解析成功的插件 或者解析失败
+     */
+    protected function _onPluginParseCloseTag($tagName)
+    {
+        foreach($this->_plugins as $pconfig)
+        {
+            $instance = $pconfig['instance'];
+            if(!$instance)
+            {
+                $instance = $this->_getPluginInstanceByConfig($pconfig);
+            }
+            $ret = $instance->onParseCloseTag($tagName);
+            if(FALSE !== $ret)
+            {
+                return $ret;
+            }
+        }
         return FALSE;
     }
     
-    protected function _onPluginParseTag($tagName, $tagBody, $isCloseTag)
+    /**
+     * 调用插件事件解析tag
+     * 
+     * @param string $tagName  标签名
+     * @param string $tagBody 标签主体内容
+     * @param string $extra 附加信息
+     * @return string|boolean 返回解析成功的字符串  FALSE时没有找到解析成功的插件 或者解析失败
+     */
+    protected function _onPluginParseTag($tagName, $tagBody, $extra)
     {
-        foreach($this->_plugins as $plugin)
+        foreach($this->_plugins as $pconfig)
         {
-            
+            $instance = $pconfig['instance'];
+            if(!$instance)
+            {
+                $instance = $this->_getPluginInstanceByConfig($pconfig);
+            }
+            $ret = $instance->onParseTag($tagName, $tagBody, $extra);
+            if(FALSE !== $ret)
+            {
+                return $ret;
+            }
         }
+        return FALSE;
+    }
+    
+    /**
+     * 根据配置返回插件实例
+     * @param array $pconfig 配置实例
+     * @return IPlugin 实现了Template引擎插件接口IPlugin的实例
+     */
+    protected function _getPluginInstanceByConfig($pconfig)
+    {
+        $pluginName = $pconfig['plugin'];
+        if (!class_exists($pluginName))
+        {
+            throw new ViewException(sprintf('Template Engine: Plugin class:%s is not exists!', $pluginName));
+        }
+        $pluginInstance = new $pluginName();
+        $pluginInstance->setTemplateConfig($this, (array)$pconfig['config']);
+        $this->_plugins[$pluginName]['instance'] = $pluginInstance;
+        return $pluginInstance;
     }
     
     /**
      * 解析遍历数组循环
      *
-     * @param string $match
-     *            匹配字符串
-     * @return string
-     *
+     * @param string $tagBody 标签主体
+     * @param string $extra 附加信息
+     * @return string|FALSE;
      */
-    protected function _parseLoopsection($tagBody, $isCloseTag)
+    protected function _parseLoopsection($tagBody, $extra)
     {
-        if ($isCloseTag)
-        {
-            return '<? } ?>';
-        }
         $tagNodes = explode(" ", $tagBody);
         $nodeNum = count($tagNodes);
         if (2 == $nodeNum || 3 == $nodeNum)
@@ -341,90 +430,71 @@ class Template extends Base
     }
 
     /**
-     * 过滤标签
+     * 解析For标签
      *
-     * @param string $match
-     *            匹配字符串
+     * @param string $tagBody 标签主体
+     * @param string $extra 附加标识
      * @return string
-     *
      */
-    protected function _parseForTag($tagBody, $isCloseTag)
+    protected function _parseForTag($tagBody, $extra = NULL)
     {
-        if ($isCloseTag)
-        {
-            return '<? } ?>';
-        }
         return sprintf('<? for ( %s ) { ?>', $tagBody);
     }
 
     /**
-     * 过滤标签
+     * 解析Else标签
      *
-     * @param string $match
-     *            匹配字符串
+     * @param string $tagBody 标签主体
+     * @param string $extra 标签标识
      * @return string
      *
      */
-    protected function _parseElseTag($tagBody, $isCloseTag)
+    protected function _parseElseTag($tagBody, $extra = NULL)
     {
-        return $isCloseTag ? '' : '<? } else { ?>';
+        return '<? } else { ?>';
     }
 
     /**
-     * 过滤标签
+     * 解析if标签
      *
-     * @param string $match
-     *            匹配字符串
-     * @return string
-     *
+     * @param string $tagBody 标签主体
+     * @param string $extra 附加信息
+     * @return string|FALSE;
      */
-    protected function _parseIfTag($tagBody, $isCloseTag)
+    protected function _parseIfTag($tagBody, $extra = NULL)
     {
-        if ($isCloseTag)
-        {
-            return '<? } ?>';
-        }
         return sprintf('<?  if( %s ) { ?>', $tagBody);
     }
 
     /**
-     * 过滤标签
+     * 解析elseif标签
      *
-     * @param string $match
-     *            匹配字符串
-     * @return string
-     *
+     * @param string $tagBody 标签主体
+     * @param string $extra 附加信息
+     * @return string|FALSE;
      */
-    protected function _parseElseIfTag($tagBody, $isCloseTag)
+    protected function _parseElseIfTag($tagBody, $extra = NULL)
     {
-        if ($isCloseTag)
-        {
-            return '';
-        }
         return sprintf('<? } elseif( %s ) { ?>', $tagBody);
     }
 
     /**
-     * 过滤标签
+     * 解析eval标签
      *
-     * @param string $match
-     *            匹配字符串
-     * @return string
-     *
+     * @param string $tagBody 标签主体
+     * @param string $extra 附加信息
+     * @return string|FALSE;
      */
-    protected function _parseEvalTag($tagBody, $isCloseTag)
+    protected function _parseEvalTag($tagBody, $extra = NULL)
     {
-        if ($isCloseTag)
-        {
-            return '';
-        }
         return sprintf('<? %s ?>', $tagBody);
     }
 
     /**
      * 解析template标签
-     * 解析出的模板路径，会通过View的单例调用对应的模板引擎实例->fetch()内容替换
-     * 该模板引擎实例 是继承了Base的PHP/Template 直接替换为include运行, 可以共享变量空间。
+     * 
+     *  解析出的模板路径，会通过View的单例调用对应的模板引擎实例->fetch()内容替换
+     *  该模板引擎实例 是继承了Base的PHP/Template 直接替换为include运行, 可以共享变量空间。
      *
      * @param string $tagBody
      *            解析的模板路径
@@ -432,12 +502,8 @@ class Template extends Base
      *            是否为闭合标签
      * @return string
      */
-    protected function _parseTemplateTag($tagBody, $isCloseTag)
+    protected function _parseTemplateTag($tagBody, $extra = NULL)
     {
-        if ($isCloseTag)
-        {
-            return '';
-        }
         $engineInstance = View::getInstance()->getEngineByPath($tagBody);
         if ($engineInstance instanceof Base)
         {
@@ -455,12 +521,8 @@ class Template extends Base
      *            是否为闭合标签
      * @return string
      */
-    protected function _parseDateTag($tagBody, $isCloseTag)
+    protected function _parseDateTag($tagBody, $extra = NULL)
     {
-        if ($isCloseTag)
-        {
-            return '';
-        }
         $tagBody = trim($tagBody);
         $tagNodes = explode('|', trim($tagBody));
         $time = trim($tagNodes[0]);
@@ -471,32 +533,6 @@ class Template extends Base
         }
         $format = trim($tagNodes[1]) ?: 'Y-m-d H:i';
         return sprintf('<? echo date("%s", %d);?>', $format, $time);
-    }
-
-    /**
-     * 解析URL模板
-     *
-     * @param string $match
-     *            品牌字符串
-     * @param string $type
-     *            模板类型
-     * @return string
-     */
-    protected function _resolvUrl($match)
-    {
-        $param = $match[2];
-        $type = $match[3];
-        $params = explode(',', $param);
-        $ps = [];
-        if (is_array($params))
-        {
-            foreach ($params as $v)
-            {
-                $vs = explode('=', $v);
-                $ps[$vs[0]] = $vs[1];
-            }
-        }
-        return Url::get($ps, $type);
     }
 }
 ?>

@@ -44,17 +44,17 @@ class Router
     protected $_req;
 
     /**
-     * 实例化的路由器实例
+     * 路由器配置集合
      *
+     * @var array
+     */
+    protected $_routerRules = [];
+    
+    /**
+     * 路由器实例集合
      * @var array
      */
     protected $_routers = [];
-    /**
-     * 路由器策略集合
-     *
-     * @var array
-     */
-    protected $_routerPolicys = [];
 
     /**
      * 是否已经执行过路由检测
@@ -81,9 +81,9 @@ class Router
      * 注册路由驱动
      *
      * @param string $type
-     *        路由类型名称
+     *            路由类型名称
      * @param string $className
-     *        路由名称
+     *            路由名称
      * @return bool
      */
     public function regDriver($type, $className)
@@ -109,23 +109,37 @@ class Router
     /**
      * 添加路由规则
      *
-     * @param string $driverId
-     *        驱动器名称
-     * @param string $rule
-     *        规则
-     * @param array $ruledata
-     *        规则附带数据
-     * @return void
+     * @param array 路由规则数组
+     * @return boolean
      */
-    public function addRule($driverId, $rule, $data = NULL)
+    public function addRule(array $rule)
     {
-        if (!key_exists($driverId, $this->_driverMaps))
+        $routerId = (string)$rule['router'];
+        if (!key_exists($routerId, $this->_driverMaps))
         {
             return FALSE;
         }
-        $rule['className'] = $this->_driverMaps[$driverId];
-        $rule['data'] = $data;
-        $this->_routerPolicys[] = $rule;
+        
+        // 域名
+        $domain = [];
+        if(key_exists('domain', $rule) && $rule['domain'])
+        {  
+            $domain = is_array($rule['domain']) ? $rule['domain'] : [(string)$rule['domain']];
+        }
+        
+        // 数据配置
+        $ruleData = [];
+        if(key_exists('rule', $rule) && is_array($rule['rule']))
+        {
+            $ruleData = $rule['rule'];
+        }
+        
+        $routerRule = [];
+        $routerRule['routerId'] = $routerId;
+        $routerRule['router'] = $this->_driverMaps[$routerId];
+        $routerRule['data']  = $ruleData;
+        $routerRule['domain'] = $domain;
+        $this->_routerRules[] = $routerRule;
     }
 
     /**
@@ -136,14 +150,52 @@ class Router
     public function route()
     {
         $routerString = $this->_req->getRouterString();
-        foreach ($this->_routerPolicys as $policy)
+        
+              
+        foreach ($this->_routerRules as $routerRule)
         {
-            $router = $this->_loadRouter($policy['className']);
-            if ($router->checkRule($policy, $routerString))
+            $routerName = $routerRule['router'];
+            if(!$routerName)
             {
-                return $this->resolveRule($router);
+                continue;
+            }
+            if(!$this->_checkDomain($routerRule['domain']))
+            {
+                continue;
+            }
+            $routerInstance = $this->_getRouterInstance($routerName);
+            if ($routerInstance ->checkRule($routerRule['data'], $routerString))
+            {
+                return $this->resolveRule($routerInstance);
             }
         }
+        return FALSE;
+    }
+    
+    /**
+     * 预算可以将军
+     * 
+     * @param array $routerDomain
+     * @return boolean
+     */
+    protected function _checkDomain($routerDomain)
+    {
+        $domain = $this->_req->host;
+        if(!$routerDomain)
+        {
+            return TRUE;
+        }
+        foreach($routerDomain as & $rd)
+        {
+            $rd = '/^' . preg_replace(['/\./', '/[\*]+/'], ['\.', '.*'], $rd) . '$/i';
+            echo $rd,$domain;
+            if(preg_match($rd, $domain))
+            {
+                echo 'aaaaaaa';
+                return TRUE;
+            }
+        }
+        
         return FALSE;
     }
 
@@ -151,7 +203,7 @@ class Router
      * 解析规则，并注入到当前应用程序的参数中去
      *
      * @param array $params
-     *        参数
+     *            参数
      * @return void
      */
     public function resolveRule(IRouter $router)
@@ -160,14 +212,46 @@ class Router
         $this->_params = $router->getParams();
         $this->_req->setRouterParam($this->_params);
     }
-    
+
     /**
      * 获取匹配的router实例
+     *
      * @return \Tiny\MVC\Router\IRouter
      */
     public function getMatchRouter()
     {
         return $this->_matchRouter;
+    }
+
+    /**
+     */
+    public function rewriteUrl(array $params, $isRewrite = FALSE)
+    {
+        $host = ($this->_req->ishttps ? 'https://' : 'http://') . $this->_req->host;
+        $cp = $this->_req->getControllerParam();
+        $ap = $this->_req->getActionParam();
+        $controllerName = (isset($params[$cp])) ? $params[$cp] : $this->_req->getController();
+        $actionName = (isset($params[$ap])) ? $params[$ap] : $this->_req->getAction();
+        print_r($this->_matchRouter);
+        if ($isRewrite && $this->_matchRouter)
+        {
+            
+            $rparams = $params;
+            unset($rparams[$cp], $rparams[$ap]);
+            $uri = $this->_matchRouter->rewriteUri($controllerName, $actionName, $rparams);
+            if ($uri)
+            {
+                return $host . $uri;
+            }
+        }
+        $url = $host . $this->_req->scriptName;
+        $u = array();
+        foreach ($params as $k => $v)
+        {
+            $u[] = rawurlencode($k) . '=' . rawurlencode($v);
+        }
+        $url .= '?' . join('&', $u);
+        return $url;
     }
 
     /**
@@ -183,24 +267,28 @@ class Router
     /**
      * 获取路由对象
      *
-     * @param array $rule
-     * @return string 规则
+     * @param array $routerName 路由器的类名
+     * @return string IRouter
      */
-    protected function _loadRouter($className)
+    protected function _getRouterInstance($routerName)
     {
-        static $routers = [];
-        $routerId = strtolower($className);
-
-        if (!$routers[$routerId])
+        if(key_exists($routerName, $this->_routers))
         {
-            $routers[$routerId] = new $className();
-            if (!$routers[$routerId] instanceof IRouter)
-            {
-                throw new RouterException('router driver:' . $className . ' is not instanceof Tiny\MVC\Router\IRouter');
-            }
+            return $this->_routers[$routerName];
         }
-        $router = $routers[$routerId];
-        return $router;
+        
+        if(!class_exists($routerName))
+        {
+            throw new RouterException(sprintf('router driver:%s is not exists!', $routerName));
+        }
+        
+        $routerInstance = new $routerName();
+        if (!$routerInstance instanceof IRouter)
+        {
+            throw new RouterException(sprintf('router driver:%sis not instanceof Tiny\MVC\Router\IRouter', $routerName));
+        }
+        $this->_routers[$routerName] = $routerInstance;
+        return $routerInstance;
     }
 }
 ?>

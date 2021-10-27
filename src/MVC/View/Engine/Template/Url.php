@@ -16,10 +16,13 @@
  *        King      2014-2-8上午1:00:17       第一次建立该文件
  *        King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\MVC\View\Helper;
+namespace Tiny\MVC\View\Engine\Template;
 
 use Tiny\MVC\Request\WebRequest;
 use Tiny\MVC\View\Engine\Template\IPlugin;
+use Tiny\MVC\View\Engine\Template;
+use Tiny\MVC\Router\Router;
+use Tiny\Tiny;
 
 /**
 * url辅助类
@@ -29,83 +32,78 @@ use Tiny\MVC\View\Engine\Template\IPlugin;
 */
 class Url implements IPlugin
 {
-
-    public function onParseTag($tagName, $tagBody, $isCloseTag = FALSE)
+    /**
+     * 当前template实例
+     * 
+     * @var Template
+     */
+    protected $_template;
+    
+    /**
+     * 当前URL插件的配置数组
+     * 
+     * @var array
+     */
+    protected $_templateConfig;
+    /**
+     * 可解析的标签列表
+     * @var array
+     */
+    const PARSE_TAG_LIST = ['url'];
+    
+    /**
+     * 实现接口
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\Template\IPlugin::setTemplateConfig()
+     */
+    public function setTemplateConfig(Template $template, array $config)
     {
-        if($tagName == 'url')
-        {
-            return '';
-        }
-        return FALSE;
+        $this->_template = $template;
+        $this->_templateConfig = $config;
     }
     
-	/**
-	* 输出网址
-	*
-	* @param array 网址参数
-	* @param string $mod 生成的url类型
-	* @param string $suffix 当$mod = r时的网址后缀
-	* @return string
-	*/
-	public static function get(array $params, $mod = 'r', $suffix = '.html')
-	{
-		switch ($mod)
-		{
-			case 'r' :
-				$url = self::getRUrl($params, $suffix);
-				break;
-			default :
-				$url = self::getDUrl($params);
-		}
-		return $url;
-	}
-
-	/**
-	* 获取重写后的URL
-	*
-	* @param array $params url参数
-	* @param string $suffix 后缀
-	* @return string
-	*/
-	public static function getRUrl($params, $suffix)
-	{
-		$req = WebRequest::getInstance();
-		$cp = $req->getControllerParam();
-		$ap = $req->getActionParam();
-		$c = (isset($params[$cp])) ? $params[$cp] : $req->getController();
-		$a = (isset($params[$ap])) ? '/' . $params[$ap] : '';
-		unset($params[$cp], $params[$ap]);
-		$c = preg_replace_callback('/([\$A-Z])/', function ($ms)
-		{
-			return '-' . strtolower($ms[0]);
-		}, $c);
-		$q = array ();
-		foreach ($params as $k => $p)
-		{
-			$q[] = $k;
-			$q[] = $p;
-		}
-		$q = join('-', $q);
-		if ($q)
-		{
-			$q = '/' . $q . $suffix;
-		}
-		return 'http://' . $req->host . '/' . $c . $a . $q;
-	}
-
-	public static function getDUrl($params)
-	{
-		$url = 'http://' . $req->host . $req->getServer('SCRIPT_NAME');
-		if ($params)
-		{
-			$u = array ();
-			foreach ($params as $k => $v)
-			{
-				$u[] = $k . '=' . $v;
-			}
-			$url .= '?' . join('&', $u);
-		}
-		return $url;
-	}
+    /**
+     * 解析URL的闭合标签
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\Template\IPlugin::onParseCloseTag()
+     */
+    public function onParseCloseTag($tagName)
+    {
+        if(!in_array($tagName, self::PARSE_TAG_LIST))
+        {
+            return FALSE;
+        }
+        return '';
+    }
+    
+    /**
+     * 解析URL标签
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\Template\IPlugin::onParseTag()
+     */
+    public function onParseTag($tagName, $tagBody, $extra = NULL)
+    {
+        if(!in_array($tagName, self::PARSE_TAG_LIST))
+        {
+            return FALSE;
+        }
+        $paramText = explode(',', $tagBody);
+        $params = [];
+        $isRewrite = ($extra == 'r') ? TRUE : FALSE;
+        foreach($paramText as $ptext)
+        {
+            $ptext = trim($ptext);
+            if(preg_match('/\s*(.+?)\s*=\s*(.*)\s*/i', $ptext, $out))
+            {
+                $params[$out[1]] = $out[2];
+            }
+        }
+        $router = Tiny::getApplication()->getRouter();
+        if($router)
+        {
+            return $router->rewriteUrl($params, $isRewrite);
+        }
+        return '';
+    }
 }
 ?>
