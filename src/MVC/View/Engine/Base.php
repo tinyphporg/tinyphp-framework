@@ -168,6 +168,7 @@ abstract class Base implements IEngine
     public function fetch($tpath, $assign = FALSE, $isAbsolute = FALSE)
     {
         $compileFile  = $this->getCompiledFile($tpath, $isAbsolute);
+        print_r(get_class($this));
         return $this->_fetchCompiledContent($compileFile, $assign);
     }
     

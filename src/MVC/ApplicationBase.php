@@ -35,7 +35,7 @@ use Tiny\Filter\Filter;
 use Tiny\Runtime\RuntimeCache;
 
 // MVC下存放资源的文件夹
-const TINYPHP_MVC_RESOURCES = __DIR__ . '/_resources/';
+const TINY_MVC_RESOURCES = __DIR__ . '/_resources/';
 
 /**
  * app实例基类

@@ -229,7 +229,7 @@ class Daemon
         {
             return;
         }
-        
+
         $this->_workers[$workerId] = [
             'id' => $workerId,
             'instance' => $worker,
@@ -296,11 +296,12 @@ class Daemon
         {
             case SIGINT:
                 $this->_stop();
+                break;
             case SIGTERM:
                 $this->_stop(TRUE);
+                break;
         }
     }
-
 
     /**
      * 守护运行应用程序实例
@@ -667,16 +668,16 @@ class Daemon
      *
      * @access protected
      * @param string $appName
-     *        app名称
+     *            app名称
      * @param string $profile
-     *        配置文件路径
+     *            配置文件路径
      * @return void
      */
     protected function _dispathByWorker($worker)
     {
         // worker
         $this->_isDaemon = FALSE;
-        
+
         // rename process name for ps -ef
         $this->_setProcessTitle($this->_processTitle . ' process worker ' . $worker['id']);
 
@@ -730,12 +731,12 @@ class Daemon
         $this->_log($output);
         return NULL;
     }
-    
+
     /**
      */
     public function onWorkerExit()
     {
-        if($this->_isRunning())
+        if ($this->_isRunning())
         {
             return;
         }
@@ -795,14 +796,14 @@ class Daemon
      */
     protected function _stop(bool $isGraceful = TRUE)
     {
-        //worker进程接受
+        // worker进程接受
         if (!$this->_isDaemon)
         {
             $this->_onWorkerStop($isGraceful);
             exit(0);
         }
-        
-        //daemon接受
+
+        // daemon接受
         $sig = $isGraceful ? SIGTERM : SIGINT;
         foreach ($this->_workerInstances as $pid => $worker)
         {
@@ -837,9 +838,9 @@ class Daemon
      * 结束主进程
      *
      * @param int $status
-     *        状态码
+     *            状态码
      * @param string $log
-     *        退出时的日志
+     *            退出时的日志
      * @return void
      */
     protected function _exit($status = 0, $msg = NULL, $priority = 3)
@@ -872,7 +873,7 @@ class Daemon
      *
      * @param string $msg
      * @param int $priority
-     *        日志优先级
+     *            日志优先级
      */
     protected function _status($msg, $priority = 6)
     {
@@ -884,7 +885,7 @@ class Daemon
      *
      * @param string $msg
      * @param int $priority
-     *        优先级
+     *            优先级
      */
     protected function _log($msg, $priority = 6)
     {
@@ -895,12 +896,12 @@ class Daemon
      * 写入日志文件
      *
      * @param string $id
-     *        日志ID
+     *            日志ID
      * @param string $msg
-     *        日志内容
+     *            日志内容
      * @param int $priority
-     *        日志优先级
-     *        参数数组
+     *            日志优先级
+     *            参数数组
      * @return void
      */
     protected function _outlog($id, $msg, $priority = 6)

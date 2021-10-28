@@ -23,7 +23,7 @@ use Tiny\MVC\Request\WebRequest;
 use Tiny\MVC\View\View;
 use Tiny\MVC\View\IHelper;
 use Tiny\MVC\Response\WebResponse;
-use const Tiny\MVC\TINYPHP_MVC_RESOURCES;
+use const Tiny\MVC\TINY_MVC_RESOURCES;
 
 /**
  *信息提示框
@@ -69,7 +69,7 @@ class MessageBox implements IHelper
      * 
      * @var string
      */
-    protected $_templateFile = TINYPHP_MVC_RESOURCES . 'view/helper/messagebox.htm';
+    protected $_templateFile = TINY_MVC_RESOURCES . 'view/helper/messagebox.htm';
     
     /**
      * 设置View实例

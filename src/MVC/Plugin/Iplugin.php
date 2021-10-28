@@ -14,6 +14,8 @@
  */
 namespace Tiny\MVC\Plugin;
 
+use Tiny\MVC\ApplicationBase;
+
 /**
  * 插件接口
  *
@@ -65,5 +67,11 @@ interface Iplugin
      * @return void
      */
     public function onPostDispatch();
+    
+    /**
+     * 构造函数注入当前app实例
+     * @param ApplicationBase $app
+     */
+    public function __construct(ApplicationBase $app);
 }
 ?>

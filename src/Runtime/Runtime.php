@@ -24,7 +24,7 @@ namespace Tiny\Runtime;
 use Tiny\MVC\ApplicationBase;
 
 /* 定义框架所在路径 */
-define('FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
+define('TINY_FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
 
 /**
  * 运行时异常类
@@ -66,7 +66,7 @@ class Runtime
      *
      * @var string
      */
-    const FRAMEWORK_PATH = FRAMEWORK_PATH;
+    const FRAMEWORK_PATH = TINY_FRAMEWORK_PATH;
 
     /**
      * WEB模式

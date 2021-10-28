@@ -68,6 +68,13 @@ class View implements \ArrayAccess
             ],
             'config' => [],
             'instance' => NULL
+        ],
+        '\Tiny\MVC\View\Engine\MarkDown' => [
+            'ext' => [
+                'md',
+            ],
+            'config' => [],
+            'instance' => NULL
         ]
     ];
 
@@ -127,7 +134,7 @@ class View implements \ArrayAccess
      *
      * @var array
      */
-    protected $_templateFiles = [];
+    protected $_templateList = [];
 
     /**
      * 是否开启模板缓存
@@ -310,9 +317,9 @@ class View implements \ArrayAccess
      *
      * @return array
      */
-    public function getTemplateFiles()
+    public function getTemplateList()
     {
-        return $this->_templateFiles;
+        return $this->_templateList;
     }
 
     /**
@@ -392,8 +399,7 @@ class View implements \ArrayAccess
      * @return void
      */
     public function display($tpath, $assign = FALSE, $isAbsolute = FALSE)
-    {
-        $this->_templateFiles[] = $tpath;
+    {   
         $content = $this->getEngineByPath($tpath)->fetch($tpath, $assign, $isAbsolute);
         $this->_app->response->appendBody($content);
     }
@@ -410,7 +416,6 @@ class View implements \ArrayAccess
      */
     public function fetch($tpath, $assign = FALSE, $isAbsolute = FALSE)
     {
-        $this->_templateFiles[] = $tpath;
         return $this->getEngineByPath($tpath)->fetch($tpath, $assign, $isAbsolute);
     }
 
@@ -425,11 +430,15 @@ class View implements \ArrayAccess
     {
         $ext = pathinfo($templatePath, PATHINFO_EXTENSION);
         $econfig = $this->_getEngineConfigByExt($ext);
+        
         if (!$econfig)
         {
             throw new ViewException('Viewer error: ext"' . $ext . '"is not bind');
         }
-        return $this->_getEngineInstanceByConfig($econfig);
+        
+        $engineInstance = $this->_getEngineInstanceByConfig($econfig);
+        $this->_templateList[] = [$templatePath, $econfig['engine'], $engineInstance];
+        return $engineInstance;
     }
 
     /**

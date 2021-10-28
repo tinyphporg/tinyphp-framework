@@ -17,7 +17,7 @@ namespace Tiny\MVC\Plugin;
 use Tiny\MVC\ApplicationBase;
 use Tiny\Runtime\ExceptionHandler;
 use Tiny\Data\Db\Db;
-use const Tiny\MVC\TINYPHP_MVC_RESOURCES;
+use const Tiny\MVC\TINY_MVC_RESOURCES;
 
 /**
  * DEBUG插件
@@ -69,9 +69,20 @@ class Debug implements Iplugin
     {
         $this->_app = $app;
         $this->_startTime = microtime(true);
-        $this->_viewFolder = TINYPHP_MVC_RESOURCES . 'view/debug/';
+        $this->_viewFolder = TINY_MVC_RESOURCES . 'view/debug/';
     }
 
+    public function showDocs()
+    {
+        $content = $this->_app->getView()->fetch('main/README.md');
+        $content = preg_replace_callback("/href=\"(https\:\/\/github.com\/saasjit\/tinyphp\/blob\/master\/docs\/(.+?)\.md)\"/i", [$this, '_parseGithubHref'], $content);
+        return $content;
+    }
+        
+    protected function _parseGithubHref($matchs)
+    {
+        print_r($matchs);
+    }
     /**
      * Debug动作执行
      *
@@ -88,16 +99,24 @@ class Debug implements Iplugin
         }
         $interval = microtime(TRUE) - $this->_startTime;
         $memory = number_format(memory_get_peak_usage(TRUE) / 1024 / 1024, 4);
-        $router = $this->_app->getRouter()->getMatchRouter();
+        $router = $this->_app->getRouter()->getMatchedRouter();
         if ($router)
         {
             $routerName = get_class($router);
         }
-        $routerStr = $this->_app->request->getRouterString();
-        $routerStr .= '|' . var_export($this->_app->getRouter()->getParams(), TRUE);
+        $routerUrl = $this->_app->request->getRouterString();
+        $routerParams = $this->_app->getRouter()->getParams();
         
+        $controllers = $this->_app->getControllerList();
+        
+        $controllerList = [];
+        foreach($controllers as $cpath => $controller)
+        {
+            $controllerList[] = $cpath . '('. get_class($controller) . ')';
+        }
+        $controllerList = join(' ', $controllerList);
         $view = $this->_app->getView();
-        $viewPaths = $view->getTemplateFiles();
+        $viewPaths = $view->getTemplateList();
         $viewAssign = $view->getAssigns();
         
         $modelList  = $this->_app->getModels();
@@ -106,18 +125,21 @@ class Debug implements Iplugin
         {
             $models[] = get_class($model);
         }
-        $models = join('|', $models);
+        $models = join(' ', $models);
         $debugs = [
             'debug' => $this,
             'debugInterval' => $interval,
             'debugMemory' => $memory,
             'debugViewPaths' => $viewPaths,
             'debugViewAssign' => $viewAssign,
-            'datamessage' => Db::getQuerys(),
-            'routerName' => $routerName,
-            'routerStr' => $routerStr,
-            'modelList' => $models,
+            'debugDatamessage' => Db::getQuerys(),
+            'debugRouterName' => $routerName,
+            'debugRouterUrl' => $routerUrl,
+            'debugRouterParams' => $routerParams,
+            'debugControllerList' => $controllerList,
+            'debugModelList' => $models,
             'app' => $this->_app,
+            'debugDocs' => $this->showDocs(),
             'debugExceptions' => ExceptionHandler::getInstance()->getExceptions()
         ];
         $body = $view->fetch($path, $debugs, TRUE);
@@ -140,6 +162,7 @@ class Debug implements Iplugin
      */
     public function onEndRequest()
     {
+        
     }
 
     /**
@@ -158,6 +181,7 @@ class Debug implements Iplugin
      */
     public function onRouterShutdown()
     {
+        
     }
 
     /**
@@ -167,6 +191,7 @@ class Debug implements Iplugin
      */
     public function onPreDispatch()
     {
+        
     }
 
     /**

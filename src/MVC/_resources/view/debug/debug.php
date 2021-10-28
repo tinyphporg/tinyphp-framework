@@ -6,11 +6,11 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
     echo "Time  : " . $debugInterval . " S\n";
     echo "Memory: " . $debugMemory . "M\n";
     
-    if (is_array($datamessage))
+    if (is_array($debugDatamessage))
     {
         $sqlSource = '';
         $time = 0;
-        foreach ($datamessage as $key => $value)
+        foreach ($debugDatamessage as $key => $value)
         {
             $sqlSource .= $value['engine'] . ':' . " SQL TIME: " . $value['time'] . "S\n" . $value['sql'] . "\n";
             $time += $value['time'];
@@ -54,9 +54,9 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
 .debug .code .line {float: left;background: #EEE;color: #666;border-right: 1px solid #ccc;padding: 3px;font-size: 13px;line-height: 16px;margin-right: 10px;}
 .debug .code .line p {padding: 3px 8px;}
 .debug .flex_menu {margin-top: 10px;float: left;width: 100%;border: 1px solid #AAA;border-top: none;}
-.debug .flex_menu h4 {cursor: pointer;font-size: 13px;height: 18px;display: block;background: #FFF1C8;border-top: 1px solid #666;border-bottom: 1px solid #e2e2e2;padding: 8px 5px;color: #F00;font-weight: 400;margin: 0px}
-.debug .flex_menu h4 .jt_down {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #F90 #FFF1C8 #FFF1C8;font-size: 0;line-height: 0;margin-top: 0px;}
-.debug .flex_menu h4 .jt_up {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #FFF1C8 #FFF1C8 #F90;font-size: 0;line-height: 0;margin-top: 0px;}
+.debug .flex_menu .jt{cursor: pointer;font-size: 13px;height: 18px;display: block;background: #FFF1C8;border-top: 1px solid #666;border-bottom: 1px solid #e2e2e2;padding: 8px 5px;color: #F00;font-weight: 400;margin: 0px}
+ .debug .flex_menu .jt .jt_down {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #F90 #FFF1C8 #FFF1C8;font-size: 0;line-height: 0;margin-top: 0px;}
+.debug .flex_menu .jt .jt_up {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #FFF1C8 #FFF1C8 #F90;font-size: 0;line-height: 0;margin-top: 0px;}
 .debug .flex_menu .cont {display: none;border-top: none;background: #FFF;padding: 5px 8px 0px;font: 12px arial;}
 .debug .flex_menu .cont_selected {}
 .debug .flex_menu p {height: 12px;padding: 4px;margin: 0px;line-height: 15px;}
@@ -68,7 +68,7 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
 include_once ('exception.php');
 
 $sqlSource = '';
-foreach ((array)$datamessage as $key => $value)
+foreach ((array)$debugDatamessage as $key => $value)
     {
         $sqlSource .= '<p > <span style="padding-right:5px">' . $value['engine'] . ' : </span><span class="font_green">' . $value['sql'] . '</span>';
         $sqlSource .= ' <span>耗时: </span><span class="font_red">' . $value['time'] . '<span class="font_blue"> s.</span> </span>';
@@ -80,28 +80,28 @@ foreach ((array)$datamessage as $key => $value)
 
 <div id="debug_FileMent" class="flex_menu">
 		<div onclick="__Debug.doDown('debug_ExecBox')">
-			<h4>
+			<h4 class="jt">
 				<span style="float: left"> 页面执行时间 <span class="font_red_d"> <?=$debugInterval?> </span>
 					second(s), <span class="font_red_d"><?=$debugMemory?></span> M.
 				</span> <span id="debug_ExecBox_jt" class="jt_down"></span>
 			</h4>
 			<div class="cont" style="display: block" id="debug_ExecBox">
  <?php
-$controller = $request->getController();
-$action = $request->getAction();
-echo '<p><span class="debug_Green">当前路径: </span>' . $request->url . '</p>';
-echo '<p><span class="debug_Green">来源路径: </span>' . $request->referrer . '</p>';
-echo '<p><span class="debug_Green">路由器: </span>' . $routerName . '(' . $routerStr . ')</p>';
-echo '<p><span class="debug_Green">控制器: </span>' . $controller . '</p>';
-echo '<p><span class="debug_Green">动作Id: </span>' . $action . '(' . $action . ')</p>';
-echo '<p><span class="debug_Green">调用模型: </span>' . $modelList .'</p>';
+echo '<p><span class="font_green">当前路径: </span>' . $request->url . '</p>';
+echo '<p><span class="font_green">来源路径: </span>' . $request->referrer . '</p>';
+
+echo '<p><span class="font_green">路由器: </span>' . $debugRouterName . '<span class="font_green"> Matched URL: </span>' . $debugRouterUrl . '<span class="font_green"> Matched Router Params: </span>' . var_export($debugRouterParams, TRUE) . '</p>';
+echo '<p><span class="font_green">控制器: </span>' . $debugControllerList . '</p>';
+
+echo '<p><span class="font_green">动作Id: </span>' . $actionName . '('. $controllerName . '->' . $actionName . 'Action)</p>';
+echo '<p><span class="font_green">模型层: </span>' . $debugModelList .'</p>';
 ?>
     </div>
 		</div>
 
 
 		<div onclick="__Debug.doDown('debug_SqlHelper', this)">
-			<h4>
+			<h4 class="jt">
 				<span style="float: left;"> SQLHelper,累计执行时间 <span
 					class="font_red_d"> <?=$sqlTotalTime?> </span> second(s), <span
 					class="font_red_d"><?=$s?></span> querys.
@@ -113,29 +113,30 @@ echo '<p><span class="debug_Green">调用模型: </span>' . $modelList .'</p>';
 </div>
 		</div>
 		<div onclick="__Debug.doDown('debug_View')">
-			<h4>
+			<h4 class="jt">
 				<span style="float: left">Views</span> <span id="debug_View_jt" class="jt_down"></span>
 			</h4>
 			<div class="cont" style="display: block" id="debug_View">
 <?php
+echo '<p><span class="font_green">视图变量:&nbsp;</span>$' . join(', $', array_keys($debugViewAssign)) . '</p>';
 foreach ($debugViewPaths as $key => $value)
 {
-    echo '<p><b style="color:blue">视图模板<span >' . basename($key) . '</span></b></p>';
-    echo '<p><span class="debug_Green">视图路径:&nbsp;</span>' . $key . '</p>';
-    echo '<p><span class="debug_Green">视图引擎:&nbsp;</span>' . $value . '</p>';
+    echo '<p><b style="color:blue">视图模板<span >' . $key . '</span></b></p>';
+    echo '<p><span class="font_green">视图路径:&nbsp;</span>' . $value[0] . '</p>';
+    echo '<p><span class="font_green">视图引擎:&nbsp;</span>' . $value[1] . '</p>';
 }
-echo '<p><span class="debug_Green">视图变量:&nbsp;</span>' . join(',', array_keys($debugViewAssign)) . '</p>';
+
 ?>
     </div>
 		</div>
 		<div onclick="__Debug.doDown('debug_Const')">
-			<h4>
+			<h4 class="jt">
 				<span style="float: left">Variables</span> <span id="debug_Const_jt"
 					class="jt_down"></span>
 			</h4>
 			<div class="cont" id="debug_Const">
  <?php
-$const = get_defined_constants(true);
+$const = get_defined_constants(TRUE);
 $const = $const['user'];
 $requestData = $request->getRequestData();
 echo '<p class="font_yellow_d">以下为未经框架处理的原生数据,仅供参考,请勿直接调用$_GET,$_POST,$_COOKIE三个全局数组.应在HttpRequest实例化后,以getQueryString(),getPost(),getCookie()获取.</p><p><b style="color:blue">Const</b></p>';
@@ -203,7 +204,7 @@ if (is_array($_SERVER['argv']))
     </div>
 		</div>
 		<div onclick="__Debug.doDown('debug_Include')">
-			<h4>
+			<h4 class="jt">
 				<span style="float: left">Includes</span> <span
 					id="debug_Include_jt" class="jt_down"></span>
 			</h4>
@@ -230,9 +231,20 @@ if (is_array($e))
         echo '<p>' . $key . ' = ' . '<span class="font_green">&nbsp;"' . $value . '"&nbsp;</span>' . '</p>';
     }
 }
+
 ?>
     </div>
 		</div>
+
+		<div onclick="__Debug.doDown('debug_Docs')">
+			<h4 class="jt">
+				<span style="float: left">Docs</span> <span id="debug_Doc_jt" class="jt_down"></span>
+			</h4>
+			<div class="cont" style="display: block" id="debug_doc">
+			<?php echo $debugDocs;?>
+			</div>
+			</div>
+			
 
 	</div>
 </body>

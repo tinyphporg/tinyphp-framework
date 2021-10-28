@@ -232,7 +232,7 @@ $profile['view']['helpers'] = [
 $profile['router']['enabled'] = TRUE; /* 是否开启router */
 $profile['router']['routers'] = [];   /*注册自定义的router*/
 $profile['router']['rules'] = [
-    ['router' => 'pathinfo', 'rule' => ['ext' => '.html'], 'domain' => '*'],
+    ['router' => 'pathinfo', 'rule' => ['ext' => '.html'], 'domain' => '*.tinycn.com'],
     ];
 
 /**
@@ -261,6 +261,8 @@ $profile['src']['rpc'] = 'controllers/rpc/';               /*rpc控制类*/
 $profile['src']['common'] = 'libs/common/';         /*通用类*/
 $profile['src']['view'] = 'views/';             /*视图源码*/
 
+
+$profile['view']['bootstrap']['enabled'] = TRUE;
 
 /**
  * 需要添加绝对路径APPLICATION_PATH的配置项

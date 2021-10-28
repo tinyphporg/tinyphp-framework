@@ -4,7 +4,8 @@
     "type" : "project",
     "require" :{
     	"php" : ">= 7.0.0",
-    	"smarty/smarty" : ">= 3"
+    	"smarty/smarty" : ">= 3",
+    	"erusev/parsedown": ">=1.7.4"
     },
     "license": "Apache-2.0",
     "minimum-stability": "stable",

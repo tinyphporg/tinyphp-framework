@@ -21,7 +21,7 @@ namespace Tiny\MVC\View\Engine;
 use Tiny\MVC\View\Engine\Template\IPlugin;
 use Tiny\MVC\View\ViewException;
 use Tiny\MVC\View\View;
-define('IN_TINYPHP_VIEW_ENGINE_TEMPLATE', TRUE);
+define('TINY_IS_IN_VIEW_ENGINE_TEMPLATE', TRUE);
 
 /**
  * 简单的解析引擎
@@ -184,7 +184,7 @@ class Template extends Base
         $template = preg_replace("/\<\?\=(.+?)\?\>/is", "<?php echo \\1;?>", $template);
         
         //增加template模板标识 避免include访问
-        $template = "<? if(!defined('IN_TINYPHP_VIEW_ENGINE_TEMPLATE')) exit('Access Denied');?>\r\n" . $template;
+        $template = "<? if(!defined('TINY_IS_IN_VIEW_ENGINE_TEMPLATE')) exit('Access Denied');?>\r\n" . $template;
         return $template;
     }
 
@@ -198,13 +198,23 @@ class Template extends Base
     {
         $patterns = [
             "/\{(" . self::REGEXP_VARIABLE . ")\}/", // {}包裹的变量
-            "/" . self::REGEXP_CONST . "/", // {}包裹的常量
             "/(?<!\<\?\=|\\\\)(" . self::REGEXP_VARIABLE . ")/" // 没有{}包裹的变量
         ];
-
-        return preg_replace($patterns, "<?=\\1?>", $template);
+        
+        $template = preg_replace($patterns, "<?=\\1?>", $template);
+        $template = preg_replace_callback("/" . self::REGEXP_CONST . "/", [$this, '_parseConstVariable'], $template);  // {}包裹的常量
+        return $template;
     }
-
+    
+    protected function _parseConstVariable($matchs)
+    {
+        $constName = $matchs[1];
+        if (!defined($constName))
+        {
+            return $matchs[0];
+        }
+        return constant($constName);
+    }
     /**
      * 解析标签
      *
@@ -505,7 +515,7 @@ class Template extends Base
     protected function _parseTemplateTag($tagBody, $extra = NULL)
     {
         $engineInstance = View::getInstance()->getEngineByPath($tagBody);
-        if ($engineInstance instanceof Base)
+        if ($engineInstance instanceof PHP || $engineInstance instanceof Template)
         {
             return sprintf('<? include "%s"; ?>', $engineInstance->getCompiledFile($tagBody));
         }
@@ -529,7 +539,6 @@ class Template extends Base
         if (!preg_match("/^\d+$/", $time))
         {
             $time = strtotime($time) ?: time();
-            echo $time;
         }
         $format = trim($tagNodes[1]) ?: 'Y-m-d H:i';
         return sprintf('<? echo date("%s", %d);?>', $format, $time);
