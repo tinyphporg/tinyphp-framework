@@ -18,6 +18,7 @@ use Tiny\MVC\ApplicationBase;
 use Tiny\Runtime\ExceptionHandler;
 use Tiny\Data\Db\Db;
 use const Tiny\MVC\TINY_MVC_RESOURCES;
+use Tiny\MVC\View\View;
 
 /**
  * DEBUG插件
@@ -30,11 +31,22 @@ class Debug implements Iplugin
 {
 
     /**
+     * 支持的debug动作列表
+     * 
+     * @var array
+     */
+    const DEBUG_ACTION_LIST = ['outdebug', 'showdocs'];
+    
+    /**
      * 当前应用实例
      *
      * @var \Tiny\MVC\ApplicationBase
      */
     protected $_app;
+    
+    protected $_request;
+    
+    protected $_view;
 
     /**
      * 开始时间
@@ -69,81 +81,37 @@ class Debug implements Iplugin
     {
         $this->_app = $app;
         $this->_startTime = microtime(true);
-        $this->_viewFolder = TINY_MVC_RESOURCES . 'view/debug/';
     }
 
-    public function showDocs()
+    public function showDocsAction()
     {
-        $content = $this->_app->getView()->fetch('main/README.md');
-        $content = preg_replace_callback("/href=\"(https\:\/\/github.com\/saasjit\/tinyphp\/blob\/master\/docs\/(.+?)\.md)\"/i", [$this, '_parseGithubHref'], $content);
-        return $content;
+        $content = $this->_view->fetch($this->_viewFolder . 'docs_header.php', [], TRUE);
+         $content .= $this->_getDocContent();
+         $content .= $this->_app->getView()->fetch($this->_viewFolder . 'docs_footer.php', [], TRUE);
+         $this->_app->response->appendBody($content);
     }
-        
+    
+    protected function _getDocContent()
+    {
+        $docpath = $this->_request->get->formatString('docpath', 'README.md');
+        $docpath = $this->_viewDocDir . $docpath;
+        if(!is_file($docpath))
+        {
+           return '';
+        }
+        $content = $this->_view->fetch($docpath, [], TRUE);
+        $content = preg_replace_callback("/href=\"(?:https\:\/\/github.com\/saasjit\/tinyphp\/blob\/master\/docs\/(.+?)\.md)\"/i", [$this, '_parseGithubHref'], $content);
+        $this->_app->response->appendBody($content);
+    }
+    
+    /**
+     * 替换掉github.com换成本地域名 加快加载速度
+     * @param array $matchs 匹配项数组
+     * @return string
+     */
     protected function _parseGithubHref($matchs)
     {
-        print_r($matchs);
-    }
-    /**
-     * Debug动作执行
-     *
-     * @param string $aName
-     *        动作名称
-     * @return void
-     */
-    public function onAction($aName)
-    {
-        $path = $this->_viewFolder . strtolower($aName) . '.php';
-        if (!is_file($path))
-        {
-            return;
-        }
-        $interval = microtime(TRUE) - $this->_startTime;
-        $memory = number_format(memory_get_peak_usage(TRUE) / 1024 / 1024, 4);
-        $router = $this->_app->getRouter()->getMatchedRouter();
-        if ($router)
-        {
-            $routerName = get_class($router);
-        }
-        $routerUrl = $this->_app->request->getRouterString();
-        $routerParams = $this->_app->getRouter()->getParams();
-        
-        $controllers = $this->_app->getControllerList();
-        
-        $controllerList = [];
-        foreach($controllers as $cpath => $controller)
-        {
-            $controllerList[] = $cpath . '('. get_class($controller) . ')';
-        }
-        $controllerList = join(' ', $controllerList);
-        $view = $this->_app->getView();
-        $viewPaths = $view->getTemplateList();
-        $viewAssign = $view->getAssigns();
-        
-        $modelList  = $this->_app->getModels();
-        $models = [];
-        foreach ($modelList as $model)
-        {
-            $models[] = get_class($model);
-        }
-        $models = join(' ', $models);
-        $debugs = [
-            'debug' => $this,
-            'debugInterval' => $interval,
-            'debugMemory' => $memory,
-            'debugViewPaths' => $viewPaths,
-            'debugViewAssign' => $viewAssign,
-            'debugDatamessage' => Db::getQuerys(),
-            'debugRouterName' => $routerName,
-            'debugRouterUrl' => $routerUrl,
-            'debugRouterParams' => $routerParams,
-            'debugControllerList' => $controllerList,
-            'debugModelList' => $models,
-            'app' => $this->_app,
-            'debugDocs' => $this->showDocs(),
-            'debugExceptions' => ExceptionHandler::getInstance()->getExceptions()
-        ];
-        $body = $view->fetch($path, $debugs, TRUE);
-        $this->_app->response->appendBody($body);
+       return 'href="index.php?c=debug&a=showdocs&docpath=' . rawurlencode($matchs[1] . '.md') . '"';
     }
 
     /**
@@ -172,6 +140,26 @@ class Debug implements Iplugin
      */
     public function onRouterStartup()
     {
+        $cname = $this->_app->request->getController();
+        if($cname != 'debug')
+        {
+            return;
+        }
+        
+        $this->_initDebugView();
+        
+        try {
+            $aname = $this->_app->request->getAction();
+            if ($aname == 'showdocs')
+            {
+                $this->showDocsAction();
+            }
+        }
+        finally 
+        {
+            //$this->_app->response->end();
+        }
+        $this->_app->response->end();
     }
 
     /**
@@ -205,7 +193,90 @@ class Debug implements Iplugin
         {
             return;
         }
-        $this->onAction('debug');
+        $this->_outDebug();
+    }
+    
+    /**
+     * 输出debug信息
+     *
+     * @param string $aName
+     *        动作名称
+     * @return void
+     */
+    protected function _outDebug()
+    {
+        $view = $this->_initDebugView();
+        $viewDebugPath = $this->_viewFolder .'debug.php';
+        if (!is_file($viewDebugPath))
+        {
+            return;
+        }
+        
+        
+        $interval = microtime(TRUE) - $this->_startTime;
+        $memory = number_format(memory_get_peak_usage(TRUE) / 1024 / 1024, 4);
+        $router = $this->_app->getRouter()->getMatchedRouter();
+        if ($router)
+        {
+            $routerName = get_class($router);
+        }
+        $routerUrl = $this->_app->request->getRouterString();
+        $routerParams = $this->_app->getRouter()->getParams();
+        $docsUrl = $this->_app->getRouter()->rewriteUrl(['c'=> 'debug', 'a'=>'showdocs']);
+        $controllers = $this->_app->getControllerList();
+        
+        $controllerList = [];
+        foreach($controllers as $cpath => $controller)
+        {
+            $controllerList[] = $cpath . '('. get_class($controller) . ')';
+        }
+        $controllerList = join(' ', $controllerList);
+        
+        $viewPaths = $view->getTemplateList();
+        $viewAssign = $view->getAssigns();
+        
+        $modelList  = $this->_app->getModels();
+        $models = [];
+        foreach ($modelList as $model)
+        {
+            $models[] = get_class($model);
+        }
+        $models = join(' ', $models);
+        $debugs = [
+            'debug' => $this,
+            'debugInterval' => $interval,
+            'debugMemory' => $memory,
+            'debugViewPaths' => $viewPaths,
+            'debugViewAssign' => $viewAssign,
+            'debugDatamessage' => Db::getQuerys(),
+            'debugRouterName' => $routerName,
+            'debugRouterUrl' => $routerUrl,
+            'debugRouterParams' => $routerParams,
+            'debugControllerList' => $controllerList,
+            'debugModelList' => $models,
+            'app' => $this->_app,
+            'debugDocsUrl' => $docsUrl,
+            'debugExceptions' => ExceptionHandler::getInstance()->getExceptions()
+        ];
+        $body = $view->fetch($viewDebugPath, $debugs, TRUE);
+        $this->_app->response->appendBody($body);
+    }
+    
+    /**
+     * 初始化debug
+     * @param void
+     * @return View
+     */
+    protected function _initDebugView()
+    {
+        if(!$this->_view)
+        {
+            $this->_request = $this->_app->request;
+            $this->_view = $this->_app->getView();
+            $this->_viewFolder = TINY_MVC_RESOURCES . 'view/debug/';
+            $this->_viewDocDir  = dirname(TINY_FRAMEWORK_PATH) . '/docs/';
+        }
+        return $this->_view;
     }
 }
 ?>

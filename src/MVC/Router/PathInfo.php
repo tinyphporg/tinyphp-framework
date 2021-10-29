@@ -87,8 +87,15 @@ class PathInfo implements IRouter
                 $i++;
             }
         }
-        $params['c'] = $controllerName;
-        $params['a'] = $actionName;
+        if($controllerName)
+        {
+            $params['c'] = $controllerName;
+        }
+        if($actionName)
+        {
+            $params['a'] = $actionName;
+        }
+        
         $this->_params = $params;
         return TRUE;
     }

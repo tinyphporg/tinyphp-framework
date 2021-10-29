@@ -190,9 +190,7 @@ class View implements \ArrayAccess
 
         $engineName = $econfig['engine'];
         $config = is_array($econfig['config']) ? $econfig['config'] : [];
-        $ext = is_array($econfig['ext']) ? $econfig['ext'] : [
-            (string)$econfig['ext']
-        ];
+        $ext = is_array($econfig['ext']) ? $econfig['ext'] : [(string)$econfig['ext']];
         $ext = array_map('strtolower', $ext);
         if (!key_exists($engineName, $this->_engines))
         {
@@ -430,10 +428,9 @@ class View implements \ArrayAccess
     {
         $ext = pathinfo($templatePath, PATHINFO_EXTENSION);
         $econfig = $this->_getEngineConfigByExt($ext);
-        
         if (!$econfig)
         {
-            throw new ViewException('Viewer error: ext"' . $ext . '"is not bind');
+            throw new ViewException(sprintf('Viewer error: ext"' . $ext . '"is not bind', $templatePath));
         }
         
         $engineInstance = $this->_getEngineInstanceByConfig($econfig);

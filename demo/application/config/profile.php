@@ -46,7 +46,7 @@ $profile['build']['profile_path'] = 'build/profile';  /*打包器的属性文件
 /**
  * 调试器设置
  */
-$profile['debug']['param_name'] = 'debug';
+$profile['debug']['param_name'] = 'debug';  //开启调试模式时: 命令行环境,--debug可开启调试模式; web环境下，检测到控制器为debug时，默认通过debug插件处理
 $profile['debug']['class'] = '\Tiny\MVC\Plugin\Debug';
 
 /**

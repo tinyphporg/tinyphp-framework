@@ -29,17 +29,18 @@ abstract class Base implements IEngine
 
     /**
      * 当前的View对象
+     *
      * @var View
      */
     protected $_view;
-    
+
     /**
      * 视图引擎配置
-     * 
+     *
      * @var array
      */
     protected $_viewEngineConfig = [];
-    
+
     /**
      * 模板目录
      *
@@ -84,15 +85,16 @@ abstract class Base implements IEngine
 
     /**
      * 设置视图实例和初始化配置
-     * {@inheritDoc}
+     *
+     * {@inheritdoc}
      * @see \Tiny\MVC\View\Engine\IEngine::setView()
      */
     public function setEngineConfig(View $view, array $config)
     {
         $this->_view = $view;
-        $this->_viewEngineConfig += $config; 
+        $this->_viewEngineConfig += $config;
     }
-    
+
     /**
      * 设置模板引擎的模板文件夹
      *
@@ -153,7 +155,8 @@ abstract class Base implements IEngine
      */
     public function assign($key, $value = NULL)
     {
-        if (is_array($key)) {
+        if (is_array($key))
+        {
             $this->_variables = array_merge($this->_variables, $key);
             return;
         }
@@ -167,11 +170,10 @@ abstract class Base implements IEngine
      */
     public function fetch($tpath, $assign = FALSE, $isAbsolute = FALSE)
     {
-        $compileFile  = $this->getCompiledFile($tpath, $isAbsolute);
-        print_r(get_class($this));
+        $compileFile = $this->getCompiledFile($tpath, $isAbsolute);
         return $this->_fetchCompiledContent($compileFile, $assign);
     }
-    
+
     /**
      * 输出解析内容
      *
@@ -182,32 +184,34 @@ abstract class Base implements IEngine
      */
     public function display($tpath, $assign = FALSE, $isAbsolute = FALSE)
     {
-        $compileFile  = $this->getCompiledFile($tpath, $isAbsolute);
+        $compileFile = $this->getCompiledFile($tpath, $isAbsolute);
         $this->_displayCompiledContent($compileFile, $assign);
     }
 
     /**
      * 设置模板缓存
-     * 
+     *
      * @see \Tiny\MVC\View\Engine\IEngine::setCache()
      */
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
         $this->_cacheEnabled = ($cacheLifetime <= 0) ? FALSE : TRUE;
         $this->_cacheFolder = $cacheDir;
-        if (! is_dir($cacheDir)) {
+        if (!is_dir($cacheDir))
+        {
             throw new ViewException('cachedir is not exists!');
         }
         $this->_cacheLifetime = $cacheLifetime;
     }
-    
+
     /**
      * 通过模板路径获取模板编译文件
+     *
      * @param string $tpath
      * @param boolean $isAbsolute
      */
     abstract public function getCompiledFile($tpath, $isAbsolute = FALSE);
-        
+
     /**
      * 通过模板文件的真实路径获取文件内容
      *
@@ -225,7 +229,7 @@ abstract class Base implements IEngine
         ob_end_clean();
         return $content;
     }
-    
+
     /**
      * 输出编译后的内容
      *
@@ -236,11 +240,12 @@ abstract class Base implements IEngine
     {
         $variables = is_array($assign) ? array_merge($this->_variables, $assign) : $this->_variables;
         extract($variables, EXTR_SKIP);
-        include $compileFile; 
+        include $compileFile;
     }
-    
+
     /**
      * 获取template真实路径
+     *
      * @param string $tpath
      * @param boolean $isAbsolute
      * @return mixed
@@ -251,15 +256,15 @@ abstract class Base implements IEngine
         {
             return $tpath;
         }
-        
+
         if ($isAbsolute)
         {
             return FALSE;
         }
-        
+
         if (is_array($this->_templateDir))
         {
-            foreach($this->_templateDir as $tdir)
+            foreach ($this->_templateDir as $tdir)
             {
                 $tePath = $tdir . $tpath;
                 if (is_file($tePath))
@@ -269,7 +274,7 @@ abstract class Base implements IEngine
             }
             return FALSE;
         }
-        
+
         $tpath = $this->_templateDir . $tpath;
         if (!is_file($tpath))
         {
@@ -277,6 +282,5 @@ abstract class Base implements IEngine
         }
         return $tpath;
     }
-    
 }
 ?>

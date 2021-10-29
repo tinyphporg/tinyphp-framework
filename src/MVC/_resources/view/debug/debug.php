@@ -60,6 +60,8 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
 .debug .flex_menu .cont {display: none;border-top: none;background: #FFF;padding: 5px 8px 0px;font: 12px arial;}
 .debug .flex_menu .cont_selected {}
 .debug .flex_menu p {height: 12px;padding: 4px;margin: 0px;line-height: 15px;}
+#debug_docs{width:100%;height:2000px}
+#debug_docs iframe{width:100%;height:100%}
 </style>
 </head>
 <body>
@@ -236,12 +238,12 @@ if (is_array($e))
     </div>
 		</div>
 
-		<div onclick="__Debug.doDown('debug_Docs')">
+		<div onclick="__Debug.doDown('debug_docs')">
 			<h4 class="jt">
-				<span style="float: left">Docs</span> <span id="debug_Doc_jt" class="jt_down"></span>
+				<span style="float: left">Docs</span> <span id="debug_Doc_jt" class="jt_up"></span>
 			</h4>
-			<div class="cont" style="display: block" id="debug_doc">
-			<?php echo $debugDocs;?>
+			<div class="cont" style="display: block" id="debug_docs">
+			<iframe id="debug_docs_iframe" width="100%" height="4000px" frameBorder="0" scrolling="no" src="<?=$debugDocsUrl?>"> </iframe>
 			</div>
 			</div>
 			
@@ -372,6 +374,10 @@ if (is_array($e))
     }
     , 1000);
     window.__Debug = __D;
+    var iframe = __D('debug_docs_iframe');
+    iframe.contentWindow.onload = function(){
+    	console.log('aaa');
+    }
 })(window);
 </script>
 </html>

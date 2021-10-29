@@ -513,13 +513,18 @@ class Template extends Base
      * @return string
      */
     protected function _parseTemplateTag($tagBody, $extra = NULL)
-    {
-        $engineInstance = View::getInstance()->getEngineByPath($tagBody);
-        if ($engineInstance instanceof PHP || $engineInstance instanceof Template)
+    {   
+        if ((strpos('$', $tagBody)< 0) && (strpos('.', $tagBody) > 0))
         {
-            return sprintf('<? include "%s"; ?>', $engineInstance->getCompiledFile($tagBody));
+            $engineInstance = View::getInstance()->getEngineByPath($tagBody);
+            if ($engineInstance instanceof PHP || $engineInstance instanceof Template)
+            {
+                return sprintf('<? include "%s"; ?>', $engineInstance->getCompiledFile($tagBody, (bool)$extra));
+            }
         }
-        return sprintf('<? echo \Tiny\MVC\View\View::getInstance()->fetch("%s") ?>', $tagBody);
+        $extra = (bool)$extra ? 'TRUE' : 'FALSE';
+        return sprintf('<? echo \Tiny\MVC\View\View::getInstance()->fetch("%s", [], %s) ?>', $tagBody, $extra);
+        
     }
 
     /**
