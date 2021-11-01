@@ -1,7 +1,7 @@
 {
-    "name": "saasjit/tinyphp",
+    "name": "saasjit/tinyphp-framework",
     "description": "a framework for php",
-    "type" : "project",
+    "type" : "library",
     "require" :{
     	"php" : ">= 7.0.0",
     	"smarty/smarty" : ">= 3",
@@ -11,7 +11,7 @@
     "minimum-stability": "stable",
     "version": "1.0.0",    
     "author" : {
-    	"name" : "tinycn",
+    	"name" : "king",
     	"email" : "tinycn@qq.com"
     },
     "autoload":{
