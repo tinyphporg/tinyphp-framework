@@ -224,7 +224,7 @@ class Debug implements Iplugin
     protected function _outDebug()
     {
         $view = $this->_initDebugView();
-        $viewDebugPath = $this->_viewFolder . 'debug.php';
+        $viewDebugPath = $this->_viewDir . 'debug.php';
         if (! is_file($viewDebugPath))
         {
             return;
