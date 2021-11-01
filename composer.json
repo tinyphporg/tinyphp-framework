@@ -4,7 +4,7 @@
     "type" : "library",
     "require" :{
     	"php" : ">= 7.0.0",
-    	"saasjit/tinyphp-docs" : "master-dev",
+    	"saasjit/tinyphp-docs" : "update dev-master",
     	"smarty/smarty" : ">= 3",
     	"erusev/parsedown": ">=1.7.4"
     },
