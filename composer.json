@@ -8,8 +8,7 @@
     	"smarty/smarty" : ">= 3",
     	"erusev/parsedown": ">=1.7.4"
     },
-    "license": "Apache-2.0",
-    "version": "1.0.0",    
+    "license": "Apache-2.0",  
     "author" : {
     	"name" : "king",
     	"email" : "tinycn@qq.com"
