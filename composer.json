@@ -18,4 +18,4 @@
     "autoload":{
     "psr-4" : { "Tiny\\":"src/"}
     }
-}
+} 
