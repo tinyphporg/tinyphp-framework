@@ -1,21 +1,20 @@
 {
     "name": "saasjit/tinyphp-framework",
-    "description": "a framework for php",
+    "description": "A lightweight and simple PHP framework",
     "type" : "library",
     "require" :{
     	"php" : ">= 7.0.0",
     	"saasjit/tinyphp-docs" : "dev-master",
-    	"saasjit/tinyphp-bootstrap" : "dev-master",
+    	"saasjit/tinyphp-ui" : "dev-master",
     	"smarty/smarty" : ">= 3",
     	"erusev/parsedown": ">=1.7.4"
     },
-    "minimum-stability" : "dev",
     "license": "Apache-2.0",  
     "author" : {
-    	"name" : "king",
+    	"name" : "tinycn",
     	"email" : "tinycn@qq.com"
     },
     "autoload":{
     "psr-4" : { "Tiny\\":"src/"}
     }
-} 
+}
