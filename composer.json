@@ -1,6 +1,6 @@
 {
     "name": "saasjit/tinyphp-framework",
-    "description": "A lightweight and simple PHP framework",
+    "description": "A lightweight and high-performance PHP framework",
     "type" : "library",
     "require" :{
     	"php" : ">= 7.0.0",
