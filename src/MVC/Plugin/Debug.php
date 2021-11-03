@@ -112,9 +112,9 @@ class Debug implements Iplugin
      */
     protected function _getDocContent()
     {
-        $docpath = $this->_request->get->formatString('docpath', 'README.md');
-        $docpath = $this->_viewDocDir . $docpath;
-        if (! is_file($docpath))
+        $docpath = $this->_request->get['docpath'];
+        $docpath = \Tiny\Docs\Reader::getDocPath($docpath);
+        if (!$docpath)
         {
             return '';
         }
