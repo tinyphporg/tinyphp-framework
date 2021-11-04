@@ -782,12 +782,12 @@ abstract class ApplicationBase implements IExceptionHandler
             return $this->_view;
         }
         $prop = $this->_prop['view'];
+        $helpers = (array)$prop['helpers'];
+        $engines = (array)$prop['engines'];
         $this->_view = View::getInstance();
         $this->_view->setApplication($this);
+        
         $assign = $prop['assign'] ?: [];
-        
-        
-        
         $assign['env'] = $this->runtime->env;
         $assign['request'] = $this->request;
         $assign['response'] = $this->response;
@@ -800,12 +800,34 @@ abstract class ApplicationBase implements IExceptionHandler
         if ($this->_prop['lang']['enabled'])
         {
             $assign['lang'] = $this->getLang();
-            if ($this->_prop['view']['lang']['enabled'] !== FALSE)
+            if ($prop['view']['lang']['enabled'] !== FALSE)
             {
                 $srcLocale = $prop['src'] . $this->_prop['lang']['locale'] . DIRECTORY_SEPARATOR;
                 $prop['src'] = [$prop['src'], $srcLocale];
             }
         }
+        
+        // composer require tinyphp-ui;
+        if ($prop['ui']['enabled'])
+        {
+            $uiconfig = $prop['ui'];
+            $uiHelperName = (string)$uiconfig['helper'];
+            if ($uiHelperName)
+            {
+                $helpers[] = [ 'helper' => $uiHelperName];
+            }
+            $templatePlugin = (string)$uiconfig['template_plugin'];
+            if($templatePlugin)
+            {
+                $uiPluginConfig = [
+                    'public_path' => (string)$uiconfig['public_path'],
+                    'autoload' => (bool)$uiconfig['autoload'],
+                    'inject' => $uiconfig['inject']
+                ];
+                $engines[] = ['engine' => '\Tiny\MVC\View\Engine\Template', 'config' => ['plugins' => [['plugin' => $templatePlugin, 'config' => $uiPluginConfig]]] ];
+            }
+        }
+        
         $this->_view->setTemplateDir($prop['src']);
         if ($prop['cache'] && $prop['cache']['enabled'])
         {
@@ -813,15 +835,15 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         
         // engine初始化
-        foreach ((array)$prop['engines'] as $econfig)
+        foreach ($engines as $econfig)
         {
             $this->_view->bindEngine($econfig);
         }
         
         //helper初始化
-        foreach ((array)$prop['helpers'] as $econfig)
+        foreach ($helpers as $econfig)
         {
-            $this->_view->bindEngine($econfig);
+            $this->_view->bindHelper($econfig);
         }
         
         $this->_view->setCompileDir($prop['compile']);
@@ -959,10 +981,10 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_initResponse();
         $this->_initProperties();
         $this->_initNamespace();
-        $this->_initPlugin();
         $this->_initImport();
         $this->_initException();
         $this->_initRequest();
+        $this->_initPlugin();
     }
     
     /**
@@ -1015,7 +1037,7 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initPlugin()
     {
-        if ($this->properties['debug']['enabled'])
+        if ($this->isDebug)
         {
             $this->_debug = new \Tiny\MVC\Plugin\Debug($this);
             $this->regPlugin($this->_debug);
@@ -1210,6 +1232,8 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return;
         }
+        $isConsolemode = $this->env->isRuntimeConsoleMode();
+        
         $routers = $prop['routers'] ?: [];
         $rules = $prop['rules'] ?: [];
         $router = $this->getRouter();
@@ -1220,6 +1244,11 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         foreach ($rules as $rule)
         {
+            $rule = (array)$rule;
+            if($rule['domain'] && $isConsolemode)
+            {
+                $rule['domain'] = NULL;
+            }
             $router->addRule((array)$rule);
         }
         $router->route();

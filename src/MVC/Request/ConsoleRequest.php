@@ -158,12 +158,11 @@ class ConsoleRequest extends Base
             }
             if (preg_match('/^-[a-zA-Z0-9]$/', $arg) && ($i < $argc - 1 && $argv[$i + 1][0] != '-'))
             {
-
                 $i++;
                 $argument[$arg[1]] = $argv[$i];
                 continue;
             }
-            if (preg_match('/^(--|-)([a-zA-Z0-9]+)(=(.*))?$/', $arg, $out))
+            if (preg_match('/^(--|-)([a-z][a-z0-9\-]*)(=(.*))?$/i', $arg, $out))
             {
                 $argument[$out[2]] = $out[4] ?: TRUE;
                 continue;

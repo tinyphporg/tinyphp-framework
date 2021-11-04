@@ -85,11 +85,44 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
      */
     protected function _initPlugin()
     {
+        if(!$this->properties['debug']['enabled'] && (bool)$this->request->param['debug'])
+        {
+            $this->isDebug = TRUE;
+        }
         parent::_initPlugin();
+        $this->_initPluginUI($this->_prop['view']['ui']);
         $this->_initPluginBuilder($this->_prop['build']);
         $this->_initDaemonPlugin($this->_prop['daemon']);
     }
-
+    
+    /**
+     *  初始化WEB环境下的tinyphp-ui
+     *  
+     * @param array $config
+     */
+    protected function _initPluginUI($config)
+    {
+        if (!$config || !$config['enabled'])
+        {
+            return;
+        }
+        $installer = (array)$config['installer'];
+        if(!$installer)
+        {
+            return;
+        }
+        $className = (string)$installer['plugin'];
+        if ($className && class_exists($className))
+        {
+            $uiInstance = new $className($this);
+        }
+        else
+        {
+            $uiInstance =  new \Tiny\UI\UIInstaller($this);
+        }
+        $this->regPlugin($uiInstance);
+    }
+    
     /**
      * 初始化打包器插件
      *

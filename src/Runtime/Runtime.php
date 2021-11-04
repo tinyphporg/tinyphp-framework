@@ -926,7 +926,37 @@ class Environment implements \ArrayAccess
         }
         return self::$_instance;
     }
+    
+    /**
+     * 是否为命令行运行环境 
+     * 
+     * @return boolean
+     */
+    public function isRuntimeConsoleMode()
+    {
+        return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_CONSOLE'];
+    }
 
+    /**
+     * 是否为WEB运行环境
+     *
+     * @return boolean
+     */
+    public function isRuntimeWebMode()
+    {
+        return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_WEB'];
+    }
+    
+    /**
+     * 是否为RPC运行环境
+     *
+     * @return boolean
+     */
+    public function isRuntimeRpcMode()
+    {
+        return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_RPC'];
+    }
+    
     /**
      * 获取环境参数
      *
