@@ -224,8 +224,8 @@ class Template extends Base
     protected function _parseTag($template)
     {
         $pattents = [
-            "/\{([a-z]+)\s+(.*?)(?:\|([a-z][a-z0-9_]*?))?\}/is",
-            "/\{\/([a-z]+)\}/is",
+            "/\{([a-z]+(?:[\.\-_][a-z0-9]+)?)\s+(.*?)(?:\|([a-z][a-z0-9_]*?))?\}/is",
+            "/\{\/([a-z]+(?:[\.\-_][a-z0-9]+)?)\}/is",
             "/\{(else)\}/"
         ];
         $template = preg_replace_callback($pattents, [
