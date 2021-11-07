@@ -30,7 +30,7 @@ interface IEngine
      * 
      * @param array $config
      */
-    public function setEngineConfig(View $view, array $config);
+    public function setViewEngineConfig(View $view, array $config);
     
     /**
      * 设置模板变量
@@ -53,17 +53,6 @@ interface IEngine
      * @return string
      */
     public function fetch($filepath, $assign = FALSE, $isAbsolute = FALSE);
-
-    /**
-     * 显示解析后的视图内容
-     *
-     * @param string $file
-     *        视图文件路径
-     * @param string $isAbsolute
-     *        是否为绝对路径
-     * @return string
-     */
-    public function display($filepath, $assign = FALSE, $isAbsolute = FALSE);
     
     /**
      * 设置模板存放路径

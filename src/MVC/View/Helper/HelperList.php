@@ -35,9 +35,7 @@ class HelperList implements IHelper, \ArrayAccess
      *
      * @var array
      */
-    const HELPER_NAME_LIST = [
-        'helper'
-    ];
+    const HELPER_NAME_LIST = ['helper'];
 
     /**
      * View 当前view实例
@@ -58,10 +56,10 @@ class HelperList implements IHelper, \ArrayAccess
      *
      * @param View $view
      */
-    public function setViewHelper(View $view, array $hconfig)
+    public function setViewHelperConfig(View $view, array $config)
     {
         $this->_view = $view;
-        $this->_config = $hconfig;
+        $this->_config = $config;
     }
 
     /**
@@ -69,7 +67,7 @@ class HelperList implements IHelper, \ArrayAccess
      *
      * @param string $hname
      */
-    public function checkHelperName($hname)
+    public function matchHelperByName($hname)
     {
         return in_array($hname, self::HELPER_NAME_LIST);
     }

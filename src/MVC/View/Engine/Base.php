@@ -89,7 +89,7 @@ abstract class Base implements IEngine
      * {@inheritdoc}
      * @see \Tiny\MVC\View\Engine\IEngine::setView()
      */
-    public function setEngineConfig(View $view, array $config)
+    public function setViewEngineConfig(View $view, array $config)
     {
         $this->_view = $view;
         $this->_viewEngineConfig += $config;
@@ -175,20 +175,6 @@ abstract class Base implements IEngine
     }
 
     /**
-     * 输出解析内容
-     *
-     * @param string $template
-     *            模板路径
-     * @return void
-     *
-     */
-    public function display($tpath, $assign = FALSE, $isAbsolute = FALSE)
-    {
-        $compileFile = $this->getCompiledFile($tpath, $isAbsolute);
-        $this->_displayCompiledContent($compileFile, $assign);
-    }
-
-    /**
      * 设置模板缓存
      *
      * @see \Tiny\MVC\View\Engine\IEngine::setCache()
@@ -228,19 +214,6 @@ abstract class Base implements IEngine
         $content = ob_get_contents();
         ob_end_clean();
         return $content;
-    }
-
-    /**
-     * 输出编译后的内容
-     *
-     * @param string $compileFile
-     * @return void
-     */
-    protected function _displayCompiledContent($compileFile, $assign = FALSE)
-    {
-        $variables = is_array($assign) ? array_merge($this->_variables, $assign) : $this->_variables;
-        extract($variables, EXTR_SKIP);
-        include $compileFile;
     }
 
     /**

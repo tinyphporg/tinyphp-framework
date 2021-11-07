@@ -22,20 +22,20 @@ namespace Tiny\MVC\View;
  * @final 2021年10月22日下午5:25:07
  *
  */
-interface IHelper 
+interface IHelper
 {
     /**
      * 设置View实例
      * 
      * @param View $view
      */
-    public function setViewHelper(View $view, array $hconfig);
+    public function setViewHelperConfig(View $view, array $config);
     
     /**
      * 是否支持指定的helper名检索
      * @param string $hname
      */
-    public function checkHelperName($hname);
+    public function matchHelperByName($hname);
 }
 
 ?>

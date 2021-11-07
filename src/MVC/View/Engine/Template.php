@@ -57,9 +57,11 @@ class Template extends Base
     /**
      * 注册的模板插件实例
      *
-     * @var array
+     * @var array IPlugin
      */
-    protected $_plugins = [];
+    protected $_plugins = [
+        ['plugin' => '\Tiny\MVC\View\Engine\Template\Url']
+    ];
 
     /**
      * 注册函数
@@ -82,11 +84,7 @@ class Template extends Base
         $config = (array)$pconfig['config'];
         if (!key_exists($pluginName, $this->_plugins))
         {
-            $this->_plugins[$pluginName] = [
-                'plugin' => $pluginName,
-                'config' => $config,
-                'instance' => NULL,
-            ];
+            $this->_plugins[$pluginName] = ['plugin' => $pluginName, 'config' => $config, 'instance' => NULL];
             return TRUE;
         }
         $plugin = & $this->_plugins[$pluginName];
@@ -99,14 +97,18 @@ class Template extends Base
     }
 
     /**
-     * 设置template解析插件
+     * 设置template插件配置
      * 
      * {@inheritDoc}
      * @see \Tiny\MVC\View\Engine\Base::setEngineConfig()
      */
-    public function setEngineConfig(View $view, array $config)
+    public function setViewEngineConfig(View $view, array $config)
     {
-        parent::setEngineConfig($view, $config);
+        parent::setViewEngineConfig($view, $config);
+        if(!is_array($config['plugins']))
+        {
+            return;
+        }
         foreach($config['plugins'] as $pconfig)
         {
             $this->regPlugin($pconfig);  
@@ -116,11 +118,9 @@ class Template extends Base
     /**
      * 获取模板解析后的文件路径
      *
-     * @param string $file
-     *            文件路径
-     * @param bool $isAbsolute
-     *            是否绝对位置
-     * @return string $path
+     * @param string $file 文件路径
+     * @param bool $isAbsolute 是否绝对位置
+     * @return string 编译后的文件路径
      */
     public function getCompiledFile($tpath, $isAbsolute = FALSE)
     {
@@ -130,10 +130,8 @@ class Template extends Base
             throw new ViewException(sprintf("viewer error: the template file %s is not exists!", $tpath));
         }
 
-        $compileFileName = md5($tfile) . '.template.php';
-        $compilePath = $this->_compileDir . $compileFileName;
-
         // 如果开启模板缓存 并且 模板存在且没有更改
+        $compilePath = $this->_createCompileFilePath($tfile);
         if (false || $this->_cacheEnabled && file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile))
         {
             return $compilePath;
@@ -159,7 +157,18 @@ class Template extends Base
         }
         return $compilePath;
     }
-
+    
+    /**
+     * 生成一个编译模板文件的文件名
+     * 
+     * @param string $tfile 输入的编译模板路径
+     * @return string
+     */
+    protected function _createCompileFilePath($tfile)
+    {
+        return $this->_compileDir . md5($tfile) . '.template.php';
+    }
+    
     /**
      * 解析模板文件
      *
@@ -170,6 +179,9 @@ class Template extends Base
      */
     protected function _parseTemplate($template)
     {
+        //调用解析前事件
+        $template = $this->_onPreParse($template);
+        
         // 去除注释标签
         $template = preg_replace("/\<\!\-\-\{(.+?)\}\-\-\>/s", "{\\1}", $template);
 
@@ -185,6 +197,8 @@ class Template extends Base
         
         //增加template模板标识 避免include访问
         $template = "<? if(!defined('TINY_IS_IN_VIEW_ENGINE_TEMPLATE')) exit('Access Denied');?>\r\n" . $template;
+        
+        $template = $this->_onPostParse($template);
         return $template;
     }
 
@@ -201,11 +215,20 @@ class Template extends Base
             "/(?<!\<\?\=|\\\\)(" . self::REGEXP_VARIABLE . ")/" // 没有{}包裹的变量
         ];
         
+        //变量
         $template = preg_replace($patterns, "<?=\\1?>", $template);
+        
+        //常量
         $template = preg_replace_callback("/" . self::REGEXP_CONST . "/", [$this, '_parseConstVariable'], $template);  // {}包裹的常量
         return $template;
     }
     
+    /**
+     * 解析常量为已预设常量的字符串
+     * 
+     * @param array $matchs 正则匹配数组
+     * @return string|mixed
+     */
     protected function _parseConstVariable($matchs)
     {
         $constName = $matchs[1];
@@ -215,23 +238,23 @@ class Template extends Base
         }
         return constant($constName);
     }
+    
     /**
-     * 解析标签
+     * 解析tag
      *
-     * @param string $template
-     * @return string
+     * @param string $template 模板字符串
+     * @return string 返回解析tag后的模板字符串
      */
     protected function _parseTag($template)
     {
         $pattents = [
-            "/\{([a-z]+(?:[\.\-_][a-z0-9]+)?)\s+(.*?)(?:\|([a-z][a-z0-9_]*?))?\}/is",
+            "/\{([a-z]+(?:[\.\-_][a-z0-9]+)?)(?:\s+(.*?)(?:\|([^|]*?))?)?\}/is",
             "/\{\/([a-z]+(?:[\.\-_][a-z0-9]+)?)\}/is",
             "/\{(else)\}/"
         ];
-        $template = preg_replace_callback($pattents, [
-            $this,
-            "_parseMatchingTag"
-        ], $template);
+        
+        // 处理
+        $template = preg_replace_callback($pattents, [$this, '_parseMatchedTag'], $template);
         return $template;
     }
 
@@ -241,33 +264,36 @@ class Template extends Base
      * @param array $matchs
      * @return boolean|string
      */
-    protected function _parseMatchingTag($matchs)
+    protected function _parseMatchedTag($matchs)
     {
-        $fullTagText = $matchs[0];
-        $isCloseTag = ($fullTagText[1] == '/') ? TRUE : FALSE;
+        $tagFullText = $matchs[0];
         $tagName = $matchs[1];
-        if ($isCloseTag)
+        
+        //闭合标签处理
+        if ($tagFullText[1] == '/')
         {
-            $ret = $this->onParseCloseTag($tagName);
+            $ret = $this->_onParseCloseTag($tagName);
         }
         else
         {
+            // 非闭合标签
             $tagBody = $this->_stripVariableTag($matchs[2]);
             $extra = $matchs[3];
-            $ret = $this->onParseTag($tagName, $tagBody, $extra);
+            $ret = $this->_onParseTag($tagName, $tagBody, $extra);
         }
+        
+        // 非FALSE则返回
         if ($ret !== FALSE)
         {
             return $ret;
         }
-        return $fullTagText;
+        return $tagFullText;
     }
 
     /**
-     * 变量标签
+     * 替换tag内的变量标签
      *
-     * @param string $match
-     *            匹配字符串
+     * @param string $match 匹配字符串
      * @return string
      */
     protected function _stripVariableTag($tagBody)
@@ -276,25 +302,42 @@ class Template extends Base
         {
             return '';
         }
-        $patterns = [
-            "/" . self::REGEXP_VARIABLE_TAG . "/is",
-            "/\\\"/",
-            "/\s+/"
-        ];
-        $replaces = [
-            "\\1",
-            '"',
-            " "
-        ];
+        
+        $patterns = ['/' . self::REGEXP_VARIABLE_TAG . '/is', '/\\"/', '/\s+/'];
+        $replaces = ['\\1', '"',' '];
         return preg_replace($patterns, $replaces, $tagBody);
     }
-
+    
+    /**
+     * 解析前发生
+     *
+     * @param string $template 解析前的模板字符串
+     * @return FALSE|string
+     */
+    protected function _onPreParse($template)
+    {
+        foreach($this->_plugins as $pconfig)
+        {
+            $instance = $pconfig['instance'];
+            if(!$instance)
+            {
+                $instance = $this->_getPluginInstanceByConfig($pconfig);
+            }
+            $ret = $instance->onPreParse($template);
+            if(FALSE !== $ret)
+            {
+                return $ret;
+            }
+        }
+        return $template;
+    }
+    
     /**
      * 解析闭合标签
-     * 
+     *
      * @param string $tagName
      */
-    public function onParseCloseTag($tagName)
+    protected function _onParseCloseTag($tagName)
     {
         switch ($tagName)
         {
@@ -325,7 +368,7 @@ class Template extends Base
      * @param string $extra 附加标识
      * @return string|boolean 返回解析成功的字符串  FALSE为解析失败
      */
-    public function onParseTag($tagName, $tagBody, $extra)
+    protected function _onParseTag($tagName, $tagBody, $extra)
     {
         switch ($tagName)
         {
@@ -349,6 +392,30 @@ class Template extends Base
                 return $this->_parseDateTag($tagBody, $extra);
         }
         return $this->_onPluginParseTag($tagName, $tagBody, $extra);
+    }
+    
+    /**
+     * 解析完成后发生
+     *
+     * @param string $template 解析后的模板字符串
+     * @return FALSE|string
+     */
+    protected function _onPostParse($template)
+    {
+        foreach($this->_plugins as $pconfig)
+        {
+            $instance = $pconfig['instance'];
+            if(!$instance)
+            {
+                $instance = $this->_getPluginInstanceByConfig($pconfig);
+            }
+            $ret = $instance->onPostParse($template);
+            if(FALSE !== $ret)
+            {
+                return $ret;
+            }
+        }
+        return $template;
     }
     
     /**
@@ -430,11 +497,13 @@ class Template extends Base
      */
     protected function _parseLoopsection($tagBody, $extra)
     {
-        $tagNodes = explode(" ", $tagBody);
+        $tagNodes = explode(' ', $tagBody);
         $nodeNum = count($tagNodes);
         if (2 == $nodeNum || 3 == $nodeNum)
         {
-            return (3 == $nodeNum) ? sprintf("<? foreach((array)%s as %s => %s) { ?>", $tagNodes[0], $tagNodes[1], $tagNodes[2]) : sprintf("<? foreach((array)%s as %s) { ?>", $tagNodes[0], $tagNodes[1]);
+            return (3 == $nodeNum) 
+            ? sprintf("<? foreach((array)%s as %s => %s) { ?>", $tagNodes[0], $tagNodes[1], $tagNodes[2]) 
+            : sprintf("<? foreach((array)%s as %s) { ?>", $tagNodes[0], $tagNodes[1]);
         }
         return FALSE;
     }
@@ -506,24 +575,22 @@ class Template extends Base
      *  解析出的模板路径，会通过View的单例调用对应的模板引擎实例->fetch()内容替换
      *  该模板引擎实例 是继承了Base的PHP/Template 直接替换为include运行, 可以共享变量空间。
      *
-     * @param string $tagBody
-     *            解析的模板路径
-     * @param boolean $isCloseTag
-     *            是否为闭合标签
+     * @param string $tagBody 解析的模板路径
+     * @param boolean $isCloseTag 是否为闭合标签
      * @return string
      */
     protected function _parseTemplateTag($tagBody, $extra = NULL)
     {   
-        if ((strpos('$', $tagBody)< 0) && (strpos('.', $tagBody) > 0))
+        $extra = (bool)$extra ? 'TRUE' : 'FALSE';        
+        if (strpos($tagBody, '.') > 0)
         {
-            $engineInstance = View::getInstance()->getEngineByPath($tagBody);
-            if ($engineInstance instanceof PHP || $engineInstance instanceof Template)
+            $engineInstance = $this->_view->getEngineByPath($tagBody);
+            if ($engineInstance instanceof Template)
             {
-                return sprintf('<? include "%s"; ?>', $engineInstance->getCompiledFile($tagBody, (bool)$extra));
+                return sprintf('<? include $this->getCompiledFile("%s", %s); ?>', $tagBody, $extra);
             }
         }
-        $extra = (bool)$extra ? 'TRUE' : 'FALSE';
-        return sprintf('<? echo \Tiny\MVC\View\View::getInstance()->fetch("%s", [], %s) ?>', $tagBody, $extra);
+        return sprintf('<? echo $this->_view->fetch("%s", [], %s) ?>', $tagBody, $extra);
         
     }
 
@@ -538,14 +605,12 @@ class Template extends Base
      */
     protected function _parseDateTag($tagBody, $extra = NULL)
     {
-        $tagBody = trim($tagBody);
-        $tagNodes = explode('|', trim($tagBody));
-        $time = trim($tagNodes[0]);
+        $time = trim($tagBody);
         if (!preg_match("/^\d+$/", $time))
         {
             $time = strtotime($time) ?: time();
         }
-        $format = trim($tagNodes[1]) ?: 'Y-m-d H:i';
+        $format = trim($extra) ?: 'Y-m-d H:i:s';
         return sprintf('<? echo date("%s", %d);?>', $format, $time);
     }
 }

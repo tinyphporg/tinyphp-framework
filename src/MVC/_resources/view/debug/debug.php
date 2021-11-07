@@ -33,7 +33,7 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
 <html class="debug">
 <head>
 <style type="text/css">
-.debug { margin: 0;text-align: left}
+.debug { margin: 0;text-align: left; }
 .debug body { margin: 0;text-align: left}
 .debug .box p {margin: 0;}
 .debug .bg_yellow {background: #fcfdd1;}
@@ -49,17 +49,17 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
 .debug .font_underline {text-decoration: underline;}
 .debug .font_bold {font-weight: bold;}
 .debug .box {border: 1px solid #ffce5a;padding: 10px 20px 30px;line-height: 25px;}
-.debug .code {background: #FFF;margin-top: 20px;border: 1px solid #215119;font-size: 13px;height: 250px;line-height: 16px;overflow: hidden;}
-.debug .code p {padding: 3px 10px;line-height: 16px;}
-.debug .code .line {float: left;background: #EEE;color: #666;border-right: 1px solid #ccc;padding: 3px;font-size: 13px;line-height: 16px;margin-right: 10px;}
-.debug .code .line p {padding: 3px 8px;}
+.debug .code {background: #FFF;margin-top: 20px;border: 1px solid #215119;font-size: 13px;height: 250px;line-height: 26px;overflow: hidden;}
+.debug .code p {padding: 3px 10px;line-height: 26px;}
+.debug .code .line {float: left;background: #EEE;color: #666;border-right: 1px solid #ccc;padding: 3px;font-size: 13px;line-height: 26px;margin-right: 10px;}
+.debug .code .line p {padding: 3px 8px;line-height: 26px;}
 .debug .flex_menu {margin-top: 10px;float: left;width: 100%;border: 1px solid #AAA;border-top: none;}
-.debug .flex_menu .jt{cursor: pointer;font-size: 13px;height: 18px;display: block;background: #FFF1C8;border-top: 1px solid #666;border-bottom: 1px solid #e2e2e2;padding: 8px 5px;color: #F00;font-weight: 400;margin: 0px}
- .debug .flex_menu .jt .jt_down {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #F90 #FFF1C8 #FFF1C8;font-size: 0;line-height: 0;margin-top: 0px;}
-.debug .flex_menu .jt .jt_up {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #FFF1C8 #FFF1C8 #F90;font-size: 0;line-height: 0;margin-top: 0px;}
+.debug .flex_menu .jt{cursor: pointer;font-size: 13px;height: 28px;display: block;background: #FFF1C8;border-top: 1px solid #666;border-bottom: 1px solid #e2e2e2;padding: 8px 5px;color: #F00;font-weight: 400;margin: 0px}
+ .debug .flex_menu .jt .jt_down {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #F90 #FFF1C8 #FFF1C8;font-size: 0;line-height: 20px;margin-top: 0px;}
+.debug .flex_menu .jt .jt_up {cursor: pointer;float: right;border: 4px solid #E1FAFF;border-color: #FFF1C8 #FFF1C8 #F90;font-size: 0;line-height: 0px;margin-top: 0px;}
 .debug .flex_menu .cont {display: none;border-top: none;background: #FFF;padding: 5px 8px 0px;font: 12px arial;}
 .debug .flex_menu .cont_selected {}
-.debug .flex_menu p {height: 12px;padding: 4px;margin: 0px;line-height: 15px;}
+.debug .flex_menu p {height: 22px;padding: 4px;margin: 0px;line-height: 15px;}
 #debug_docs{width:100%;height:2000px}
 #debug_docs iframe{width:100%;height:100%}
 </style>

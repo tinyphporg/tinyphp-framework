@@ -76,7 +76,7 @@ class MessageBox implements IHelper
      *
      * @param View $view
      */
-    public function setViewHelper(View $view, array $hconfig)
+    public function setViewHelperConfig(View $view, array $hconfig)
     {
         $this->_view = $view;
         $this->_config = $hconfig;
@@ -86,7 +86,7 @@ class MessageBox implements IHelper
      * 是否支持指定的helper名检索
      * @param string $hname
      */
-    public function checkHelperName($hname)
+    public function matchHelperByName($hname)
     {
         return in_array($hname, self::HELPER_NAME_LIST);
     }

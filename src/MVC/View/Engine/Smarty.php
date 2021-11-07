@@ -45,7 +45,7 @@ class Smarty extends \Smarty implements IEngine
      * {@inheritDoc}
      * @see \Tiny\MVC\View\Engine\IEngine::setView()
      */
-    public function setEngineConfig(View $view, array $config)
+    public function setViewEngineConfig(View $view, array $config)
     {
         $this->_view = $view;
         $this->_viewEngineConfig += $config;

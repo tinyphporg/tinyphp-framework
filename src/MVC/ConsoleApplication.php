@@ -118,7 +118,7 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
         }
         else
         {
-            $uiInstance =  new \Tiny\UI\UIInstaller($this);
+            $uiInstance =  new \Tiny\MVC\View\UI\UIInstaller($this);
         }
         $this->regPlugin($uiInstance);
     }

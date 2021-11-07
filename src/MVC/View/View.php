@@ -40,66 +40,37 @@ class View implements \ArrayAccess
     protected static $_instance;
 
     /**
-     * 引擎策略数组
+     * 当前application实例
+     *
+     * @var ApplicationBase
+     */
+    protected $_app;
+    
+    /**
+     * 视图引擎的配置策略数组
      *
      * @var array key 引擎类名
      *      value string 为支持解析的模板文件扩展名
      *      value array 为支持解析的模板文件扩展名数组
      */
     protected $_engines = [
-        '\Tiny\MVC\View\Engine\PHP' => [
-            'ext' => [
-                'php'
-            ],
-            'config' => [],
-            'instance' => NULL
-        ],
-        '\Tiny\MVC\View\Engine\Smarty' => [
-            'ext' => [
-                'tpl'
-            ],
-            'config' => [],
-            'instance' => NULL
-        ],
-        '\Tiny\MVC\View\Engine\Template' => [
-            'ext' => [
-                'htm',
-                'html'
-            ],
-            'config' => [],
-            'instance' => NULL
-        ],
-        '\Tiny\MVC\View\Engine\MarkDown' => [
-            'ext' => [
-                'md',
-            ],
-            'config' => [],
-            'instance' => NULL
-        ]
+        '\Tiny\MVC\View\Engine\PHP' => ['ext' => ['php'], 'config' => [], 'instance' => NULL],
+        '\Tiny\MVC\View\Engine\Smarty' => ['ext' => ['tpl'], 'config' => [], 'instance' => NULL],
+        '\Tiny\MVC\View\Engine\Template' => ['ext' => ['htm', 'html'], 'config' => [], 'instance' => NULL],
+        '\Tiny\MVC\View\Engine\MarkDown' => [ 'ext' => ['md'], 'config' => [], 'instance' => NULL]
     ];
 
     /**
-     * 助手实例
+     * 视图助手的配置策略数组
      *
      * @var array
      */
     protected $_helpers = [
-        '\Tiny\MVC\View\Helper\HelperList' => [
-            'config' => [],
-            'instance' => NULL
-        ],
-        '\Tiny\MVC\View\Helper\MessageBox' => [
-            'config' => [],
-            'instance' => NULL
-        ]
+        '\Tiny\MVC\View\Helper\HelperList' => ['config' => [], 'instance' => NULL],
+        '\Tiny\MVC\View\Helper\MessageBox' => ['config' => [], 'instance' => NULL]
     ];
 
-    /**
-     * 当前application实例
-     *
-     * @var ApplicationBase
-     */
-    protected $_app;
+
 
     /**
      * 视图层预设的值
@@ -172,6 +143,16 @@ class View implements \ArrayAccess
     }
 
     /**
+     * 设置 当前的application实例
+     *
+     * @param ApplicationBase $app 当前的application实例
+     */
+    public function setApplication(ApplicationBase $app)
+    {
+        $this->_app = $app;
+    }
+    
+    /**
      * 通过扩展名绑定视图处理引擎
      *
      * @param array $econfig
@@ -183,6 +164,8 @@ class View implements \ArrayAccess
         {
             return FALSE;
         }
+        
+        // engine 必须为string类型
         if (!key_exists('engine', $econfig) || !is_string($econfig['engine']))
         {
             return FALSE;
@@ -192,20 +175,20 @@ class View implements \ArrayAccess
         $config = is_array($econfig['config']) ? $econfig['config'] : [];
         $ext = is_array($econfig['ext']) ? $econfig['ext'] : [(string)$econfig['ext']];
         $ext = array_map('strtolower', $ext);
+        
+        // 不存在新建
         if (!key_exists($engineName, $this->_engines))
         {
-            $this->_engines[$engineName] = [
-                'engine' => $engineName,
-                'config' => $config,
-                'ext' => $ext,
-                'instance' => NULL
-            ];
+            $this->_engines[$engineName] = ['engine' => $engineName, 'config' => $config, 'ext' => $ext, 'instance' => NULL];
             return TRUE;
         }
-
-        $enginePolicy = &$this->_engines[$engineName];
+        
+        // 存在类似配置 则合并
+        $enginePolicy = & $this->_engines[$engineName];
         $enginePolicy['config'] = array_merge($enginePolicy['config'], $config);
         $enginePolicy['ext'] = array_merge($enginePolicy['ext'], $ext);
+        
+        // 补全
         if (!isset($enginePolicy['engine']))
         {
             $enginePolicy['engine'] = $engineName;
@@ -230,6 +213,8 @@ class View implements \ArrayAccess
         {
             return FALSE;
         }
+        
+        // helper助手名必须配置
         if (!key_exists('helper', $hconfig) || !is_string($hconfig['helper']))
         {
             return FALSE;
@@ -237,17 +222,16 @@ class View implements \ArrayAccess
 
         $helperName = $hconfig['helper'];
         $config = is_array($hconfig['config']) ? $hconfig['config'] : [];
+        
+        // 不存在新建
         if (!key_exists($helperName, $this->_helpers))
         {
-            $this->_helpers[$helperName] = [
-                'helper' => $helperName,
-                'config' => $config,
-                'instance' => NULL
-            ];
+            $this->_helpers[$helperName] = ['helper' => $helperName, 'config' => $config, 'instance' => NULL];
             return TRUE;
         }
 
-        $helperPolicy = &$this->_helpers[$helperName];
+        // 存在则合并
+        $helperPolicy = & $this->_helpers[$helperName];
         $helperPolicy['config'] = array_merge($helperPolicy['config'], $config);
         if (!isset($helperPolicy['helper']))
         {
@@ -261,43 +245,19 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 根据扩展名获取视图处理引擎的类名
+     * 通过模板路径的文件扩展名 获取视图引擎的类名
      *
-     * @param string $ext
-     * @return string
+     * @param string $ext 模板路径的文件扩展名
+     * @return FALSE | string 
      */
     public function getEngineNameByExt($ext)
     {
         $econfig = $this->_getEngineConfigByExt($ext);
         if (!$econfig)
         {
-            return;
-        }
-        return $econfig['engine'];
-    }
-
-    /**
-     *
-     * @param ApplicationBase $app
-     */
-    public function setApplication(ApplicationBase $app)
-    {
-        $this->_app = $app;
-    }
-
-    /**
-     * 添加一个助手
-     *
-     * @param string $helperName
-     *            助手类名
-     */
-    public function addHelper($helperName)
-    {
-        if (key_exists($helperName, $this->_helpers))
-        {
             return FALSE;
         }
-        $this->_helpers[$helperName] = NULL;
+        return $econfig['engine'];
     }
 
     /**
@@ -377,7 +337,7 @@ class View implements \ArrayAccess
     {
         if (is_array($key))
         {
-            $this->_variables += $key;
+            $this->_variables = array_merge($this->_variables, $key);
         }
         else
         {
@@ -387,13 +347,11 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 将解析末班的内容注入到application的response中
+     * 解析模板，并将解析后的模板内容注入到application的response中
      *
-     * @param string $tpath
-     * @param boolean $assign
-     *            额外的assign变量 仅本次解析生效
-     * @param boolean $isAbsolute
-     *            是否为绝对的模板路径
+     * @param string $tpath  模板路径
+     * @param boolean $assign 额外的assign变量 仅本次解析生效
+     * @param boolean $isAbsolute 模板路径是否为绝对路径
      * @return void
      */
     public function display($tpath, $assign = FALSE, $isAbsolute = FALSE)
@@ -403,13 +361,11 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 解析视图获取字符串
+     * 解析模板，并获取解析后的字符串
      *
-     * @param string $tpath
-     * @param boolean $assign
-     *            额外的assign变量 仅本次解析生效
-     * @param boolean $isAbsolute
-     *            是否为绝对的模板路径
+     * @param string $tpath 模板路径
+     * @param boolean $assign 额外的assign变量 仅本次解析生效
+     * @param boolean $isAbsolute 是否为绝对的模板路径
      * @return string
      */
     public function fetch($tpath, $assign = FALSE, $isAbsolute = FALSE)
@@ -420,18 +376,17 @@ class View implements \ArrayAccess
     /**
      * 通过模板的文件路径获取绑定的视图模板引擎实例
      *
-     * @param string $filepath
-     *            视图文件路径
+     * @param string $filepath 模板文件路径
      * @return IEngine
      */
     public function getEngineByPath($templatePath)
     {
-        $ext = pathinfo($templatePath, PATHINFO_EXTENSION);
+        $ext = pathinfo($templatePath, PATHINFO_EXTENSION);        
         $econfig = $this->_getEngineConfigByExt($ext);
         if (!$econfig)
         {
             throw new ViewException(sprintf('Viewer error: ext"' . $ext . '"is not bind', $templatePath));
-        }
+        } 
         
         $engineInstance = $this->_getEngineInstanceByConfig($econfig);
         $this->_templateList[] = [$templatePath, $econfig['engine'], $engineInstance];
@@ -439,11 +394,10 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 实现数组接口之获取元素
-     *
-     * @param string $key
-     *            键
-     * @return NULL|string
+     * 获取变量值
+     * 
+     * {@inheritDoc}
+     * @see \ArrayAccess::offsetGet()
      */
     public function offsetGet($key)
     {
@@ -451,13 +405,10 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 实现数组接口之设置元素
-     *
-     * @param string $key
-     *            键
-     * @param mixed $value
-     *            值
-     * @return void
+     * 设置变量
+     * 
+     * {@inheritDoc}
+     * @see \ArrayAccess::offsetSet()
      */
     public function offsetSet($key, $value)
     {
@@ -465,11 +416,10 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 实现ArrayAccess接口之是否存在元素
-     *
-     * @param string $key
-     *            键
-     * @return bool
+     * 变量是否存在
+     * 
+     * {@inheritDoc}
+     * @see \ArrayAccess::offsetExists()
      */
     public function offsetExists($key)
     {
@@ -477,11 +427,10 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 实现ArrayAccess接口之删除元素
-     *
-     * @param string $key
-     *            键
-     * @return void
+     * 删除变量
+     * 
+     * {@inheritDoc}
+     * @see \ArrayAccess::offsetUnset()
      */
     public function offsetUnset($key)
     {
@@ -489,83 +438,47 @@ class View implements \ArrayAccess
     }
 
     /**
-     * 设置模板缓存参数
+     * 设置模板缓存
      *
-     * @param string $cacheDir
-     *            模板缓存存放文件夹
-     * @param int $cacheLifetime
-     *            模板缓存时间 <=0时不开启cache >0时开启缓存
+     * @param string $cacheDir 模板缓存存放文件夹
+     * @param int $cacheLifetime 模板缓存时间 <=0时不开启cache >0时开启缓存
      * @return boolean 是否开启
      */
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
         if ($cacheLifetime < 0)
         {
-            $this->_cacheEnabled = FALSE;
-            $this->_cacheLifetime = 0;
-            $this->_cacheDir = '';
-            return $this->_cacheEnabled;
+            return $this->_clearCache();
         }
+        
         $this->_cacheLifetime = $cacheLifetime;
         $this->_cacheDir = $cacheDir;
         $this->_cacheEnabled = TRUE;
         return $this->_cacheEnabled;
     }
-
+    
     /**
-     * 生成url
+     * 惰性加载 视图助手的实例作为视图层的成员变量
      *
-     * @param array $params
-     *            网址参数
-     * @param string $mod
-     *            生成的url类型
-     * @param string $suffix
-     *            当$mod = r时的网址后缀
-     * @return string
-     */
-    public function url($params, $mod = 'r', $suffix = '.html')
-    {
-        return Helper\Url::get($params, $mod, $suffix);
-    }
-
-    /**
-     * 返回简单的分页样式
-     *
-     * @return void
-     */
-    public function splitPage($url, $total, $pageId, $size = 20, $limit = 6, $style = 'def', $color = 'def', $isOut = true)
-    {
-        $sp = new Helper\SplitPage([
-            'url' => $url,
-            'total' => $total,
-            'size' => $size,
-            'pageid' => $pageId,
-            'color' => $color,
-            'css' => $isOut
-        ]);
-        return $sp->fetch($style);
-    }
-
-    /**
-     * 惰性加载视图助手作为成员变量
-     *
-     * @param string $hname
-     *
+     * @param string $helperName 助手类名
      * @return IHelper
      */
     public function __get($helperName)
     {
+        // 助手名必须以字母开头
         if (!preg_match("/[a-z][a-z0-9_]+/i", $helperName))
         {
             return NULL;
         }
-        $helperInstance = $this->_checkHelper($helperName);
+        
+        // 获取助手实例
+        $helperInstance = $this->_matchHelper($helperName);
         if (!$helperInstance)
         {
-            throw new ViewException('没有预设的IHelper接口的视图助手实例');
+            throw new ViewException('该变量不存在，或不是实现了IHelper接口的视图助手实例');
         }
+        
         $this->{$helperName} = $helperInstance;
-     
         return $helperInstance;
     }
 
@@ -576,32 +489,23 @@ class View implements \ArrayAccess
      */
     protected function __construct()
     {
+        // 将自身注入视图变量
         $this->_variables['view'] = $this;
     }
 
     /**
-     * 检测是否存在支持对应属性名的helper
-     *
+     *  获取匹配的助手实例 
      * @param string $helperName
-     * @return IHelper|boolean
+     * @return IHelper|FALSE  FALSE 获取失败
      */
-    protected function _checkHelper($helperName)
+    protected function _getMatchedHelper($helperName)
     {
+        // 倒序查找助手配置
         $helpers = array_reverse($this->_helpers);
         foreach ($helpers as $hname => $hconfig)
         {
-            $instance = $hconfig['instance'];
-            if (!$instance)
-            {
-                if (!isset($hconfig['helper']))
-                {
-                    $hconfig['helper'] = $hname;
-                    $this->_helpers[$hname]['helper'] = $hname;
-                }
-                $instance = $this->_getHelperInstance($hconfig);
-                $this->_helpers[$hname]['instance'] = $instance;
-            }
-            if ($instance->checkHelperName($helperName))
+            $instance = $this->_getHelperInstance($hname);
+            if ($instance->matchHelperByName($helperName))
             {
                 return $instance;
             }
@@ -616,82 +520,120 @@ class View implements \ArrayAccess
      *            助手配置
      * @return IHelper
      */
-    protected function _getHelperInstance($hconfig)
+    protected function _getHelperInstance($helperName)
     {
-        $helperName = $hconfig['helper'];
+        $hconfig = & $this->_helpers[$helperName];
+        if ($hconfig['instance'])
+        {
+            return $hconfig['instance'];
+        }
+        
+        if ($helperName != $hconfig['helper'])
+        {
+            $hconfig['helper'] = $helperName;
+        }
+        
         if (!class_exists($helperName))
         {
             throw new ViewException(sprintf('class "%s" is not exists', $helperName));
         }
+        
+        // 实例
         $helperInstance = new $helperName();
         if (!$helperInstance instanceof IHelper)
         {
             throw new ViewException(sprintf('class "%s" is not instanceof \Tiny\MVC\View\Helper\IHelper', $helperName));
         }
-        $helperInstance->setViewHelper($this, $hconfig['config']);
+        $hconfig['instance'] = $helperInstance;
+        
+        // 注入视图实例和配置
+        $helperInstance->setViewHelperConfig($this, $hconfig['config']);
         return $helperInstance;
     }
 
     /**
-     * 根据扩展名获取引擎配置
+     * 根据模板路径的文件扩展名获取引擎配置
      *
-     * @param string $ext
-     * @return array|void
+     * @param string $ext 模板文件扩展名
+     * @return array | void
      */
     protected function _getEngineConfigByExt($ext)
-    {
-        $ext = strtolower($ext);
+    {        
+        // 扩展名向前覆盖
         $enginePolicys = array_reverse($this->_engines);
+        
+        $ext = strtolower($ext);
         foreach ($enginePolicys as $ename => $econfig)
         {
-            if (in_array($ext, $econfig['ext']))
+            if (!in_array($ext, $econfig['ext']))
             {
-                if (!isset($econfig['engine']))
-                {
-                    $econfig['engine'] = $ename;
-                }
-                return $econfig;
+                continue;
             }
+            if (!isset($econfig['engine']))
+            {
+                $econfig['engine'] = $ename;
+            }
+            return $econfig;
         }
     }
 
     /**
-     * 根据类名获取Viewer实例
+     * 根据配置获取视图引擎实例
      *
-     * @param IEngine $className
-     *            视图解析类名称
+     * @param array $econfig 视图引擎配置
      * @return IEngine
      */
     protected function _getEngineInstanceByConfig($econfig)
     {
         if ($econfig['instance'])
         {
-            $engineInstance = $econfig['instance'];
-            $engineInstance->assign($this->_variables);
-            return $engineInstance;
+            // 每次调用视图引擎实例 刷新注入的视图变量
+            $econfig['instance']->assign($this->_variables);
+            return $econfig['instance'];
         }
-
-        $engineName = $econfig['engine'];
+        
+        $engineName = (string)$econfig['engine'];
         if (!class_exists($engineName))
         {
             throw new ViewException(sprintf('class "%s" is not exists', $engineName));
         }
-
+        
         $engineInstance = new $engineName();
-        $engineInstance->setEngineConfig($this, $econfig['config']);
+        
+        // 注入视图实例和引擎配置数组
+        $engineInstance->setViewEngineConfig($this, $econfig['config']);
         if (!$engineInstance instanceof IEngine)
         {
             throw new ViewException(sprintf('class "%s" is not instanceof \Tiny\MVC\View\Engine\IEngine', $engineName));
         }
+        
+        // 设置初始化的路径参数
         $engineInstance->setTemplateDir($this->_templateDir);
         $engineInstance->setCompileDir($this->_compileDir);
+        
+        // 设置是否缓存
         if ($this->_cacheEnabled)
         {
             $engineInstance->setCache($this->cacheDir, $this->cacheLifetime);
         }
+        
+        // 注入预设变量
         $engineInstance->assign($this->_variables);
         $this->_engines[$engineName]['instance'] = $engineInstance;
         return $engineInstance;
+    }
+    
+    /**
+     * 清空缓存参数
+     *
+     * @return boolean
+     */
+    protected function _clearCache()
+    {
+        $this->_cacheEnabled = FALSE;
+        $this->_cacheLifetime = 0;
+        $this->_cacheDir = '';
+        return $this->_cacheEnabled;
     }
 }
 ?>

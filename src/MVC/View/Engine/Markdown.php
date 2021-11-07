@@ -21,6 +21,13 @@ use Tiny\MVC\View\ViewException;
 class Markdown extends Base
 {
     /**
+     * Parsedown实例
+     * 
+     * @var \Parsedown
+     */
+    protected $_parsedownInstance;
+    
+    /**
      * 获取编译后的文件路径
      *
      * {@inheritDoc}
@@ -33,7 +40,6 @@ class Markdown extends Base
         {
             throw new ViewException(sprintf("viewer error: file %s is not a file", $tfile));
         }
-
         return $tfile;
     }
     
@@ -46,26 +52,41 @@ class Markdown extends Base
      */
     protected function _fetchCompiledContent($compileFile, $assign = FALSE)
     {
-        $variables = is_array($assign) ? array_merge($this->_variables, $assign) : $this->_variables;
-        extract($variables, EXTR_SKIP);
-        $parsdownInstance = new \Parsedown();
-        $parsdownInstance->setSafeMode(true);
-        $parsdownInstance->setMarkupEscaped(true);
-        $content = $parsdownInstance->parse(file_get_contents($compileFile));
-        return $content;
+        $template  = file_get_contents($compileFile);
+        if (!$template)
+        {
+            return '';
+        }
+        return $this->_parseMarkdown($template);
     }
     
     /**
-     * 输出编译后的内容
-     *
-     * @param string $compileFile
-     * @return void
+     * 解析markdown文档
+     * 
+     * @param string $template 模板字符串
+     * @return string
      */
-    protected function _displayCompiledContent($compileFile, $assign = FALSE)
+    protected function _parseMarkdown($template)
     {
-        return;
-        $variables = is_array($assign) ? array_merge($this->_variables, $assign) : $this->_variables;
-        extract($variables, EXTR_SKIP);
+        $parsedownInstance = $this->_getParsedownInstance();
+        return $parsedownInstance->parse($template);
+    }
+    
+    /**
+     * 获取Parsedown实例
+     * 
+     * @return \Parsedown
+     */
+    protected function _getParsedownInstance()
+    {
+        if (!$this->_parsedownInstance)
+        {
+            $parsedownInstance = new \Parsedown();
+            $parsedownInstance->setSafeMode(TRUE);
+            $parsedownInstance->setMarkupEscaped(TRUE);
+            $this->_parsedownInstance = $parsedownInstance;
+        }
+        return $this->_parsedownInstance;
     }
 }
 ?>

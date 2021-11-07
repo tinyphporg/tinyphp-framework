@@ -63,6 +63,17 @@ class Url implements IPlugin
     }
     
     /**
+     * 解析前发生
+     *
+     * @param string $template 解析前的模板字符串
+     * @return FALSE|string
+     */
+    public function onPreParse($template)
+    {
+        return FALSE;
+    }
+    
+    /**
      * 解析URL的闭合标签
      * {@inheritDoc}
      * @see \Tiny\MVC\View\Engine\Template\IPlugin::onParseCloseTag()
@@ -104,6 +115,17 @@ class Url implements IPlugin
             return $router->rewriteUrl($params, $isRewrite);
         }
         return '';
+    }
+    
+    /**
+     * 解析后发生
+     *
+     * @param string $template 解析后的模板字符串
+     * @return FALSE|string
+     */
+    public function onPostParse($template)
+    {
+        return FALSE;
     }
 }
 ?>

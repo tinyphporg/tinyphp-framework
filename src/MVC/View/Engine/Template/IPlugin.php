@@ -36,6 +36,14 @@ interface IPlugin
     public function setTemplateConfig(Template $template, array $config);
     
     /**
+     * 解析前发生
+     *
+     * @param string $template 解析前的模板字符串
+     * @return FALSE|string
+     */
+    public function onPreParse($template);
+    
+    /**
      * 调用插件事件解析闭合标签
      * 
      * @param string $tagName
@@ -52,5 +60,13 @@ interface IPlugin
      * @return string|boolean 返回解析成功的字符串  FALSE时没有找到解析成功的插件 或者解析失败
      */
     public function onParseTag($tagName, $tagBody, $extra = NULL);
+    
+    /**
+     * 解析完成后发生
+     *
+     * @param string $template 解析后的模板字符串
+     * @return FALSE|string
+     */
+    public function onPostParse($template);
 }
 ?>
