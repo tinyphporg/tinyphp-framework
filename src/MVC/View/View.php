@@ -518,9 +518,10 @@ class View implements \ArrayAccess
         foreach ($helpers as $hname => $hconfig)
         {
             $instance = $this->_getHelperInstance($hname);
-            if ($instance->matchHelperByName($helperName))
+            $matchRet = $instance->matchHelperByName($helperName);
+            if ($matchRet)
             {
-                return $instance;
+                return ($matchRet instanceof IHelper) ? $matchRet : $instance;
             }
         }
         return FALSE;
