@@ -279,6 +279,20 @@ class View implements \ArrayAccess
     {
         return $this->_templateList;
     }
+    
+    
+    /**
+     * 增加一条视图解析记录
+     * 
+     * @param string $templatePath 模板相对路径
+     * @param string $templateRealPath 模板真实路径
+     * @param string $ename 模板引擎名
+     * @param IEngine $engineInstance 模板引擎实例
+     */
+    public function addTemplateList($templatePath, $templateRealPath, $engineInstance)
+    {
+        $this->_templateList[] = [$templatePath, $templateRealPath, get_class($engineInstance), $engineInstance];
+    }
 
     /**
      * 设置模板文件所在目录
@@ -389,7 +403,6 @@ class View implements \ArrayAccess
         } 
         
         $engineInstance = $this->_getEngineInstanceByConfig($econfig);
-        $this->_templateList[] = [$templatePath, $econfig['engine'], $engineInstance];
         return $engineInstance;
     }
 
@@ -472,7 +485,7 @@ class View implements \ArrayAccess
         }
         
         // 获取助手实例
-        $helperInstance = $this->_matchHelper($helperName);
+        $helperInstance = $this->_getMatchedHelper($helperName);
         if (!$helperInstance)
         {
             throw new ViewException('该变量不存在，或不是实现了IHelper接口的视图助手实例');

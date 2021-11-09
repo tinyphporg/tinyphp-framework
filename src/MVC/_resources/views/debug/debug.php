@@ -123,9 +123,8 @@ echo '<p><span class="font_green">模型层: </span>' . $debugModelList .'</p>';
 echo '<p><span class="font_green">视图变量:&nbsp;</span>$' . join(', $', array_keys($debugViewAssign)) . '</p>';
 foreach ($debugViewPaths as $key => $value)
 {
-    echo '<p><b style="color:blue">视图模板<span >' . $key . '</span></b></p>';
-    echo '<p><span class="font_green">视图路径:&nbsp;</span>' . $value[0] . '</p>';
-    echo '<p><span class="font_green">视图引擎:&nbsp;</span>' . $value[1] . '</p>';
+    echo '<p><span class="font_green">[' . $value[2] . '</span>]: ' . $value[0] .'</p>';
+    echo '<p><span class="font_green">视图路径:&nbsp;</span>' . $value[1] . '</p>';
 }
 
 ?>

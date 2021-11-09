@@ -63,5 +63,15 @@ class Smarty extends \Smarty implements IEngine
         $this->cache_dir = $cacheDir;
         $this->cache_lifetime = $cacheLifetime;
     }
+    
+    /**
+     * 重写fetch
+     * 
+     */
+    public function fetch($template = NULL, $assigns = NULL, $compileId = NULL, $cacheId = NULL)
+    {
+        $this->_view->addTemplateList($template, $template, $this);
+        return parent::fetch($template, $cacheId, $compileId, $assigns);
+    }
 }
 ?>

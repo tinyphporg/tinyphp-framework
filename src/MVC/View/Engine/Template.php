@@ -74,25 +74,28 @@ class Template extends Base
         {
             return FALSE;
         }
-        
+       
         if (!key_exists('plugin', $pconfig) || !is_string($pconfig['plugin']))
         {
             return FALSE;
         }
         
         $pluginName  = (string)$pconfig['plugin'];
-        $config = (array)$pconfig['config'];
+        $config = (array)$pconfig['config'];      
         if (!key_exists($pluginName, $this->_plugins))
         {
+            
             $this->_plugins[$pluginName] = ['plugin' => $pluginName, 'config' => $config, 'instance' => NULL];
             return TRUE;
         }
-        $plugin = & $this->_plugins[$pluginName];
+        
+        $plugin = $this->_plugins[$pluginName];
         $plugin['config'] += $config;
         if(!isset($plugin['plugin']))
         {
             $plugin['plugin'] = $pluginName;
         }
+        $this->_plugins[$pluginName] = $plugin;
         return TRUE;
     }
 
@@ -132,11 +135,10 @@ class Template extends Base
 
         // 如果开启模板缓存 并且 模板存在且没有更改
         $compilePath = $this->_createCompileFilePath($tfile);
-        if (false || $this->_cacheEnabled && file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile))
+        if (FALSE && file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile))
         {
             return $compilePath;
         }
-
         // 读取模板文件
         $fh = fopen($tfile, 'rb');
         if (!$fh)

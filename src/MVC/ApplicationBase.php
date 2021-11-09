@@ -786,31 +786,23 @@ abstract class ApplicationBase implements IExceptionHandler
         $engines = (array)$prop['engines'];
         $this->_view = View::getInstance();
         $this->_view->setApplication($this);
-        
-        $assign = $prop['assign'] ?: [];
+       
+        $assign = (array)$prop['assign'] ?: [];
         $assign['env'] = $this->runtime->env;
         $assign['request'] = $this->request;
         $assign['response'] = $this->response;
         
-        if ($this->_prop['config']['enabled'])
-        {
-            $assign['config'] = $this->getConfig();
-        }
-        
-        if ($this->_prop['lang']['enabled'])
-        {
-            $assign['lang'] = $this->getLang();
-            if ($prop['view']['lang']['enabled'] !== FALSE)
-            {
-                $srcLocale = $prop['src'] . $this->_prop['lang']['locale'] . DIRECTORY_SEPARATOR;
-                $prop['src'] = [$prop['src'], $srcLocale];
-            }
-        }
-        
+        $defaultTemplateDirname = TINY_MVC_RESOURCES . 'views/';
+        $templateDirs = [$defaultTemplateDirname];
+        $templateDirname = $prop['template_dirname'] ?: 'default';
+        $templateDirs[] = $prop['src'] . $templateDirname . DIRECTORY_SEPARATOR;
+                
         // composer require tinyphp-ui;
-        if ($prop['ui']['enabled'])
+        $configInstance = (bool)$this->_prop['config']['enabled'] ? $this->getConfig() : NULL;
+        $assign['config'] = $configInstance;
+        if ($configInstance && $prop['ui']['enabled'])
         {
-            $uiconfig = $prop['ui'];
+            $uiconfig = $configInstance['tinyphp-ui'];
             $uiHelperName = (string)$uiconfig['helper'];
             if ($uiHelperName)
             {
@@ -820,15 +812,29 @@ abstract class ApplicationBase implements IExceptionHandler
             if($templatePlugin)
             {
                 $uiPluginConfig = [
-                    'public_path' => (string)$uiconfig['public_path'],
-                    'autoload' => (bool)$uiconfig['autoload'],
-                    'inject' => $uiconfig['inject']
+                    'public_path' => (string)$prop['ui']['public_path'],
+                    'inject' => (bool)$prop['ui']['inject']
                 ];
                 $engines[] = ['engine' => '\Tiny\MVC\View\Engine\Template', 'config' => ['plugins' => [['plugin' => $templatePlugin, 'config' => $uiPluginConfig]]] ];
             }
+            if ($uiconfig['template_dirname'])
+            {
+                $templateDirs[] = (string)$uiconfig['template_dirname'];
+            }
         }
         
-        $this->_view->setTemplateDir($prop['src']);
+        if ($this->_prop['lang']['enabled'])
+        {
+            $assign['lang'] = $this->getLang();
+            if ($prop['view']['lang']['enabled'] !== FALSE)
+            {
+                $templateDirs[] = $prop['src'] . $this->_prop['lang']['locale'] . DIRECTORY_SEPARATOR;
+            }
+        }
+        
+        // 设置模板搜索目录
+        $templateDirs = array_reverse($templateDirs);
+        $this->_view->setTemplateDir($templateDirs);
         if ($prop['cache'] && $prop['cache']['enabled'])
         {
             $this->_view->setCache($prop['cache']['dir'], (int)$prop['cache']['lifetime']);

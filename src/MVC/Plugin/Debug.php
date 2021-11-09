@@ -99,9 +99,9 @@ class Debug implements Iplugin
      */
     public function showDocsAction()
     {
-        $content = $this->_view->fetch($this->_viewDir . 'docs_header.php', [], TRUE);
+        $content = $this->_view->fetch('debug/docs_header.php');
         $content .= $this->_getDocContent();
-        $content .= $this->_view->fetch($this->_viewDir . 'docs_footer.php', [], TRUE);
+        $content .= $this->_view->fetch('debug/docs_footer.php');
         $this->_app->response->appendBody($content);
     }
 
@@ -304,7 +304,7 @@ class Debug implements Iplugin
         {
             $this->_request = $this->_app->request;
             $this->_view = $this->_app->getView();
-            $this->_viewDir = TINY_MVC_RESOURCES . 'view/debug/';
+            $this->_viewDir = TINY_MVC_RESOURCES . 'views/debug/';
         }
         return $this->_view;
     }

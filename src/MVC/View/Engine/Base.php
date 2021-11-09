@@ -227,6 +227,7 @@ abstract class Base implements IEngine
     {
         if ($isAbsolute && is_file($tpath))
         {
+            $this->_view->addTemplateList($tpath, $tpath, $this);
             return $tpath;
         }
 
@@ -242,12 +243,12 @@ abstract class Base implements IEngine
                 $tePath = $tdir . $tpath;
                 if (is_file($tePath))
                 {
+                    $this->_view->addTemplateList($tpath, $tePath, $this);
                     return $tePath;
                 }
             }
             return FALSE;
         }
-
         $tpath = $this->_templateDir . $tpath;
         if (!is_file($tpath))
         {
