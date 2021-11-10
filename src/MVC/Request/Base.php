@@ -253,6 +253,11 @@ abstract class Base
      */
     abstract public function setRouterParam(array $param);
 
+    /**
+     * 魔法函数
+     * 
+     * @param string $key
+     */
     protected function _magicGet($key)
     {
 

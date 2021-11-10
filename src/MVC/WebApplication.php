@@ -107,5 +107,21 @@ class WebApplication extends ApplicationBase
         }
         return $this->_cookie;
     }
+    
+    /**
+     * 异常处理
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\ApplicationBase::onException()
+     */
+    public function onException($e, $exceptions)
+    {
+        if($e['isThrow'])
+        {
+            $statusCode = ($e['level'] === E_NOFOUND) ? 404 : 500;
+            $this->response->setStatusCode($statusCode);
+        }
+        parent::onException($e, $exceptions);
+    }
 }
 ?>

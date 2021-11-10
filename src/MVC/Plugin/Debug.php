@@ -270,9 +270,16 @@ class Debug implements Iplugin
         }
         $models = join(' ', $models);
         
+        $debugInfo = [
+            sprintf("页面执行时间 %s second(s), %s M\n当前路径: http://demo.tinycn.com/tinyphp-ui/html/tinyphp-ui.htm\n来源路径:http://demo.tinycn.com/tinyphp-ui/html/tinyphp-ui.htm", (string)$interval, (string)$memory),
+            
+        ];
+        
+        $debugInfo = base64_encode(json_encode($debugInfo));
         // DEBUG集合
         $debugs = [
             'debug' => $this,
+            'debugInfo' => $debugInfo,
             'debugInterval' => $interval,
             'debugMemory' => $memory,
             'debugViewPaths' => $viewPaths,
@@ -289,6 +296,7 @@ class Debug implements Iplugin
         
         // 附加debug信息到输出
         $body = $view->fetch($viewDebugPath, $debugs, TRUE);
+        $body .= $view->fetch('debug/console.htm', $debugs);
         $this->_app->response->appendBody($body);
     }
 

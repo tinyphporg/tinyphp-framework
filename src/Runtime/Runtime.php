@@ -1103,7 +1103,9 @@ class Environment implements \ArrayAccess
 /**
  * 异常注册接口
  *
- * @author king
+ * @package Tiny.Runtime
+ * @since : 2013-3-22上午06:15:37
+ * @final : 2017-3-22上午06:15:37
  */
 interface IExceptionHandler
 {
@@ -1121,9 +1123,16 @@ interface IExceptionHandler
 }
 
 /**
+ * 页面无法找到错误定义
+ * 
+ * @var int
+ */
+define('E_NOFOUND', 99);
+
+/**
  * MVC异常处理
  *
- * @package Tiny
+ * @package Tiny.Runtime
  * @since : 2013-3-22上午06:15:37
  * @final : 2017-3-22上午06:15:37
  */
@@ -1150,7 +1159,8 @@ class ExceptionHandler
         E_USER_WARNING => 'USER WARNING',
         E_USER_NOTICE => 'USER NOTICE',
         E_STRICT => 'STRICT NOTICE',
-        E_RECOVERABLE_ERROR => 'RECOVERABLE ERROR'
+        E_RECOVERABLE_ERROR => 'RECOVERABLE ERROR',
+        E_NOFOUND => 'NOT FOUND'
     );
 
     /**
@@ -1172,6 +1182,7 @@ class ExceptionHandler
         E_CORE_ERROR,
         E_USER_ERROR,
         E_RECOVERABLE_ERROR,
+        E_NOFOUND,
         0
     ];
 
@@ -1217,14 +1228,8 @@ class ExceptionHandler
      */
     protected function __construct()
     {
-        set_exception_handler([
-            $this,
-            'onException'
-        ]);
-        set_error_handler([
-            $this,
-            'onError'
-        ]);
+        set_exception_handler([$this, 'onException']);
+        set_error_handler([$this, 'onError']);
     }
 
     /**
@@ -1294,9 +1299,9 @@ class ExceptionHandler
             'handler' => get_class($e),
             'line' => $e->getLine(),
             'file' => $e->getFile(),
+            'traceString' => $e->getTraceAsString(),
             'isThrow' => $this->isThrowError($level)
         ];
-
         $this->_exceptions[] = $exception;
         if (!$this->_exceptionHandlers)
         {

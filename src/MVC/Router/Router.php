@@ -38,6 +38,13 @@ class Router
     ];
 
     /**
+     * 是否为命令行形式下的路由模式
+     * 
+     * @var bool
+     */
+    protected $_isConsoleMode;
+    
+    /**
      * 当前Http应用程序的请求对象
      *
      * @var Request
@@ -102,9 +109,10 @@ class Router
      * @param Request $req 由当前app实例注入的request实例
      * @return void
      */
-    public function __construct(Request $req)
+    public function __construct(Request $req, $isConsoleMode = FALSE)
     {
         $this->_req = $req;
+        $this->_isConsoleMode = $isConsoleMode;
     }
 
     /**
@@ -151,10 +159,12 @@ class Router
      *
      * @return void
      */
-    public function route()
+    public function route($routerString)
     {
-        $routerString = $this->_req->getRouterString();
-
+        if (!$routerString || $routerString === '/')
+        {
+            return FALSE;
+        }
         foreach ($this->_routerRules as $routerRule)
         {
             $routerName = $routerRule['routerName'];
@@ -162,7 +172,7 @@ class Router
             {
                 continue;
             }
-            if (!$this->_isMatchedDomain($routerRule['domain']))
+            if ($this->_isConsoleMode && !$this->_isMatchedDomain($routerRule['domain']))
             {
                 continue;
             }
@@ -244,6 +254,7 @@ class Router
         $this->_matchedRouter = $router;
         $this->_params = $router->getParams();
         $this->_req->setRouterParam($this->_params);
+        return $router;
     }
     
     /**

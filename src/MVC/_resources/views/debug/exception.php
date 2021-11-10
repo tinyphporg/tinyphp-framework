@@ -33,9 +33,9 @@ const EXCEPTION_TYPES = [
 	E_USER_WARNING => 'USER WARNING',
 	E_USER_NOTICE => 'USER NOTICE',
 	E_STRICT => 'STRICT NOTICE',
-	E_RECOVERABLE_ERROR => 'RECOVERABLE ERROR'  
+	E_RECOVERABLE_ERROR => 'RECOVERABLE ERROR',
+    E_NOFOUND => '404 NOT FOUND'
 ];
-
 
 $firstE = array_shift($debugExceptions);
 if (!$firstE)
@@ -91,9 +91,9 @@ $debugCode .= '</div></div>';
 ?>
 
 <div class="box bg_yellow">
-	<h2 class="font_red font_underline"><?=$firstE['handler']?></h2>
+	<h2 class="font_red font_underline"><?=EXCEPTION_TYPES[$firstE['level']]?></h2>
 	<p>
-		<span class="font_red_d "><?=EXCEPTION_TYPES[$firstE['level']]?>: <?=$firstE['message']?></span>
+		<span class="font_red_d "><?=$firstE['handler']?>: <?=$firstE['message']?></span>
 	</p>
 	<p>
 		Line:
@@ -101,7 +101,7 @@ $debugCode .= '</div></div>';
 	</p>
 	<p>File: <?=$firstE['file']?></p>
 	<p>
-		<span class=>Trace: <?echo str_replace('#','<br /># File:', $firstE['traceToString'])?></span>
+		<span class=>Trace: <?echo str_replace('#','<br /># File:', $firstE['traceString'])?></span>
 	</p>
 <?=$debugCode?>
 <?php foreach ($exception as $key => $value){echo '<p>' . EXCEPTION_TYPES['handler'] . ' ' . EXCEPTION_TYPES[$value['level']] . ':' . $value['message'] . 'On' . $value['file'] . ' Line ' . $value['line'] . '</p>';

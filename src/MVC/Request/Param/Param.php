@@ -58,9 +58,9 @@ class Param implements \ArrayAccess, \Iterator, \Countable
      *        过滤器实例
      * @return void
      */
-    public function __construct(array $data, $isFiltered = TRUE)
+    public function __construct(array & $data, $isFiltered = TRUE)
     {
-        $this->_data = $data;
+        $this->_data = & $data;
         $this->_isFiltered = (bool)$isFiltered;
     }
 

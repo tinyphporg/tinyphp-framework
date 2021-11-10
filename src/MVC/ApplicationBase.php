@@ -33,6 +33,7 @@ use Tiny\Runtime\Environment;
 use Tiny\Filter\IFilter;
 use Tiny\Filter\Filter;
 use Tiny\Runtime\RuntimeCache;
+use Tiny\MVC\Router\RouterException;
 
 // MVC下存放资源的文件夹
 const TINY_MVC_RESOURCES = __DIR__ . '/_resources/';
@@ -375,7 +376,8 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         if (!$this->_router)
         {
-            $this->_router = new Router($this->request);
+            $isConsolemode = $this->env->isRuntimeConsoleMode();
+            $this->_router = new Router($this->request, $isConsolemode);
         }
         return $this->_router;
     }
@@ -691,17 +693,18 @@ abstract class ApplicationBase implements IExceptionHandler
             return strtoupper($param[0]);
         }, $cname);
      
+        
         $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
         $controllerName = $this->_cNamespace . $cparam;
         if (!class_exists($controllerName))
         {
-            throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_ERROR);
+            throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_NOFOUND);
         }
         
         $controllerInstance = new $controllerName();
         if (!$controllerInstance instanceof \Tiny\MVC\Controller\Base)
         {
-            throw new ApplicationException("Controller:'{$controllerName}' is not instanceof Tiny\MVC\Controlller\Controller!", E_ERROR);
+            throw new ApplicationException("Controller:'{$controllerName}' is not instanceof Tiny\MVC\Controlller\Controller!", E_NOFOUND);
         }
         $controllerInstance->setApplication($this);
         $this->_controllers[$cname] = $controllerInstance;
@@ -935,10 +938,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             if (method_exists($controller, $action))
             {
-                return call_user_func_array([
-                    $controller,
-                    $action
-                ], $args);
+                return call_user_func_array([$controller, $action], $args);
             }
             return FALSE;
         }
@@ -954,10 +954,10 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             $cname = get_class($controller);
             $aname = $action;
-            throw new ApplicationException("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ");
+            throw new ApplicationException("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ", E_NOFOUND);
         }
         $ret = call_user_func_array([$controller, $action], $args);
-        call_user_func_array([$controller,'onEndExecute'], $args);
+        call_user_func_array([$controller, 'onEndExecute'], $args);
         return $ret;
     }
     
@@ -1238,8 +1238,11 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return;
         }
-        $isConsolemode = $this->env->isRuntimeConsoleMode();
-        
+        $routeString = $this->request->getRouterString();
+        if (!$routeString || $routeString === '/')
+        {
+            return;
+        }
         $routers = $prop['routers'] ?: [];
         $rules = $prop['rules'] ?: [];
         $router = $this->getRouter();
@@ -1251,13 +1254,14 @@ abstract class ApplicationBase implements IExceptionHandler
         foreach ($rules as $rule)
         {
             $rule = (array)$rule;
-            if($rule['domain'] && $isConsolemode)
-            {
-                $rule['domain'] = NULL;
-            }
             $router->addRule((array)$rule);
         }
-        $router->route();
+
+        $ret = $router->route($routeString);
+        if(!$ret)
+        {
+            throw new ApplicationException(sprintf('The RouterString[%s] does not match a router!', $routeString), E_NOFOUND);
+        }
     }
     
     /**
