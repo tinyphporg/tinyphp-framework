@@ -566,6 +566,7 @@ class RuntimeCacheHandler
         {
             return FALSE;
         }
+        
         $ret  = shmop_write($shmId, $cdata, 0);
         shmop_close($shmId);
         return $ret;
@@ -1145,7 +1146,7 @@ class ExceptionHandler
      * @var array
      *
      */
-    const _errorTypes = array(
+    const EXCEPTION_TYPES = array(
         0 => 'Fatal error',
         E_ERROR => 'ERROR',
         E_WARNING => 'WARNING',
@@ -1260,6 +1261,7 @@ class ExceptionHandler
         }
         $exception = [
             'level' => $errno,
+            'type' => $this->getErrorType($errno),
             'message' => $errstr,
             'file' => $errfile,
             'line' => $errline,
@@ -1295,6 +1297,7 @@ class ExceptionHandler
         }
         $exception = [
             'level' => $level,
+            'type' => $this->getErrorType($errno),
             'message' => $e->getMessage(),
             'handler' => get_class($e),
             'line' => $e->getLine(),
@@ -1335,7 +1338,7 @@ class ExceptionHandler
      */
     public function getErrorType($level)
     {
-        return isset($this->_errorTypes[$level]) ? $this->_errorTypes[$level] : $this->_errorTypes[0];
+        return self::EXCEPTION_TYPES[$level] ?: self::EXCEPTION_TYPES[0];
     }
 
     /**

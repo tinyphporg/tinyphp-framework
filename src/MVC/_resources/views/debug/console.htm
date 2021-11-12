@@ -1,1 +1,24 @@
-{ui.jslib}<script>(function(window, debuginfo){window.__tinyphp_debuginfo = debuginfo})(window, "$debugInfo")</script>
+
+-------------debug-------------
+{$env['FRAMEWORK_NAME']};
+Version :  {$env['FRAMEWORK_VERSION']};
+Doc     : https://github.com/saasjit/tinyphp-docs;
+Time    :  {$debugInterval} S;
+Memory  :  {$debugMemory} M;
+--------------------------
+{if is_array($debugDbQuerys)}
+DbQueryTimeTotal : {$debugDbTimeTotal} S;
+{loop $debugDbQuerys $query}
+{$query['engine']}: 
+  TIME: {$query['time']}S
+  SQL: {$query['sql']}
+{/loop}
+{/if} 
+--------------------------
+{loop $debugExceptions $e}
+{$e['handler']}: {$e['message']}
+In  {$e['file']} on Line: {$e['line']}, 
+TraceString : {$e['traceString']}
+
+{/loop}
+

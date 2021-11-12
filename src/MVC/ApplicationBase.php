@@ -406,7 +406,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_config = new Configuration($prop['path']);
         if ($this->isDebug || !$prop['cache']['enabled'])
         {
-            return $this->_config;
+           return $this->_config;
         }
         
         $data = $this->_getConfigDataFromRuntimeCache();
