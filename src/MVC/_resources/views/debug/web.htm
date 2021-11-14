@@ -28,8 +28,6 @@
 .TINYPHP_DEBUG_HTML .flex_menu .cont {display: none;border-top: none;background: #FFF;padding: 5px 8px 0px;font: 12px arial;}
 .TINYPHP_DEBUG_HTML .flex_menu .cont_selected {}
 .TINYPHP_DEBUG_HTML .flex_menu p {height: 22px;padding: 4px;margin: 0px;line-height: 15px;}
-#debug_docs{width:100%;height:2000px}
-#debug_docs iframe{width:100%;height:100%}
 </style>
 </head>
 <body>
@@ -203,12 +201,12 @@
 <!-- Include End -->      
 <!-- Docs Statr -->
         <div >
-            <h4 onclick="__TINYPHP_DEBUG.down('TINYPHP_DEBUG_DOCS')" class="jt">
-                <span style="float: left">Docs</span> <span id="TINYPHP_DEBUG_JT" class="jt_up"></span>
+            <h4 onclick="__TINYPHP_DEBUG.showdoc('TINYPHP_DEBUG_DOCS', 'TINYPHP_DEBUG_IFRAME', '{$debugDocUrl}')" class="jt">
+                <span style="float: left">Docs</span> <span id="TINYPHP_DEBUG_DOCS_JT" class="jt_up"></span>
             </h4>
-            
-            <p><a href="javascript:__TINYPHP_DEBUG('TINYPHP_DEBUG_DOCS').src='{$debugDocUrl}';void(0)">Tiny PHP Framework Docs</a></p>
-            <iframe id="TINYPHP_DEBUG_DOCS" class="cont" style="display: block"  width="100%"  frameBorder="0" scrolling="no" src="{$debugDocUrl}"> </iframe>
+            <div id="TINYPHP_DEBUG_DOCS">
+            <p><a href="javascript:__TINYPHP_DEBUG.showdoc('TINYPHP_DEBUG_DOCS', 'TINYPHP_DEBUG_IFRAME', '{$debugDocUrl}');void(0)">Tiny PHP Framework Docs</a></p>
+            </div>
 
             </div>
 <!-- Docs End -->  
@@ -305,7 +303,28 @@
             jt.className = 'jt_up';
         }
     }
-
+    
+    __D.showdoc = function(id, fid, url) {
+        __D.down(id);
+        if (!__D(fid)) {
+            var element = document.createElement('iframe');
+            element.id = fid;
+            element.frameBorder = 0;
+            element.scrollHeight = 0;
+            element.width = "100%";
+            element.src = url;
+            element.onload = function() {
+                var height = __D.getWH(this.contentWindow.document.body).height;
+                this.height = (height + 10)+ 'px';
+                this.contentWindow.onbeforeunload = function() {
+                    element.height = 'auto';
+                }
+           }            
+            __D(id).appendChild(element);
+        }
+        return false;
+    }
+    
     //得到页面长和宽
     __D.getWH = function() {
         var s = arguments[0] || document.getElementsByTag('BODY')[0];
@@ -315,16 +334,8 @@
     __D.getHeight = function() {
         return __D.getWH(arguments[0]).height;
     }
-    
-    __D('TINYPHP_DEBUG_DOCS').onload = function() {
-       var iframe = this, height = __D.getWH(this.contentWindow.document.body).height;
-       this.height = (height + 10)+ 'px';
-       this.contentWindow.onbeforeunload = function() {
-            iframe.height = 'auto';
-       }
-    }
-        __D.traversalChildNodesSql(__D('TINYPHP_DEBUG_SQL_HELPER'));
-        __D.traversalChildNodes(__D('TINYPHP_DEBUG_CODE'));
+    __D.traversalChildNodesSql(__D('TINYPHP_DEBUG_SQL_HELPER'));
+    __D.traversalChildNodes(__D('TINYPHP_DEBUG_CODE'));
     window.__TINYPHP_DEBUG = __D;
 })(window);
 </script>

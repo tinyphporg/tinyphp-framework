@@ -103,7 +103,7 @@ class Debug implements Iplugin
     public function showDocsAction()
     {
         $debugDocContent = $this->_getDocContent();
-        $body = $this->_view->fetch('debug/docs.htm', [ 'debugDocContent' => $debugDocContent]);
+        $body = $this->_view->fetch('debug/web_docs.htm', [ 'debugDocContent' => $debugDocContent]);
         $this->_app->response->appendBody($body);
     }
 
