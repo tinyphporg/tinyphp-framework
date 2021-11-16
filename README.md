@@ -112,7 +112,7 @@ DEMO
 
 composer create-project saasjit/tinyphp
 
-cd tinyphp-bootstrap
+cd tinyphp
 
 #运行
 php public/index.php
