@@ -332,7 +332,6 @@ class Builder
                     continue;
                 }
                 $fname = $name ? $name . '/' . $file : $file;
-                echo $fpath;
                 $this->_addDir($fpath, $fname, $noFile);
             }
             return;
