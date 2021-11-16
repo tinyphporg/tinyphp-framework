@@ -9,7 +9,7 @@
  * @Class List 1. DataException 数据池异常类
  * @History King 2017年4月8日下午11:47:08 0 第一次建立该文件
  *          King 2017年4月8日下午11:47:08 1 上午修改
- *          King 2020年3月2日11:31 stable 1.0.01 审定
+ *          King 2020年3月2日11:31 stable 1.0 审定
  */
 namespace Tiny\Data\Redis;
 
@@ -19,7 +19,7 @@ namespace Tiny\Data\Redis;
  * @package Tiny.Data.Redis
  * @since 2017年4月8日下午11:47:33
  * @final 2017年4月8日下午11:47:33
- *        King 2020年3月2日11:31 stable 1.0.01 审定
+ *        King 2020年3月2日11:31 stable 1.0 审定
  */
 class RedisException extends \Exception
 {

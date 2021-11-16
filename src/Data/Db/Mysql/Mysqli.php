@@ -11,7 +11,7 @@
  * @Function
  * @History <author> <time> <version > <desc>
  *          king 2013-11-28上午06:55:47 1.0 第一次建立该文件
- *          King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
+ *          King 2020年03月5日15:48:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Data\Db\Mysql;
 
@@ -25,7 +25,7 @@ use Tiny\Data\Db\Db;
  * @package Tiny.Data.Db.Mysql
  * @since 2013-11-28上午06:56:26
  * @final 2013-11-28上午06:56:26
- *        King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
+ *        King 2020年03月5日15:48:00 stable 1.0 审定稳定版本
  */
 class Mysqli implements IDb
 {

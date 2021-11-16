@@ -11,7 +11,7 @@
  * @Function
  * @History <author> <time> <version > <desc>
  *          king 2013-11-30上午02:35:09 1.0 第一次建立该文件
- *          King 2020年6月1日14:21 stable 1.0.01 审定
+ *          King 2020年6月1日14:21 stable 1.0 审定
  */
 namespace Tiny\Data\Redis;
 
@@ -156,7 +156,7 @@ class Redis implements IDataSchema
      */
     public function createSortSet($key)
     {
-        return new SortSet($this->connect(), $key);
+        return new SortSet($this->getConnector(), $key);
     }
 
     /**

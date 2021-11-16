@@ -11,7 +11,7 @@
  *        1.Redis redis缓存类
  * @History <author> <time> <version > <desc>
  *          King Fri Jan 20 13:02:18 CST 2012 Beta 1.0 第一次建立该文件
- *          King 2020年02月24日19:49:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月24日19:49:00 stable 1.0 审定稳定版本
  *
  */
 namespace Tiny\Cache;
@@ -22,7 +22,7 @@ namespace Tiny\Cache;
  * @package Tiny.Cache
  * @since Sat Jan 21 17:32:07 CST 2012
  * @final Sat Jan 21 17:32:07 CST 2012
- *        King 2020年02月24日19:49:00 stable 1.0.01 审定稳定版本
+ *        King 2020年02月24日19:49:00 stable 1.0 审定稳定版本
  */
 use Tiny\Data\Redis\Redis as RedisSchema;
 use Tiny\Tiny;

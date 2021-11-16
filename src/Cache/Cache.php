@@ -11,7 +11,7 @@
  *        1.Cache 缓存主体类 策略模式
  * @History: <author> <time> <version > <desc>
  *           King Sat Dec 17 12:29:10 CST 2011 Beta 1.0 第一次建立该文件
- *           King 2020年02月24日上午11:42:00 stable 1.0.01 审定稳定版本
+ *           King 2020年02月24日上午11:42:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Cache;
 

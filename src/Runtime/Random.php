@@ -11,7 +11,7 @@
  *        1. Random 随机生成工具类
  * @History <author> <time> <version > <desc>
  *          King 2013-4-1下午02:57:02 Beta 1.0 第一次建立该文件
- *          King 2020年02月19日下午15:44:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月19日下午15:44:00 stable 1.0 审定稳定版本
  *
  */
 namespace Tiny\Runtime;

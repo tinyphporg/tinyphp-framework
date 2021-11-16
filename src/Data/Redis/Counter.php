@@ -12,7 +12,7 @@
  * @Function
  * @History <author> <time> <version > <desc>
  *          king 2013-11-30下午01:51:04 1.0 第一次建立该文件
- *          King 2020年03月5日23:40:00 stable 1.0.01 审定稳定版本
+ *          King 2020年03月5日23:40:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Data\Redis;
 

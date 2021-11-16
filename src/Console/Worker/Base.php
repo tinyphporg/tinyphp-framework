@@ -11,7 +11,7 @@
  * @Function List 1.
  * @History King 2020年4月6日上午11:00:39 第一次建立该文件
  *          King 2020年4月6日上午11:00:39 修改
- *          King 2020年6月1日14:21 stable 1.0.01 审定
+ *          King 2020年6月1日14:21 stable 1.0 审定
  *
  */
 namespace Tiny\Console\Worker;

@@ -10,7 +10,7 @@
  * @Function List
  * @History King 2017年3月12日下午5:31:11 0 第一次建立该文件
  *          King 2017年3月12日下午5:31:11 1 上午修改
- *          King 2020年6月1日14:21 stable 1.0.01 审定
+ *          King 2020年6月1日14:21 stable 1.0 审定
  */
 namespace Tiny\MVC\Bootstrap;
 

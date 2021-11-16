@@ -13,7 +13,7 @@
  *           1.
  * @History <author> <time> <version > <desc>
  *          King Fri Dec 16 22:48:00 CST 2011 Beta 1.0 第一次建立该文件
- *          King 2020年02月24日17:09:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月24日17:09:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Cache;
 
@@ -27,7 +27,7 @@ use Tiny\Data\Memcached\Memcached as MemcachedSchema;
  * @package Tiny.Cache
  * @since Fri Dec 16 22 48 07 CST 2011
  * @final Fri Dec 16 22 48 07 CST 2011
- *        King 2020年02月24日17:09:00 stable 1.0.01 审定稳定版本
+ *        King 2020年02月24日17:09:00 stable 1.0 审定稳定版本
  */
 class Memcached implements ICache, \ArrayAccess
 {

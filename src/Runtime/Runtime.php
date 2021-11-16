@@ -16,7 +16,7 @@
  *
  * @Function List 1.
  * @History King 2019年11月12日上午10:07:58 第一次建立该文件
- *          King 2020年02月19日下午15:44:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月19日下午15:44:00 stable 1.0 审定稳定版本
  *
  */
 namespace Tiny\Runtime;

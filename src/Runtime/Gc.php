@@ -11,7 +11,7 @@
  *        1.GC GC回收控制函数
  * @History <author> <time> <version > <desc>
  *          king 2013-11-26上午06:47:05 1.0 第一次建立该文件
- *          King 2020年02月19日下午15:44:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月19日下午15:44:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Runtime;
 

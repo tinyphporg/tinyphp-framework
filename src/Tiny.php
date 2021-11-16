@@ -22,7 +22,7 @@ use Tiny\Runtime\Environment;
 use Tiny\MVC\ApplicationBase;
 
 /* 加载必须的程序运行时(Runtime)对象 */
-require __DIR__ . '/Runtime/Runtime.php';
+require_once __DIR__ . '/Runtime/Runtime.php';
 
 /**
  * 工具类

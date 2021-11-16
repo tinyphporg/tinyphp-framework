@@ -12,7 +12,7 @@
  * @History <author> <time> <version > <desc>
  *          King Mon Nov 14 00:08:21 CST 2011 Beta 1.0 第一次建立该文件
  *          King 2013-12-05 1.0 重新修订该文件
- *          King 2020年02月24日12:06:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月24日12:06:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Cache;
 
@@ -22,7 +22,7 @@ namespace Tiny\Cache;
  * @package Tiny.Cache
  * @since Mon Nov 14 00 08 38 CST 2011
  * @final Mon Nov 14 00 08 38 CST 2011
- *        King 2020年02月24日16:54:00 stable 1.0.01 审定
+ *        King 2020年02月24日16:54:00 stable 1.0 审定
  */
 class File implements ICache, \ArrayAccess
 {

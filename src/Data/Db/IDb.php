@@ -11,7 +11,7 @@
  *              1. IDb DB操作接口类
  * @History King 2017年4月4日下午12:12:36 0 第一次建立该文件
  *          King 2017年4月4日下午12:12:36 1 上午修改
- *          King 2020年3月2日11:31 stable 1.0.01 审定
+ *          King 2020年3月2日11:31 stable 1.0 审定
  */
 namespace Tiny\Data\Db;
 
@@ -23,7 +23,7 @@ use Tiny\Data\IDataSchema;
  * @package Tiny.Data.Db
  * @since 2013-11-28上午06:50:11
  * @final 2013-11-28上午06:50:11
- *        King 2020年3月2日11:31 stable 1.0.01 审定
+ *        King 2020年3月2日11:31 stable 1.0 审定
  */
 interface IDb extends IDataSchema
 {

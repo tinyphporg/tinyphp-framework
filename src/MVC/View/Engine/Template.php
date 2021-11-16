@@ -13,7 +13,7 @@
  *           1.
  * @History: <author> <time> <version > <desc>
  *           King 2013-5-25上午08:21:54 Beta 1.0 第一次建立该文件
- *           King 2020年6月1日14:21 stable 1.0.01 审定
+ *           King 2020年6月1日14:21 stable 1.0 审定
  *
  */
 namespace Tiny\MVC\View\Engine;
@@ -59,9 +59,7 @@ class Template extends Base
      *
      * @var array IPlugin
      */
-    protected $_plugins = [
-        ['plugin' => '\Tiny\MVC\View\Engine\Template\Url']
-    ];
+    protected $_plugins = [];
 
     /**
      * 注册函数
@@ -135,7 +133,7 @@ class Template extends Base
 
         // 如果开启模板缓存 并且 模板存在且没有更改
         $compilePath = $this->_createCompileFilePath($tfile);
-        if (FALSE && file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile))
+        if (file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile))
         {
             return $compilePath;
         }
@@ -355,6 +353,7 @@ class Template extends Base
             case 'elseif':
             case 'eval':
             case 'template':
+            case 'url':
             case 'date':
             default:
                 return FALSE;
@@ -392,6 +391,8 @@ class Template extends Base
                 return $this->_parseTemplateTag($tagBody, $extra);
             case 'date':
                 return $this->_parseDateTag($tagBody, $extra);
+            case 'url':
+                return $this->_parseUrlTag($tagBody, $extra);
         }
         return $this->_onPluginParseTag($tagName, $tagBody, $extra);
     }
@@ -601,8 +602,7 @@ class Template extends Base
      *
      * @param string $tagBody
      *            解析的标签设置
-     * @param boolean $isCloseTag
-     *            是否为闭合标签
+     * @param string $extra 附加信息
      * @return string
      */
     protected function _parseDateTag($tagBody, $extra = NULL)
@@ -614,6 +614,35 @@ class Template extends Base
         }
         $format = trim($extra) ?: 'Y-m-d H:i:s';
         return sprintf('<? echo date("%s", %d);?>', $format, $time);
+    }
+    
+    
+    /**
+     *  解析URL标签
+     *  
+     *  @param string $tagBody 解析的标签主体信息
+     *  @param string $extra 附加信息
+     *  @return string
+     */
+    protected function _parseUrlTag($tagBody, $extra = NULL)
+    {
+        $paramText = explode(',', $tagBody);
+        $params = [];
+        $isRewrite = ($extra == 'r') ? TRUE : FALSE;
+        foreach($paramText as $ptext)
+        {
+            $ptext = trim($ptext);
+            if(preg_match('/\s*(.+?)\s*=\s*(.*)\s*/i', $ptext, $out))
+            {
+                $params[$out[1]] = $out[2];
+            }
+        }
+        $router = \Tiny\Tiny::getApplication()->getRouter();
+        if($router)
+        {
+            return $router->rewriteUrl($params, $isRewrite);
+        }
+        return '';
     }
 }
 ?>

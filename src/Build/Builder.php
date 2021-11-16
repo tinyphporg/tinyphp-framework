@@ -321,12 +321,18 @@ class Builder
             $this->_pharHandler->addEmptyDir($name);
             foreach ($files as $file)
             {
-                if ($file == '.' || $file == '..' || $file[0] == '.' || preg_match("/.phar$/i", $file))
+                if ($file == '.' || $file == '..' || $file[0] == '.')
                 {
                     continue;
                 }
+
                 $fpath = $path . '/' . $file;
+                if ($this->_isExclude($fpath))
+                {
+                    continue;
+                }
                 $fname = $name ? $name . '/' . $file : $file;
+                echo $fpath;
                 $this->_addDir($fpath, $fname, $noFile);
             }
             return;
@@ -339,12 +345,38 @@ class Builder
     }
 
     /**
+     *  是否排除路径
+     *  
+     * @param string $fpath 文件名
+     * @return boolean
+     */
+    protected function _isExclude($fpath)
+    {
+        foreach ((array)$this->_config['exclude'] as $exclude)
+        {
+            if (preg_match($exclude, $fpath)) 
+            {
+                return TRUE;
+            }
+        }
+        return FALSE;   
+    }
+    
+    /**
      * 添加框架到打包文件
      * 
      */
     protected function _addFrameWork()
     {
-        $fwpath = realpath(FRAMEWORK_PATH);
+        $vendorPath = $this->_config['vendor_path'];
+        if (is_dir($vendorPath))
+        {
+            printf("add vendor path:\n   %s\n", $vendorPath);
+            $this->_addDir($vendorPath, 'vendor');
+            return;
+        }
+        
+        $fwpath = realpath($this->_config['framework_path']);
         printf("add framework path:\n   %s\n", $fwpath);
         $this->_addDir($fwpath, 'tiny-framework');
     }
@@ -395,8 +427,16 @@ class Builder
         define('TINY_HOME_DIR', \$_SERVER['HOME'] . '/.' . TINY_PHAR_ID);
         define('TINY_PHAR_DIR', str_replace('phar://', '', dirname(dirname(__DIR__))));
         define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
-        require(TINY_PHAR_FILE . '/tiny-framework/Tiny.php');
-        \Tiny\Runtime\Runtime::getInstance();
+        define('TINY_COMPOSER_FILE', TINY_PHAR_FILE . '/vendor/autoload.php');
+        if (is_file(TINY_COMPOSER_FILE))
+        {
+            require(TINY_COMPOSER_FILE);
+        }
+        else
+        {
+            require(TINY_PHAR_FILE . '/tiny-framework/Tiny.php');
+        }
+        // \Tiny\Runtime\Runtime::getInstance();
         \Tiny\Build\Builder::init([]);
         \Tiny\Tiny::createApplication(APPLICATION_PATH, $profilestr)->run();
         ?>

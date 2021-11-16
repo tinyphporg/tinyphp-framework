@@ -11,8 +11,8 @@
  *        1.Memcached memcached扩展
  * @History <author> <time> <version > <desc>
  *          king 2013-12-1上午05:32:31 1.0 第一次建立该文件
- *          King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
- *          King 2020年6月1日14:21 stable 1.0.01 审定
+ *          King 2020年03月5日15:48:00 stable 1.0 审定稳定版本
+ *          King 2020年6月1日14:21 stable 1.0 审定
  */
 namespace Tiny\Data\Memcached;
 
@@ -25,7 +25,7 @@ use Tiny\Data\Db\Memcached\MemcachedException;
  * @package Tiny.Data.Memcached
  * @since 2013-12-1上午05:33:08
  * @final 2013-12-1上午05:33:08
- *        King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
+ *        King 2020年03月5日15:48:00 stable 1.0 审定稳定版本
  */
 class Memcached implements IDataSchema
 {

@@ -121,13 +121,13 @@ class Builder implements Iplugin
             $options['home_attachments']['profile'] = ['profile', $ppath];
         }
 
-        //框架路径
-        $options['framework_path'] = FRAMEWORK_PATH;
+     
+
         foreach ($this->_properties['autoloader']['librarys'] as $ns => $path)
         {
             $options['imports'][$ns] = $this->_properties[$path];
         }
-
+                
         //配置数据
         $bconfig = (new Configuration($bpath))->get();
         foreach($bconfig as $boption)
@@ -156,6 +156,16 @@ class Builder implements Iplugin
     {
         $boption = array_merge($boption, $options);
         $boption['name'] = $boption['name'] ?: 'tinyd';
+        $boption['exclude'] = is_array($boption['exclude']) ? $boption['exclude'] : [(string)$boption['exclude']];
+        $boption['exclude'][] = "/\.phar$/";
+
+        //框架路径
+        $boption['framework_path'] = $boption['framework_path'] ?: TINY_FRAMEWORK_PATH;
+        
+        // vendor 路径
+        $boption['vendor_path'] = $boption['vendor_path'] ?: dirname(dirname(get_included_files()[0])) . '/vendor';
+        
+        // imports
         if (is_array($boption['imports']))
         {
             foreach ($boption['imports'] as $ns => $path)

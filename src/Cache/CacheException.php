@@ -11,7 +11,7 @@
  * @Function
  * @History <author> <time> <version > <desc>
  *          king 2013-12-6上午04:11:15 1.0 第一次建立该文件
- *          King 2020年02月24日上午12:06:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月24日上午12:06:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Cache;
 

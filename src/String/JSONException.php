@@ -10,7 +10,7 @@
  * @Function List 1.
  * @History King 2020年2月23日上午12:31:30 第一次建立该文件
  *                 King 2020年2月23日上午12:31:30 修改
- *                 King 2020年02月24日上午11:42:00 stable 1.0.01 审定稳定版本
+ *                 King 2020年02月24日上午11:42:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\String;
 

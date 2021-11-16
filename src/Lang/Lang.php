@@ -13,7 +13,7 @@
  *           1.
  * @History <author> <time> <version > <desc>
  *          King Sat May 12 18:23:40 CST 2012 Beta 1.0 第一次建立该文件
- *          King 2020年6月1日14:21 stable 1.0.01 审定
+ *          King 2020年6月1日14:21 stable 1.0 审定
  */
 namespace Tiny\Lang;
 

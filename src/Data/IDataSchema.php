@@ -10,7 +10,7 @@
  * @Function List
  * @History King 2017年4月4日上午12:38:08 0 第一次建立该文件
  *          King 2017年4月4日上午12:38:08 1 上午修改
- *          King 2020年3月2日11:31 stable 1.0.01 审定
+ *          King 2020年3月2日11:31 stable 1.0 审定
  */
 namespace Tiny\Data;
 
@@ -20,7 +20,7 @@ namespace Tiny\Data;
  * @package Tiny.Data
  * @since 2013-11-28上午03:42:16
  * @final 2013-11-28上午03:42:16
- *        King 2020年3月2日11:31 stable 1.0.01 审定
+ *        King 2020年3月2日11:31 stable 1.0 审定
  */
 interface IDataSchema
 {

@@ -10,7 +10,7 @@
  * @Function List
  * @History King 2021年10月19日下午5:28:32 0 第一次建立该文件
  *          King 2021年10月19日下午5:28:32 1 修改
- *          King 2021年10月19日下午5:28:32 stable 1.0.01 审定
+ *          King 2021年10月19日下午5:28:32 stable 1.0 审定
  */
 namespace Tiny\MVC\View\Engine\Template;
 

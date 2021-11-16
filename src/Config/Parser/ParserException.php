@@ -21,7 +21,7 @@ namespace Tiny\Config\Parser;
  * @package class
  * @since 2020年2月27日下午6:45:00
  * @final 2020年2月27日下午6:45:00
- *        King 2020年2月29日12:43 stable 1.0.01 审定
+ *        King 2020年2月29日12:43 stable 1.0 审定
  */
 class ParserException extends \Exception
 {

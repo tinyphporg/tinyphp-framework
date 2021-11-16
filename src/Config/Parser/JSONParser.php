@@ -10,7 +10,7 @@
  * @Class List 1.
  * @Function List 1.
  * @History King 2020年2月28日下午12:10:54 第一次建立该文件
- *          King 2020年2月28日下午12:10:54 stable 1.0.01 审定
+ *          King 2020年2月28日下午12:10:54 stable 1.0 审定
  *
  */
 namespace Tiny\Config\Parser;
@@ -21,7 +21,7 @@ namespace Tiny\Config\Parser;
  * @package Tiny.Config.Parser
  * @since 2020年2月28日下午12:11:43
  * @final 2020年2月28日下午12:11:43
- *        King 2020年2月29日12:43 stable 1.0.01 审定
+ *        King 2020年2月29日12:43 stable 1.0 审定
  */
 class JSONParser implements IParser
 {

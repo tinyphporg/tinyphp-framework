@@ -10,7 +10,7 @@
  * @Class List
  *        1.YmlParser Yml配置解析器类
  * @History King 2020年2月27日下午5:37:29 第一次建立该文件
- *          King 2020年2月29日12:43 stable 1.0.01 审定
+ *          King 2020年2月29日12:43 stable 1.0 审定
  *
  */
 namespace Tiny\Config\Parser;
@@ -21,7 +21,7 @@ namespace Tiny\Config\Parser;
  * @package Tiny.Config.Parser
  * @since 2020年2月27日下午5:38:36
  * @final 2020年2月27日下午5:38:36
- *        King 2020年2月29日12:43 stable 1.0.01 审定
+ *        King 2020年2月29日12:43 stable 1.0 审定
  */
 class YamlParser implements IParser
 {

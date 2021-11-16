@@ -10,7 +10,7 @@
  * @Function List
  * @History King 2017年4月8日下午11:58:11 0 第一次建立该文件
  *          King 2017年4月8日下午11:58:11 1 上午修改
- *          King 2020年02月24日15:39:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月24日15:39:00 stable 1.0 审定稳定版本
  */
 namespace Tiny\Cache;
 
@@ -20,7 +20,7 @@ namespace Tiny\Cache;
  * @package Cache
  * @since Fri Dec 16 22 29 08 CST 2011
  * @final Fri Dec 16 22 29 08 CST 2011
- *        King 2020年02月24日上午12:06:00 stable 1.0.01 审定稳定版本
+ *        King 2020年02月24日上午12:06:00 stable 1.0 审定稳定版本
  */
 interface ICache
 {

@@ -13,7 +13,7 @@
  *           1.
  * @History: <author> <time> <version > <desc>
  *           King 2013-3-30下午02:51:16 Beta 1.0 第一次建立该文件
- *           King 2020年6月1日14:21 stable 1.0.01 审定
+ *           King 2020年6月1日14:21 stable 1.0 审定
  *
  */
 namespace Tiny\MVC\Web;

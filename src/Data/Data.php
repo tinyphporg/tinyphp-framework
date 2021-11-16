@@ -13,7 +13,7 @@
  *           1.
  * @History <author> <time> <version > <desc>
  *          King Sun Dec 25 23:35:04 CST 2011 Beta 1.0 第一次建立该文件
- *          King 2020年3月2日11:31 stable 1.0.01 审定
+ *          King 2020年3月2日11:31 stable 1.0 审定
  *
  */
 namespace Tiny\Data;
@@ -24,7 +24,7 @@ namespace Tiny\Data;
  * @package Tiny.Data
  * @since Wed Dec 28 09:09:58 CST 2011
  * @final Wed Dec 28 09:09:58 CST 2011
- *        King 2020年3月2日11:31 stable 1.0.01 审定
+ *        King 2020年3月2日11:31 stable 1.0 审定
  */
 class Data implements \ArrayAccess
 {

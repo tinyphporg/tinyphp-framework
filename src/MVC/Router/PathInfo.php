@@ -11,7 +11,7 @@
  * @Function List 1.
  * @History King 2019年11月20日下午7:28:25 第一次建立该文件
  *          King 2019年11月20日下午7:28:25 修改
- *          King 2020年6月1日14:21 stable 1.0.01 审定
+ *          King 2020年6月1日14:21 stable 1.0 审定
  *
  */
 namespace Tiny\MVC\Router;
@@ -152,10 +152,14 @@ class PathInfo implements IRouter
         }
         if(!$out[2])
         {
-            $cparams = explode('/', $out[1]);
-            $actionName = array_pop($cparams);
+            $cparams = explode('/', substr($out[1], 1));
+            $aname = array_pop($cparams);
+            if(!$cparams)
+            {
+                return [$aname, ''];
+            }
             $controllerName = join('/', $cparams);
-            return [$controllerName, $actionName];
+            return [$controllerName, $aname];
         }
         
         // 检测扩展名
@@ -176,7 +180,7 @@ class PathInfo implements IRouter
     {
         if(!$params)
         {
-            return $controllerName . '/' . $actionName;
+            return '/' . $controllerName . '/' . $actionName;
         }
         $uris = [];
         foreach($params as $k => $v)

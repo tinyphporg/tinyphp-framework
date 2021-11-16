@@ -11,7 +11,7 @@
  * @Function
  * @History <author> <time> <version > <desc>
  *          king 2013-12-10上午10:31:15 1.0 第一次建立该文件
- *          King 2020年6月1日14:21 stable 1.0.01 审定
+ *          King 2020年6月1日14:21 stable 1.0 审定
  */
 namespace Tiny\Log\Writer;
 

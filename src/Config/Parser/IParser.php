@@ -10,7 +10,7 @@
  * @Class List 1.配置解析器接口
  * @History King 2020年2月26日上午11:19:19 第一次建立该文件
  *          King 2020年2月26日上午11:19:19 修改
- *          King 2020年2月29日12:43 stable 1.0.01 审定
+ *          King 2020年2月29日12:43 stable 1.0 审定
  */
 namespace Tiny\Config\Parser;
 
@@ -20,7 +20,7 @@ namespace Tiny\Config\Parser;
  * @package Tiny.Config.Parser
  * @since 2020年2月26日上午11:20:22
  * @final 2020年2月26日上午11:20:22
- *        King 2020年2月29日12:43 stable 1.0.01 审定
+ *        King 2020年2月29日12:43 stable 1.0 审定
  */
 interface IParser
 {

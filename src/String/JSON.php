@@ -13,7 +13,7 @@
  *           1.
  * @History <author> <time> <version > <desc>
  *          King Mon Jan 02 13:18:37 CST 2012 Beta 1.0 第一次建立该文件
- *          King 2020年02月23日上午00:12:00 stable 1.0.01 审定稳定版本
+ *          King 2020年02月23日上午00:12:00 stable 1.0 审定稳定版本
  *
  */
 namespace Tiny\String;
@@ -24,7 +24,7 @@ namespace Tiny\String;
  * @package Tiny.String
  * @since Mon Jan 02 14:43:27 CST 2012
  * @final Mon Jan 02 14:43:27 CST 2012
- *        2020年02月23日上午00:12:00 stable 1.0.01 审定稳定版本
+ *        2020年02月23日上午00:12:00 stable 1.0 审定稳定版本
  */
 class JSON
 {
