@@ -57,6 +57,20 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
     }
 
     /**
+     * 初始化属性实例
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\ApplicationBase::_initProperties()
+     */
+    protected function _initProperties()
+    {
+        parent::_initProperties();
+        $this->_initBuilder();   //打包
+        $this->_initDaemon();    //守护进程
+        $this->_initUIInstaller(); //UI安装
+    }
+    
+    /**
      * 初始化请求实例
      *
      * @return void
@@ -65,6 +79,21 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
     {
         $this->request = ConsoleRequest::getInstance();
         parent::_initRequest();
+    }
+    
+    /**
+     * 初始化debug模块
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\ApplicationBase::_initDebug()
+     */
+    protected function _initDebug()
+    {
+        if(!$this->properties['debug']['enabled'] && (bool)$this->request->param['debug'])
+        {
+            $this->properties['debug']['enabled'] = TRUE;
+        }
+        parent::_initDebug();
     }
 
     /**
@@ -76,51 +105,26 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
     {
         $this->response = ConsoleResponse::getInstance();
     }
-
-    /**
-     * 重载初始化插件
-     *
-     * {@inheritdoc}
-     * @see \Tiny\MVC\ApplicationBase::_initPlugin()
-     */
-    protected function _initPlugin()
-    {
-        if(!$this->properties['debug']['enabled'] && (bool)$this->request->param['debug'])
-        {
-            $this->isDebug = TRUE;
-        }
-        parent::_initPlugin();
-        $this->_initPluginUI($this->_prop['view']['ui']);
-        $this->_initPluginBuilder($this->_prop['build']);
-        $this->_initDaemonPlugin($this->_prop['daemon']);
-    }
+    
     
     /**
      *  初始化WEB环境下的tinyphp-ui
      *  
      * @param array $config
      */
-    protected function _initPluginUI($config)
+    protected function _initUIInstaller()
     {
+        $config = $this->properties['view.ui'];
         if (!$config || !$config['enabled'])
         {
             return;
         }
-        $installer = (array)$config['installer'];
-        if(!$installer)
+        $iconfig = (array)$config['installer'];
+        if(!$iconfig || !$iconfig['plugin'])
         {
             return;
         }
-        $className = (string)$installer['plugin'];
-        if ($className && class_exists($className))
-        {
-            $uiInstance = new $className($this);
-        }
-        else
-        {
-            $uiInstance =  new \Tiny\MVC\View\UI\UIInstaller($this);
-        }
-        $this->regPlugin($uiInstance);
+        $this->properties['plugins.ui_installer'] = (string)$iconfig['plugin'];
     }
     
     /**
@@ -129,23 +133,14 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
      * @param array $config
      *        properties.build配置节点数据
      */
-    protected function _initPluginBuilder($config)
+    protected function _initBuilder()
     {
-        if (!$config || !$config['enabled'])
+        $config = $this->properties['build'];
+        if (!$config || !$config['enabled'] || !$config['plugin'])
         {
             return;
         }
-
-        $className = (string)$config['plugin'];
-        if ($className && class_exists($className))
-        {
-            $builderInstance = new $className($this);
-        }
-        else
-        {
-            $builderInstance = new \Tiny\MVC\Plugin\Builder($this);
-        }
-        $this->regPlugin($builderInstance);
+        $this->properties['plugins.build'] = (string)$config['plugin'];
     }
 
     /**
@@ -154,25 +149,16 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
      * @param array $config
      *        properties.daemon配置节点数据
      */
-    protected function _initDaemonPlugin($config)
+    protected function _initDaemon()
     {
-        if (!$config || !$config['enabled'])
+        $config = $this->properties['daemon'];
+        if (!$config || !$config['enabled'] || !$config['plugin'])
         {
             return;
         }
-
-        $className = (string)$config['plugin'];
-        if ($className && class_exists($className))
-        {
-            $daemonInstance = new $className($this);
-        }
-        else
-        {
-            $daemonInstance = new \Tiny\MVC\Plugin\Daemon($this);
-        }
-        $daemonId = $this->request->param['id'] ?: $this->_prop['daemon']['id'];
-        $this->_prop['exception']['logid'] = $daemonId . '.err';
-        $this->regPlugin($daemonInstance);
+        $daemonId = $this->request->param['id'] ?: $this->properties['daemon.id'];
+        $this->properties['exception.logid'] = $daemonId . '.err';
+        $this->properties['plugins.daemon'] = (string)$config['plugin'];
     }
 }
 ?>

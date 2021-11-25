@@ -459,7 +459,7 @@ class View implements \ArrayAccess
      */
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
-        if ($cacheLifetime < 0)
+        if ($cacheLifetime <= 0)
         {
             return $this->_clearCache();
         }

@@ -394,7 +394,7 @@ abstract class ApplicationBase implements IExceptionHandler
             return $this->_config;
         }
         
-        $prop = $this->_prop['config'];
+        $prop = $this->properties['config'];
         if (!$prop['enabled'])
         {
             throw new ApplicationException("properties.config.enabled is false!");
@@ -784,28 +784,28 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return $this->_view;
         }
-        $prop = $this->_prop['view'];
-        $helpers = (array)$prop['helpers'];
-        $engines = (array)$prop['engines'];
+        $prop = $this->properties['view'];
+
         $this->_view = View::getInstance();
         $this->_view->setApplication($this);
-       
+        
+        $helpers = (array)$prop['helpers'];
+        $engines = (array)$prop['engines'];
         $assign = (array)$prop['assign'] ?: [];
         $assign['env'] = $this->runtime->env;
         $assign['request'] = $this->request;
         $assign['response'] = $this->response;
+        $assign['config'] = $this->getConfig();
         
         $defaultTemplateDirname = TINY_MVC_RESOURCES . 'views/';
         $templateDirs = [$defaultTemplateDirname];
         $templateDirname = $prop['template_dirname'] ?: 'default';
         $templateDirs[] = $prop['src'] . $templateDirname . DIRECTORY_SEPARATOR;
-                
+        
         // composer require tinyphp-ui;
-        $configInstance = (bool)$this->_prop['config']['enabled'] ? $this->getConfig() : NULL;
-        $assign['config'] = $configInstance;
-        if ($configInstance && $prop['ui']['enabled'])
+        $uiconfig = $prop['ui'];
+        if ($uiconfig['enabled'])
         {
-            $uiconfig = $configInstance['tinyphp-ui'];
             $uiHelperName = (string)$uiconfig['helper'];
             if ($uiHelperName)
             {
@@ -815,8 +815,10 @@ abstract class ApplicationBase implements IExceptionHandler
             if($templatePlugin)
             {
                 $uiPluginConfig = [
-                    'public_path' => (string)$prop['ui']['public_path'],
-                    'inject' => (bool)$prop['ui']['inject']
+                    'public_path' => $prop['ui']['public_path'],
+                    'inject' => $prop['ui']['inject'],
+                    'dev_enabled' => $prop['ui']['dev_enabled'],
+                    'dev_public_path' => $prop['ui']['dev_public_path']
                 ];
                 $engines[] = ['engine' => '\Tiny\MVC\View\Engine\Template', 'config' => ['plugins' => [['plugin' => $templatePlugin, 'config' => $uiPluginConfig]]] ];
             }
@@ -917,6 +919,16 @@ abstract class ApplicationBase implements IExceptionHandler
     }
     
     /**
+     * 中止运行
+     * 
+     */
+    public function end()
+    {
+        $this->onPostDispatch();
+        $this->response->end();
+    }
+    
+    /**
      * 分发
      *
      * @access protected
@@ -991,6 +1003,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_initException();
         $this->_initRequest();
         $this->_initPlugin();
+        $this->_prop = $this->properties->get();
     }
     
     /**
@@ -1001,17 +1014,31 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function _initProperties()
     {
         $this->properties = new Configuration($this->profile);
-        if ($this->properties['debug']['enabled'])
-        {
-            $this->isDebug = TRUE;
-        }
         $this->_initPath($this->properties['path']);
-        
-        $prop = $this->properties->get();
-        $this->_namespace = $prop['app']['namespace'];
-        $this->setTimezone($prop['timezone']);
-        $this->charset = (string)$prop['charset'] ?: 'zh_cn';
-        $this->_prop = $prop;
+        $this->_namespace = $this->properties['app.namespace'];
+        $this->setTimezone($this->properties['timezone']);
+        $this->charset = (string)$this->properties['charset'] ?: 'zh_cn';
+        $this->_initDebug();
+    }
+    
+    /**
+     * 初始化debug模块
+     * 
+     * @param void
+     * @return void
+     */
+    protected function _initDebug()
+    {
+        $config = $this->properties['debug'];
+        if (!$config['enabled'])
+        {
+            return;
+        }
+        $this->isDebug = TRUE;
+        if ($config['plugin'])
+        {
+            $this->properties['plugins.debug'] = $config['plugin'];
+        }
     }
     
     /**
@@ -1021,19 +1048,21 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initNamespace()
     {
-        $this->_namespace = $this->_prop['app']['namespace'] ?: 'App';
-        $cprefix = $this->_prop['controller']['namespace'];
+        $this->_namespace = $this->properties['app.namespace'] ?: 'App';
+        
+        $prop = $this->properties['controller'];
+        $cprefix = $prop['namespace'];
         if (static::class == 'Tiny\MVC\ConsoleApplication')
         {
-            $cprefix = $this->_prop['controller']['console'];
+            $cprefix = $prop['console'];
         }
         elseif (static::class == 'Tiny\MVC\RPCApplication')
         {
-            $cprefix = $this->_prop['controller']['rpc'];
+            $cprefix = $prop['rpc'];
         }
         
         $this->_cNamespace = '\\' . $this->_namespace . '\\' . $cprefix;
-        $this->_mNamespace = '\\' . $this->_namespace . '\\' . $this->_prop['model']['namespace'];
+        $this->_mNamespace = '\\' . $this->_namespace . '\\' . $this->properties['model.namespace'];
     }
     
     /**
@@ -1043,10 +1072,25 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initPlugin()
     {
-        if ($this->isDebug)
+        if(!$this->properties['plugin']['enabled'])
         {
-            $this->_debug = new \Tiny\MVC\Plugin\Debug($this);
-            $this->regPlugin($this->_debug);
+            return;
+        }
+
+        $plugins = (array)$this->properties['plugins'];
+        if (key_exists('debug', $plugins))
+        {
+            array_unshift($plugins, $plugins['debug']);
+            unset($plugins['debug']);
+        }
+        foreach($plugins as $pluginClass)
+        {   
+            if (!class_exists($pluginClass))
+            {
+                throw new ApplicationException(sprintf('Plugin :%s is not exists!', $pluginClass));
+            }
+            $pluginInstance = new $pluginClass($this);
+            $this->regPlugin($pluginInstance);
         }
     }
     
@@ -1098,7 +1142,7 @@ abstract class ApplicationBase implements IExceptionHandler
                 $this->properties[$p] = $rpath;
                 continue;
             }
-            $this->properties[$p] = $this->path . $path;
+            $this->properties[$p] = realpath($this->path . $path) . DIRECTORY_SEPARATOR;
         }
     }
     
@@ -1111,7 +1155,7 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         $runtime = Runtime::getInstance();
         $runtime->import($this->path, $this->_namespace);
-        $prop = $this->_prop['autoloader'];
+        $prop = $this->properties['autoloader'];
         if (!is_array($prop['librarys']))
         {
             return;
@@ -1153,12 +1197,11 @@ abstract class ApplicationBase implements IExceptionHandler
     /**
      * 初始化响应
      *
-     * @return void
      */
     protected function _initResponse()
     {
         $this->response->setApplication($this);
-        $this->response->setLocale($this->properties['lang']['locale']);
+        $this->response->setLocale($this->properties['lang.locale']);
         $this->response->setCharset($this->properties['charset']);
     }
     
@@ -1171,14 +1214,11 @@ abstract class ApplicationBase implements IExceptionHandler
      * @return void
      */
     protected function _onPlugin($method, $params)
-    {        
+    {   
+        $params[] = $this;
         foreach ($this->_plugins as $plugin)
         {
-            $params[] = $this;
-            call_user_func_array([
-                $plugin,
-                $method
-            ], $params);
+            call_user_func_array([$plugin, $method], $params);
         }
     }
     
@@ -1199,11 +1239,11 @@ abstract class ApplicationBase implements IExceptionHandler
             return FALSE;
         }
         $className = $this->_prop['bootstrap']['class'];
-        
         if (!class_exists($className))
         {
             throw new ApplicationException(sprintf('bootstrap faild:%s 不存在', $className));
         }
+        
         $this->_bootstrap = new $className();
         if (!$this->_bootstrap instanceof BootstrapBase)
         {
