@@ -1,4 +1,5 @@
 <?php
+declare (strict_types = 1); 
 /**
  *
  * @copyright (C), 2011-, King.$i
@@ -15,65 +16,179 @@
  */
 namespace Tiny\Cache;
 
+
 /**
- * Cache
+* 缓存池接口
+* 
+* @package Tiny.Cache
+* @since 2021年11月26日下午2:36:25
+* @final 2021年11月26日下午2:36:25
+*
+*/
+interface CacheItemPoolInterface
+{
+    
+}
+
+/**
+* 缓存键值对接口
+* 
+* @package Tiny.Cache
+* @since 2021年11月26日下午2:36:48
+* @final 2021年11月26日下午2:36:48
+*
+*/
+interface CacheItemInterface
+{
+    
+}
+
+/**
+ * 缓存接口
+ * 遵循psr/simple-cache规范，并在此基础上，增加严格的类型约束
+ *
+ * @package Tiny.Cache
+ * @since Fri Dec 16 22 29 08 CST 2011
+ * @final Fri Dec 16 22 29 08 CST 2011
+ *        King 2020年02月24日上午12:06:00 stable 1.0 审定稳定版本
+ *        King 2021年11月26日下午2:55:38 更新为遵守psr-6的simple-cache规范
+ */
+interface CacheInterface
+{
+
+    /**
+     * 获取缓存
+     *
+     * @param string $key 缓存中不重复的键名
+     * @param mixed $default 缓存没有命中时返回默认值
+     * 
+     * @return mixed key存在时返回缓存值，不存在时返回$default
+     * 
+     * @throws InvalidArgumentException Key不存在时返回该异常
+     */
+    public function get($key, $default = null);
+
+    /**
+     * 设置缓存
+     *
+     * @param string $key 缓存的键 $key为array时 可以批量设置缓存
+     * @param mixed $value 经过serialize的缓存值
+     * @param int $ttl 缓存过期时间
+     * 
+     * @return bool
+     * 
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function set($key, $value = null, int $ttl = null): bool;
+
+    /**
+     * 移除缓存
+     *
+     * @param string $key 删除key对应的缓存值
+     * 
+     * @return bool 删除成功返回true, 失败则为false
+     * 
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function delete($key): bool;
+
+    /**
+     * 清空所有的缓存字典
+     *
+     * @return bool 成功为true否则为false
+     */
+    public function clear();
+    
+    /**
+     * 获取缓存
+     *
+     * @param string $key 缓存中不重复的键名
+     * @param mixed $default 缓存没有命中时返回默认值
+     *
+     * @return mixed key存在时返回缓存值，不存在时返回$default
+     *
+     * @throws InvalidArgumentException Key不存在时返回该异常
+     */
+    public function getMultiple(array $keys, array $default = null);
+    
+    /**
+     * 设置缓存
+     *
+     * @param string $key 缓存的键 $key为array时 可以批量设置缓存
+     * @param mixed $value 经过serialize的缓存值
+     * @param int $ttl 缓存过期时间
+     *
+     * @return bool
+     *
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function setMultiple(array $values, int $ttl = null);
+    
+    /**
+     * 删除缓存
+     *
+     * @param array $key 删除key对应的缓存值
+     *
+     * @return bool 键数组成功删除则返回true，否则为false
+     *
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function deleteMultiple(array $keys);
+ 
+    /**
+     * 缓存是否存在
+     *
+     * @param string $key 缓存键
+     *
+     * @return bool 存在返回true 否则为false
+     *
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function has($key);
+}
+
+
+/**
+ * Cache管理 mvc
  *
  * @package : Cache 缓存适配器
  * @since : Sat Dec 17 17:18:19 CST 2011
  * @final : Sat Dec 17 17:18:19 CST 2011
  */
-class Cache implements ICache, \ArrayAccess
+class Cache implements CacheInterface, \ArrayAccess
 {
-
-    /**
-     * Mapping array of cache driver
-     *
-     * @var array
-     */
-    protected static $_driverMap = [
-        'file' => 'Tiny\Cache\File',
-        'memcached' => 'Tiny\Cache\Memcached',
-        'redis' => 'Tiny\Cache\Redis'
-    ];
 
     /**
      * Single instance
      *
      * @var Cache
      */
-    protected static $_instance;
+    protected static $instance;
 
+    /**
+     * Mapping array of cache driver
+     *
+     * @var array
+     */
+    protected static $storageAdapters = [
+        'file' => Tiny\Cache\File::class,
+        'memcached' => Tiny\Cache\Memcached::class,
+        'redis' => Tiny\Cache\Redis::class
+    ];
+    
     /**
      * Default cache instance ID
      *
      * @var string
      */
-    protected $_defaultId = 'default';
+    protected $defaultStorageId = 'default';
 
     /**
      * Mapping array for cache policy
      *
      * @var array
      */
-    protected $_policys = [];
-
-    /**
-     * 注册缓存适配器的驱动类
-     *
-     * @param string $type
-     *        缓存配置的类型名称
-     * @param
-     *        string
-     * @return void
-     */
-    public static function regDriver($type, $className)
-    {
-        if (isset(self::$_driverMapp[$type]))
-        {
-            throw new CacheException('Failed to register cache driver: driver type[' . $type . ']is exists!');
-        }
-        self::$_driverMap[$type] = $className;
-    }
+    protected $storages = [];
 
     /**
      * 单一模式，获取实例
@@ -82,190 +197,241 @@ class Cache implements ICache, \ArrayAccess
      */
     public static function getInstance()
     {
-        if (!self::$_instance)
+        if (!self::$instance)
         {
-            self::$_instance = new self();
+            self::$instance = new self();
         }
-        return self::$_instance;
+        return self::$instance;
+    }    
+    
+    /**
+     * 注册缓存适配器
+     *
+     * @param string $storageId 存储id
+     * @param string $adapterName 适配器的类名
+     * 
+     * @return void
+     * 
+     * @throws CacheException $storageId存在的情况抛出异常
+     */
+    public static function regStorageAdapter($storageId, $adapterName)
+    {
+        if (key_exists($storageId, self::$storageAdapters))
+        {
+            throw new CacheException("Failed to register new cache storage adapter: storageid [{$storageId}]is exists!");
+        }
+        self::$storageAdapters[$storageId] = $adapterName;
     }
 
     /**
-     * 注册一个缓存策略
+     * 增加一个缓存存储的适配器配置
      *
-     * @param array $prolicy
-     *        策略数组
-     * @return void
+     * @param array $cfg 配置数组
+     * 
+     * @return bool true 添加成功时返回true 否则为false
+     * 
+     * @throws CacheException 配置参数异常时抛出
      *
      */
-    public function regPolicy(array $policy)
+    public function addStorageAdapter(array $cfg)
     {
-        $id = $policy['id'];
-        if (!$id)
+        //[ 'id' => storageid, 'storage' => 'file', 'options' => 'ssss']
+        $id = (string)$cfg['id'];  
+        if (!$cfg['id'])
         {
-            throw new CacheException('Cache策略添加失败：policy需要设置ID作为缓存实例标示');
+            throw new CacheException('config.id为无效参数');
         }
-
-        $driver = $policy['driver'];
-        if (!key_exists($driver, self::$_driverMap))
+        if (key_exists($id, $this->storages))
         {
-            throw new CacheException('Cache策略添加失败：driver不存在或者没有设置');
+            throw new CacheException(sprintf('config.id:%s已存在 ', $id));
         }
-
-        if ($this->_policys[$id])
+        
+        $storageId = (string)$cfg['storage'];
+        if (!key_exists($storageId, self::$storageAdapters))
         {
-            throw new CacheException('Cache策略添加失败：ID:' . $id . '已存在 ');
+            throw new CacheException(sprintf('config.storage:%s 不存在', $storageId));
         }
-
-        $policy['className'] = self::$_driverMap[$driver];
-        $this->_policys[$id] = $policy;
-        return TRUE;
+        $options = (array)$cfg['options'];
+        $this->storages[$id] = [
+            'adapterName' => self::$storageAdapters[$storageId],
+            'storageId' => $storageId,
+            'instance' => null,
+            'options' => $options,
+        ];
+        return true;
     }
 
     /**
      * 设置默认的缓存ID
      *
-     * @param string $id
-     *        缓存ID
+     * @param string $id 缓存适配器的存储ID
      * @return void
      */
-    public function setDefaultId($id)
+    public function setDefaultStorageId($id)
     {
-        $id = (string)$id;
-        if (!key_exists($id, $this->_policys))
-        {
-            throw new CacheException('设置默认缓存ID失败:ID:' . $id . '不存在');
-        }
-        $this->_defaultId = $id;
+        $this->defaultStorageId = (string)$id;
     }
 
     /**
      * 获取默认的缓存ID
      *
      * @return string
+     * 
      */
-    public function getDefaultId()
+    public function getDefaultStorageId()
     {
-        return $this->_defaultId;
+        return $this->_defaultStorageId;
     }
 
     /**
-     * 根据缓存策略的身份标识获取一个缓存实例
+     * 根据ID获取一个缓存实例
      *
-     * @param string $id
-     *        CachePolicy 的 id；
-     * @return ICache
+     * @param string $id storageid
+     * @return CacheStorageAdapterBase
      */
-    public function getCache($id = NULL)
+    public function storageAdapter($id = null)
     {
-        if (empty($this->_policys))
+        if (!$this->storages)
         {
-            throw new CacheException('Failed to get cache instance: Mapping array for cache policy is empty!');
+            throw new CacheException('存储适配器的配置为空');
         }
-
-        if ($id == NULL)
+        $id = $id ?: $this->defaultStorageId;
+        if (!key_exists($id, $this->storages) || !is_array($this->storages[$id]) || empty($this->storages[$id]))
         {
-            $id = $this->_defaultId;
+            throw new CacheException(sprintf('获取ID为%s的缓存实例失败：该缓存策略ID $id:%s没有配置profile.cache.config或者不是一个array!', $id, $id));
         }
-
-        if (!key_exists($id, $this->_policys) || !is_array($this->_policys[$id]) || empty($this->_policys[$id]))
+        
+        $config = & $this->storages[$id];
+        if ($config['instance'])
         {
-            throw new CacheException('获取ID为' . $id . '的缓存实例失败：该缓存策略ID $id ' . $id . '没有配置profile.cache.prolicy或者不是一个array!');
+            return $config['instance'];
         }
-
-        $policy = & $this->_policys[$id];
-        if ($policy['instance'])
+        
+        $adapterName = $config['adapterName'];
+        $options = $config['options'];
+        $storageInstance = new $adapterName($options);
+        
+        if (!$storageInstance instanceof CacheStorageAdapterBase)
         {
-            return $policy['instance'];
+            throw new CacheException(sprintf('%s实例没有实现ICache接口!', $adapterName));
         }
-
-        $policy['instance'] = new $policy['className']($policy);
-        if (!$policy['instance'] instanceof ICache)
-        {
-            throw new CacheException($policy['className'] .'实例没有实现ICache接口!');
-        }
-        return $policy['instance'];
+        $config['instance'] = $storageInstance;
+        return $storageInstance;
     }
 
-    /**
-     * 根据ID设置缓存实例
-     *
-     * @param string $id
-     *        缓存ID
-     * @param
-     *        ICache 实现了缓存接口的缓存实例
-     * @return void
-     */
-    public function setCache($id, ICache $cache)
-    {
-        if (key_exists($id, $this->_policys))
-        {
-            throw new CacheException('设置缓存实例失败:cache ID' . $id . '已存在');
-        }
-        $this->_policys[$id] = [
-            'instance' => $cache
-        ];
-    }
-
-    /**
-     * 通过默认的缓存实例设置缓存
-     *
-     * @param string $key
-     *        缓存的键 $key为array时 可以批量设置缓存
-     * @param mixed $value
-     *        缓存的值 $key为array时 为设置生命周期的值
-     * @param int $life
-     *        缓存的生命周期
-     * @return bool
-     */
-    public function set($key, $value = NULL, $life = NULL)
-    {
-        return $this->getCache()->set($key, $value, $life);
-    }
-
+    
     /**
      * 获取缓存
      *
-     * @param string $key
-     *        获取缓存的键名 如果$key为数组 则可以批量获取缓存
-     * @return mixed
-     */
-    public function get($key)
-    {
-        return $this->getCache()->get($key);
-    }
-
-    /**
-     * 通过默认的缓存实例移除缓存
+     * @param string $key 缓存中不重复的键名
+     * @param mixed $default 缓存没有命中时返回默认值
      *
-     * @param string $key
-     *        缓存的键 $key为array时 可以批量删除
+     * @return mixed key存在时返回缓存值，不存在时返回$default
+     *
+     * @throws InvalidArgumentException Key不存在时返回该异常
+     */
+    public function get($key, $default = null)
+    {
+        
+    }
+    
+    /**
+     * 设置缓存
+     *
+     * @param string $key 缓存的键 $key为array时 可以批量设置缓存
+     * @param mixed $value 经过serialize的缓存值
+     * @param int $ttl 缓存过期时间
+     *
      * @return bool
-     */
-    public function remove($key)
-    {
-        return $this->getCache()->remove($key);
-    }
-
-    /**
-     * 通过默认的缓存实例判断缓存是否存在
      *
-     * @param string $key
-     *        键
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function set($key, $value = null, int $ttl = null): bool
+    {
+        
+    }
+    
+    /**
+     * 移除缓存
+     *
+     * @param string $key 删除key对应的缓存值
+     *
+     * @return bool 删除成功返回true, 失败则为false
+     *
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function delete($key): bool
+    {
+        
+    }
+    
+    /**
+     * 清空所有的缓存字典
+     *
+     * @return bool 成功为true否则为false
+     */
+    public function clear()
+    {
+        
+    }
+    
+    /**
+     * 获取缓存
+     *
+     * @param string $key 缓存中不重复的键名
+     * @param mixed $default 缓存没有命中时返回默认值
+     *
+     * @return mixed key存在时返回缓存值，不存在时返回$default
+     *
+     * @throws InvalidArgumentException Key不存在时返回该异常
+     */
+    public function getMultiple(array $keys, array $default = null): array
+    {
+        
+    }
+    
+    /**
+     * 设置缓存
+     *
+     * @param string $key 缓存的键 $key为array时 可以批量设置缓存
+     * @param mixed $value 经过serialize的缓存值
+     * @param int $ttl 缓存过期时间
+     *
      * @return bool
-     */
-    public function exists($key)
-    {
-        return $this->getCache()->exists($key);
-    }
-
-    /**
-     * 清除默认缓存实例的所有缓存
      *
-     * @return void
+     * @throws InvalidArgumentException Key不合法时返回该异常
      */
-    public function clean()
+    public function setMultiple(array $values, int $ttl = null): bool
     {
-        return $this->getCache()->clean();
+        
+    }
+    
+    /**
+     * 删除缓存
+     *
+     * @param array $key 删除key对应的缓存值
+     *
+     * @return bool 键数组成功删除则返回true，否则为false
+     *
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function deleteMultiple(array $keys): bool
+    {
+        
+    }
+    
+    /**
+     * 缓存是否存在
+     *
+     * @param string $key 缓存键
+     *
+     * @return bool 存在返回true 否则为false
+     *
+     * @throws InvalidArgumentException Key不合法时返回该异常
+     */
+    public function has($key)
+    {
+        
     }
 
     /**
@@ -279,7 +445,7 @@ class Cache implements ICache, \ArrayAccess
      */
     public function offsetSet($id, $cache)
     {
-        return $this->setCache($id, $cache);
+        
     }
 
     /**
@@ -337,7 +503,7 @@ class Cache implements ICache, \ArrayAccess
      */
     public function __set($id, $cache)
     {
-        return $this->setCache($id, $cache);
+        
     }
 
     /**
@@ -350,5 +516,11 @@ class Cache implements ICache, \ArrayAccess
     protected function __construct()
     {
     }
+}
+
+
+abstract class CacheStorageAdapterBase
+{
+    
 }
 ?>

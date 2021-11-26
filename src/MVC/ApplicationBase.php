@@ -34,6 +34,7 @@ use Tiny\Filter\IFilter;
 use Tiny\Filter\Filter;
 use Tiny\Runtime\RuntimeCache;
 use Tiny\MVC\Router\RouterException;
+use Tiny\MVC\Application\Properties;
 
 // MVC下存放资源的文件夹
 const TINY_MVC_RESOURCES = __DIR__ . '/_resources/';
@@ -182,7 +183,7 @@ abstract class ApplicationBase implements IExceptionHandler
      *
      * @var Cache
      */
-    protected $_cache;
+    protected $cache;
     
     /**
      * 设置数据池实例
@@ -441,17 +442,19 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     public function getCache()
     {
-        if ($this->_cache)
+        if ($this->cache)
         {
-            return $this->_cache;
+            return $this->cache;
         }
-        $prop = $this->_prop['cache'];
-        if (!$prop['enabled'])
+        
+        $config = $this->properties['cache'];
+        if (!$config['enabled'])
         {
-            throw new ApplicationException("properties.cache.enabled is false!");
+            throw new ApplicationException("profile.cache.enabled is false!");
         }
         
         $this->_cache = Cache::getInstance();
+        
         $prop['drivers'] = $prop['drivers'] ?: [];
         $prop['policys'] = $prop['policys'] ?: [];
         foreach ($prop['drivers'] as $type => $className)
@@ -996,8 +999,8 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _init()
     {
-        $this->_initResponse();
         $this->_initProperties();
+        $this->_initResponse();
         $this->_initNamespace();
         $this->_initImport();
         $this->_initException();
