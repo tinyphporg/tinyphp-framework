@@ -1,8 +1,18 @@
-  TinyPHP For Framework
+Tinyphp-framework
 ====
 
-* [简介](#简介)
-    
+> 一款简单的、轻量级的，经过日PV十亿级别的生产环境检验的 MVC 框架。    
+> 主要应用于分布式的、高并发的生成环境。
+> 适应于多人团队协作;    
+> 支持多环境和分布式处理；    
+> 适用于 Web/Console/RPC等运行环境，包括单一命令行文件打包，多任务的服务端守护进程等。   
+
+> demo/tinyphp：[https://github.com/saasjit/tinyphp.git](https://github.com/saasjit/tinyphp)   
+> 中文文档/tinyphp-docs: [https://github.com/saasjit/tinyphp-docs.git](https://github.com/saasjit/tinyphp-docs)   
+> UI组件/tinyphp-ui: [https://github.com/saasjit/tinyphp-docs.git](https://github.com/saasjit/tinyphp-docs)  
+
+引导
+====
 * [运行环境](#运行环境)
     * [开发环境部署，docker](#docker)
     * [生产环境部署，CentOS7X.X86_64](#centos)
@@ -52,15 +62,7 @@
     * [Tiny\String：字符处理](https://github.com/saasjit/tinyphp-docs/blob/master/docs/manual/lib/string.md) 
    
                      
-简介
-====
 
-> 一款简单的，轻量级的，经过生产环境检验，(日PV10亿级)的PHP MVC框架。    
-> 主要应用于分布式的高并发环境，和多人团队协作;    
-> 支持多环境和分布式处理；    
-> 适用于 Web/微服务，RPC，命令行，单一命令行文件执行，服务端多任务守护进程的编码。   
-
-> demo地址：[https://github.com/saasjit/tinyphp](https://github.com/saasjit/tinyphp)。
 
 运行环境
 ====
@@ -112,7 +114,7 @@ DEMO
 
 composer create-project saasjit/tinyphp
 
-cd tinyphp-bootstrap
+cd tinyphp
 
 #运行
 php public/index.php
