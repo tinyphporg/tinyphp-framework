@@ -12,7 +12,7 @@
  *          King 2021年11月26日上午11:44:58 1 修改
  *          King 2021年11月26日上午11:44:58 stable 1.0.01 审定
  */
-namespace Tiny\Container;
+namespace Tiny\DI;
 
 /**
  * 容器异常

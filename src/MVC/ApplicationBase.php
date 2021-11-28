@@ -32,7 +32,7 @@ use Tiny\Runtime\Runtime;
 use Tiny\Runtime\Environment;
 use Tiny\Filter\IFilter;
 use Tiny\Filter\Filter;
-use Tiny\Runtime\RuntimeCache;
+use Tiny\Runtime\RuntimeCacheItem;
 use Tiny\MVC\Router\RouterException;
 use Tiny\MVC\Application\Properties;
 
@@ -287,7 +287,7 @@ abstract class ApplicationBase implements IExceptionHandler
     /**
      * 运行时缓存
      * 
-     * @var RuntimeCache
+     * @var RuntimeCacheItem
      */
     protected $_runtimeCache;
     
@@ -377,7 +377,7 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         if (!$this->_router)
         {
-            $isConsolemode = $this->env->isRuntimeConsoleMode();
+            $isConsolemode = $this->env->isConsole();
             $this->_router = new Router($this->request, $isConsolemode);
         }
         return $this->_router;
@@ -1016,7 +1016,8 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initProperties()
     {
-        $this->properties = new Configuration($this->profile);
+        $this->properties = new Properties($this->profile);
+        
         $this->_initPath($this->properties['path']);
         $this->_namespace = $this->properties['app.namespace'];
         $this->setTimezone($this->properties['timezone']);

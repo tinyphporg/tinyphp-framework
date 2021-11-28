@@ -27,17 +27,6 @@ use Tiny\MVC\ApplicationBase;
 define('TINY_FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
 
 /**
- * 运行时异常类
- *
- * @package Tiny.Runtime
- * @since 2019年11月18日下午3:22:53
- * @final 2019年11月18日下午3:22:53
- */
-class RuntimeException extends \Exception
-{
-}
-
-/**
  * 运行时主体类
  *
  * @package Runtime
@@ -263,7 +252,7 @@ class Runtime
         }
         if (!$this->_runtimeCaches[$cacheId])
         {
-           $this->_runtimeCaches[$cacheId] = new RuntimeCache($cacheId);
+           $this->_runtimeCaches[$cacheId] = new RuntimeCacheItem($cacheId);
         }
         return $this->_runtimeCaches[$cacheId];
     }
@@ -271,7 +260,7 @@ class Runtime
     /**
      * 获取加载器的运行时缓存实例
      * 
-     * @return RuntimeCache|FALSE
+     * @return RuntimeCacheItem|FALSE
      */
     public function getAutoloaderCache()
     {
@@ -329,7 +318,7 @@ class Runtime
 * @since 2021年8月29日 下午12:28:43
 * @final 2021年8月29日下午12:28:43
 */
-class RuntimeCache
+class RuntimeCacheItem
 {
     /**
      * 缓存句柄
@@ -353,7 +342,7 @@ class RuntimeCache
     public function __construct($id)
     {
         $this->_id = (string)$id;
-        $this->_handler = RuntimeCacheHandler::getInstance();
+        $this->_handler = RuntimeCachePool::getInstance();
     }
     
     /**
@@ -384,7 +373,7 @@ class RuntimeCache
  * @author macbookpro
  *
  */
-class RuntimeCacheHandler
+class RuntimeCachePool
 {   
     
     /**
@@ -715,9 +704,9 @@ class Autoloader
 
     /**
      * 设置加载器的运行时缓存实例 初始化时自动调用
-     * @param RuntimeCache $runtimecache
+     * @param RuntimeCacheItem $runtimecache
      */
-    public function setRuntimeCache(RuntimeCache $runtimecache)
+    public function setRuntimeCache(RuntimeCacheItem $runtimecache)
     {
         $this->_runtimeCache = $runtimecache;
     }
@@ -827,7 +816,8 @@ class Environment implements \ArrayAccess
         'RUNTIME_CACHE_TTL',
         'RUNTIME_CACHE_MEMORY_MIN',
         'RUNTIME_CACHE_MEMORY_MAX',
-        'RUNTIME_CACHE_MEMORY'
+        'RUNTIME_CACHE_MEMORY',
+        'RUNTIME_DIR',
     ];
 
     /**
@@ -839,6 +829,7 @@ class Environment implements \ArrayAccess
         'FRAMEWORK_NAME' => Runtime::FRAMEWORK_NAME,
         'FRAMEWORK_PATH' => Runtime::FRAMEWORK_PATH,
         'FRAMEWORK_VERSION' => Runtime::FRAMEWORK_VERSION,
+         'RUNTIME_DIR' => null,
         'PHP_VERSION' => PHP_VERSION,
         'PHP_VERSION_ID' => PHP_VERSION_ID,
         'PHP_OS' => PHP_OS,
@@ -933,7 +924,7 @@ class Environment implements \ArrayAccess
      * 
      * @return boolean
      */
-    public function isRuntimeConsoleMode()
+    public function isConsole()
     {
         return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_CONSOLE'];
     }
@@ -943,7 +934,7 @@ class Environment implements \ArrayAccess
      *
      * @return boolean
      */
-    public function isRuntimeWebMode()
+    public function isWeb()
     {
         return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_WEB'];
     }
@@ -953,7 +944,7 @@ class Environment implements \ArrayAccess
      *
      * @return boolean
      */
-    public function isRuntimeRpcMode()
+    public function isRpc()
     {
         return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_RPC'];
     }
@@ -1034,6 +1025,10 @@ class Environment implements \ArrayAccess
         if ('FRPC_POST' == $_POST['FRPC_METHOD'] || 'FRPC_POST' == $_SERVER['REQUEST_METHOD'])
         {
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
+        }
+        if (!$env['RUNTIME_DIR'] || !is_dir($env['RUNTIME_DIR']))
+        {
+            
         }
         //cli 或者没有shmop共享内存模块下，默认不进行运行时缓存
         if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'] || !extension_loaded('shmop'))

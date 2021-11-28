@@ -291,7 +291,7 @@ class Debug implements Iplugin
             'debugExceptions' => $debugExceptions
         ];
         
-        if ($this->_app->env->isRuntimeConsoleMode())
+        if ($this->_app->env->isConsole())
         {
             $body = $this->_getConsoleDebugBody($debugs);
             return $this->_app->response->appendBody($body);

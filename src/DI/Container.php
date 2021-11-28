@@ -12,9 +12,9 @@
  *          King 2021年11月26日上午11:32:43 1 修改
  *          King 2021年11月26日上午11:32:43 stable 1.0.01 审定
  */
-namespace Tiny\Container;
+namespace Tiny\DI;
 
-use Tiny\Config\Configuration;
+
 
 /**
  * 容器接口
@@ -53,24 +53,91 @@ interface ContainerInterface
 }
 
 
+interface FactoryInterface
+{
+
+}
+
+interface InvokerInterface
+{
+    
+}
+
 
 /**
  * 
- * 容器
+ * 容器类
  * 
  * @package Tiny.Container
  * @since 2021年11月26日上午11:32:43
  * @final 2021年11月26日上午11:32:43
  *
  */
-class Container implements ContainerInterface
+class Container implements ContainerInterface, FactoryInterface, InvokerInterface
 {
-    protected $config;
+    /**
+     * 已经解析的容器字典
+     * 
+     * @var array
+     */
+    protected $resolvedEntries = [];
     
+    /**
+     * 执行容器
+     * 
+     * @var ContainerInterface
+     */
+    protected $delegateContainer;
     
-    public function __construct(array $config)
-    {
-        $this->config = $config;
+    /**
+     * 定义提供者
+     *
+     * @var DefintionProivder
+     */
+    protected $defintionProvider;
+    
+    /**
+     * 已经获取的定义器字典
+     * 
+     * @var array
+     */
+    protected $fetchedDefinitions = [];
+    
+    /**
+     * 定义解析器
+     * 
+     * @var DefinitionResolverInterface
+     */
+    protected  $definitionResolver;
+    
+    /**
+     * 
+     * @var Invoker
+     */
+    protected $invoker;
+    
+    /**
+     * 构造函数
+     * 
+     * @param DefinitionProviderInterface $defintionProvider
+     * @param ContainerInterface $wrapperContainer
+     * @param InvokerInterface $invokerFactory
+     */
+    public function __construct(
+        DefinitionProviderInterface $defintionProvider = null,
+        ContainerInterface $wrapperContainer = null,
+        InvokerInterface $invokerFactory = null
+    ) {
+        $this->defintionProvider  = $defintionProvider ?: $this->createDefineProvider();
+        $this->delegateContainer = $wrapperContainer ?: $this;
+        $this->invoker = $invokerFactory ?: $this;
+        
+        $this->resolvedEntries = [
+            self::class => $this,
+            ContainerInterface::class => $this,
+            FactoryInterface::class => $this,
+            InvokerInterface::class => $this,  
+        ];
     }
     
     /**
@@ -85,7 +152,41 @@ class Container implements ContainerInterface
      */
     public function get(string $id)
     {
+        // 如果已解析则返回
+        if (isset($this->resolvedEntries[$id]) || key_exists($id, $this->resolvedEntries)) {
+            return $this->resolvedEntries[$id];
+        }
         
+        // 根据名称查找实例定义
+        $definition = $this->getDefinition($id);
+        if (!$definition) {
+            throw new NotFoundException(sprintf('No entry or class found for "%s"', $id));
+        }
+        
+        //解析并返回值
+        $value = $this->resolveDefinition($definition);
+        
+        $this->resolvedEntries[$id] = $value;
+        
+        return $value;
+    }
+    
+    public function set(string $name, $value)
+    {
+        if ($value instanceof DefinitionHelper) {
+            $value = $value->getDefinition($name);
+        } elseif ($value instanceof \Closure) {
+            $value = new FactoryDefinition($name, $value);
+        }
+        
+        if ($value instanceof ValueDefinition) {
+            $this->resolvedEntries[$name] = $value->getValue();
+        } elseif ($value instanceof Definition) {
+            $value->setName($name);
+            $this->setDefinition($name, $value);
+        } else {
+            $this->resolvedEntries[$name] = $value;
+        }
     }
     
     /**
@@ -99,6 +200,98 @@ class Container implements ContainerInterface
      *
      * @return bool
      */
-    public function has(string $id): bool{}
+    public function has(string $id): bool
+    {
+        return TRUE;
+    }
+    
+    public function call($callable, array $params = [])
+    {
+        return $this->getInvoker()->call($callable, $params);
+    }
+    
+    protected function getInvoker()
+    {
+        if (!$this->invoker)
+        {
+            $this->invoker = new Invoker();
+        }
+        return $this->invoker;
+    }
+    
+    /**
+     * 创建定义的提供源
+     * 
+     * @return \Tiny\DI\DefintionProivder
+     */
+    protected function createDefintionProvider()
+    {
+        $provider = new DefintionProivder();
+        $provider->setMutablDefintionProivder();
+        return $provider;
+    }
+    
+    /**
+     * @param string $name
+     *
+     * @return Defintion|null
+     */
+    protected function getDefinition($id)
+    {
+        if (!key_exists($id, $this->fetchedDefinitions)) {
+            $this->fetchedDefinitions[$id] = $this->defintionProvider->getDefinition($id);
+        }
+        
+        return $this->fetchedDefinitions[$id];
+    }
+    
+    protected function setDefinition(string $id, Defintion $definition)
+    {
+        if (key_exists($id, $this->resolvedEntries)) {
+            unset($this->resolvedEntries[$id]);
+        }
+        
+        $this->fetchedDefinitions = [];
+        
+        $this->defintionProvider->addDefinition($definition);
+    }
+    
+}
+
+class Invoker
+{
+    
+}
+
+
+interface DefinitionProviderInterface
+{
+    
+}
+
+class DefintionProivder
+{
+    
+}
+
+
+interface DefintionInterface
+{
+    
+}
+
+class Defintion
+{
+    
+}
+
+interface DefinitionResolverInterface
+{
+    
+}
+
+class ResolverDispatcher 
+{
+    
 }
 ?>

@@ -15,9 +15,32 @@
 namespace Tiny\MVC\Application;
 
 
-class ServiceManager 
+use Tiny\Config\Configuration;
+
+/**
+* application属性
+* 
+* @package Tiny.MVC.Application
+* @since 2021年11月27日 下午1:01:32
+* @final 2021年11月27日下午1:01:32
+*/
+class Properties extends Configuration
 {
+    public function get($node = null)
+    {
+        $data  = parent::get($node);
+        return $this->validConfig($node, $data);
+    }
     
+    protected function validConfig($node, $data)
+    {
+        switch ($node)
+        {
+            case 'cache':
+                return $this->validCacheConfig($data);
+        }
+        return $data;
+    }
 }
 
 ?>

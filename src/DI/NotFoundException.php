@@ -13,7 +13,7 @@
  *          King 2021年11月26日上午11:43:19 1 修改
  *          King 2021年11月26日上午11:43:19 stable 1.0.01 审定
  */
-namespace Tiny\Container;
+namespace Tiny\DI;
 
 /**
  *
@@ -26,5 +26,6 @@ namespace Tiny\Container;
  */
 class NotFoundException extends ContainerException
 {
+    
 }
 ?>
