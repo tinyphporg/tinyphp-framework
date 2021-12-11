@@ -309,18 +309,11 @@ abstract class ApplicationBase implements IExceptionHandler
         /*runtime inited*/
         $this->runtime = Runtime::getInstance();
         $this->env = $this->runtime->env;
+        $this->_runtimeCache =  $this->runtime->getApplicationCache();
         if(!$this->runtime->getApplication())
         {
             $this->runtime->setApplication($this);
         }
-     
-        /*设置应用实例的运行时缓存*/
-        $runtimeCache = $this->runtime->getApplicationCache();
-        if ($runtimeCache)
-        {
-            $this->_runtimeCache = $runtimeCache;
-        }
-        
         /*应用实例路径配置和初始化*/
         $this->path = $path;
         if (!$profile)
@@ -1017,32 +1010,10 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function _initProperties()
     {
         $this->properties = new Properties($this->profile);
-        
-        $this->_initPath($this->properties['path']);
-        $this->_namespace = $this->properties['app.namespace'];
+        $this->properties->init($this);
+        $this->isDebug = $this->properties['debug.enabled'];
         $this->setTimezone($this->properties['timezone']);
         $this->charset = (string)$this->properties['charset'] ?: 'zh_cn';
-        $this->_initDebug();
-    }
-    
-    /**
-     * 初始化debug模块
-     * 
-     * @param void
-     * @return void
-     */
-    protected function _initDebug()
-    {
-        $config = $this->properties['debug'];
-        if (!$config['enabled'])
-        {
-            return;
-        }
-        $this->isDebug = TRUE;
-        if ($config['plugin'])
-        {
-            $this->properties['plugins.debug'] = $config['plugin'];
-        }
     }
     
     /**
@@ -1052,21 +1023,13 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initNamespace()
     {
+        $prop = $this->properties['controller'];        
+        $cprefix =  (static::class == ConsoleApplication::class) ? $prop['namespace'] : $prop['console'];
+        $modeNamespace = $this->properties['model.namespace'];
+        
         $this->_namespace = $this->properties['app.namespace'] ?: 'App';
-        
-        $prop = $this->properties['controller'];
-        $cprefix = $prop['namespace'];
-        if (static::class == 'Tiny\MVC\ConsoleApplication')
-        {
-            $cprefix = $prop['console'];
-        }
-        elseif (static::class == 'Tiny\MVC\RPCApplication')
-        {
-            $cprefix = $prop['rpc'];
-        }
-        
         $this->_cNamespace = '\\' . $this->_namespace . '\\' . $cprefix;
-        $this->_mNamespace = '\\' . $this->_namespace . '\\' . $this->properties['model.namespace'];
+        $this->_mNamespace = '\\' . $this->_namespace . '\\' . $modeNamespace;
     }
     
     /**

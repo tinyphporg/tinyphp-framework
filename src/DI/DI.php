@@ -29,27 +29,27 @@ interface ContainerInterface
     /**
      * Finds an entry of the container by its identifier and returns it.
      *
-     * @param string $id Identifier of the entry to look for.
+     * @param string $name Identifier of the entry to look for.
      *
      * @throws NotFoundException  No entry was found for **this** identifier.
      * @throws ContainerException while retrieving the entry.
      *
      * @return mixed Entry.
      */
-    public function get(string $id);
+    public function get(string $name);
     
     /**
      * Returns true if the container can return an entry for the given identifier.
      * Returns false otherwise.
      *
-     * `has($id)` returning true does not mean that `get($id)` will not throw an exception.
-     * It does however mean that `get($id)` will not throw a `NotFoundExceptionInterface`.
+     * `has($name)` returning true does not mean that `get($name)` will not throw an exception.
+     * It does however mean that `get($name)` will not throw a `NotFoundExceptionInterface`.
      *
-     * @param string $id Identifier of the entry to look for.
+     * @param string $name Identifier of the entry to look for.
      *
      * @return bool
      */
-    public function has(string $id): bool;
+    public function has(string $name): bool;
 }
 
 
@@ -143,30 +143,30 @@ class Container implements ContainerInterface, FactoryInterface, InvokerInterfac
     /**
      * Finds an entry of the container by its identifier and returns it.
      *
-     * @param string $id Identifier of the entry to look for.
+     * @param string $name Identifier of the entry to look for.
      *
      * @throws NotFoundException  No entry was found for **this** identifier.
      * @throws ContainerException while retrieving the entry.
      *
      * @return mixed Entry.
      */
-    public function get(string $id)
+    public function get(string $name)
     {
         // 如果已解析则返回
-        if (isset($this->resolvedEntries[$id]) || key_exists($id, $this->resolvedEntries)) {
-            return $this->resolvedEntries[$id];
+        if (isset($this->resolvedEntries[$name]) || key_exists($name, $this->resolvedEntries)) {
+            return $this->resolvedEntries[$name];
         }
         
         // 根据名称查找实例定义
-        $definition = $this->getDefinition($id);
+        $definition = $this->getDefinition($name);
         if (!$definition) {
-            throw new NotFoundException(sprintf('No entry or class found for "%s"', $id));
+            throw new NotFoundException(sprintf('No entry or class found for "%s"', $name));
         }
         
         //解析并返回值
         $value = $this->resolveDefinition($definition);
         
-        $this->resolvedEntries[$id] = $value;
+        $this->resolvedEntries[$name] = $value;
         
         return $value;
     }
@@ -193,14 +193,14 @@ class Container implements ContainerInterface, FactoryInterface, InvokerInterfac
      * Returns true if the container can return an entry for the given identifier.
      * Returns false otherwise.
      *
-     * `has($id)` returning true does not mean that `get($id)` will not throw an exception.
-     * It does however mean that `get($id)` will not throw a `NotFoundExceptionInterface`.
+     * `has($name)` returning true does not mean that `get($name)` will not throw an exception.
+     * It does however mean that `get($name)` will not throw a `NotFoundExceptionInterface`.
      *
-     * @param string $id Identifier of the entry to look for.
+     * @param string $name Identifier of the entry to look for.
      *
      * @return bool
      */
-    public function has(string $id): bool
+    public function has(string $name): bool
     {
         return TRUE;
     }
@@ -236,19 +236,19 @@ class Container implements ContainerInterface, FactoryInterface, InvokerInterfac
      *
      * @return Defintion|null
      */
-    protected function getDefinition($id)
+    protected function getDefinition($name)
     {
-        if (!key_exists($id, $this->fetchedDefinitions)) {
-            $this->fetchedDefinitions[$id] = $this->defintionProvider->getDefinition($id);
+        if (!key_exists($name, $this->fetchedDefinitions)) {
+            $this->fetchedDefinitions[$name] = $this->defintionProvider->getDefinition($name);
         }
         
-        return $this->fetchedDefinitions[$id];
+        return $this->fetchedDefinitions[$name];
     }
     
-    protected function setDefinition(string $id, Defintion $definition)
+    protected function setDefinition(string $name, Defintion $definition)
     {
-        if (key_exists($id, $this->resolvedEntries)) {
-            unset($this->resolvedEntries[$id]);
+        if (key_exists($name, $this->resolvedEntries)) {
+            unset($this->resolvedEntries[$name]);
         }
         
         $this->fetchedDefinitions = [];
@@ -266,6 +266,10 @@ class Invoker
 
 interface DefinitionProviderInterface
 {
+    public function getDefinition($name);
+    
+    
+    public function getDefinitions(): array;
     
 }
 
