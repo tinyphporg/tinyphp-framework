@@ -70,11 +70,11 @@ abstract class ApplicationBase implements IExceptionHandler
      * @var array
      */
     const RUNTIME_CACHE_KEY = [
-    'CONFIG' => 'app.config',
-    'LANG' => 'app.lang',
-    'MODEL' => 'app.model'
+        'CONFIG' => 'app.config',
+        'LANG' => 'app.lang',
+        'MODEL' => 'app.model'
     ];
-
+    
     /**
      * APP所在的目录路径
      *
@@ -129,7 +129,7 @@ abstract class ApplicationBase implements IExceptionHandler
      * public
      *
      * @var Configuration App的基本配置类
-     *     
+     *
      */
     public $properties;
     
@@ -137,7 +137,7 @@ abstract class ApplicationBase implements IExceptionHandler
      * 当前请求实例
      *
      * @var string WebRequest
-     *     
+     *
      */
     public $request;
     
@@ -145,7 +145,7 @@ abstract class ApplicationBase implements IExceptionHandler
      * 当前响应实例
      *
      * @var string WebResponse
-     *     
+     *
      */
     public $response;
     
@@ -286,7 +286,7 @@ abstract class ApplicationBase implements IExceptionHandler
     
     /**
      * 运行时缓存
-     * 
+     *
      * @var RuntimeCacheItem
      */
     protected $_runtimeCache;
@@ -313,7 +313,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             $this->runtime->setApplication($this);
         }
-     
+        
         /*设置应用实例的运行时缓存*/
         $runtimeCache = $this->runtime->getApplicationCache();
         if ($runtimeCache)
@@ -407,7 +407,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_config = new Configuration($prop['path']);
         if ($this->isDebug || !$prop['cache']['enabled'])
         {
-           return $this->_config;
+            return $this->_config;
         }
         
         $data = $this->_getConfigDataFromRuntimeCache();
@@ -415,7 +415,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             $this->_config->setData($data);
         }
-        else 
+        else
         {
             $data = $this->_config->get();
             $this->_saveConfigDataToRuntimeCache($data);
@@ -695,23 +695,23 @@ abstract class ApplicationBase implements IExceptionHandler
         $cparam = preg_replace_callback("/\b\w/", function ($param) {
             return strtoupper($param[0]);
         }, $cname);
-     
-        
-        $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
-        $controllerName = $this->_cNamespace . $cparam;
-        if (!class_exists($controllerName))
-        {
-            throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_NOFOUND);
-        }
-        
-        $controllerInstance = new $controllerName();
-        if (!$controllerInstance instanceof \Tiny\MVC\Controller\Base)
-        {
-            throw new ApplicationException("Controller:'{$controllerName}' is not instanceof Tiny\MVC\Controlller\Controller!", E_NOFOUND);
-        }
-        $controllerInstance->setApplication($this);
-        $this->_controllers[$cname] = $controllerInstance;
-        return $controllerInstance;
+            
+            
+            $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
+            $controllerName = $this->_cNamespace . $cparam;
+            if (!class_exists($controllerName))
+            {
+                throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_NOFOUND);
+            }
+            
+            $controllerInstance = new $controllerName();
+            if (!$controllerInstance instanceof \Tiny\MVC\Controller\Base)
+            {
+                throw new ApplicationException("Controller:'{$controllerName}' is not instanceof Tiny\MVC\Controlller\Controller!", E_NOFOUND);
+            }
+            $controllerInstance->setApplication($this);
+            $this->_controllers[$cname] = $controllerInstance;
+            return $controllerInstance;
     }
     
     /**
@@ -756,7 +756,7 @@ abstract class ApplicationBase implements IExceptionHandler
     
     /**
      * 获取已经加载的model列表
-     * 
+     *
      * @return \Tiny\MVC\Model\Base
      */
     public function getModels()
@@ -788,7 +788,7 @@ abstract class ApplicationBase implements IExceptionHandler
             return $this->_view;
         }
         $prop = $this->properties['view'];
-
+        
         $this->_view = View::getInstance();
         $this->_view->setApplication($this);
         
@@ -923,7 +923,7 @@ abstract class ApplicationBase implements IExceptionHandler
     
     /**
      * 中止运行
-     * 
+     *
      */
     public function end()
     {
@@ -959,7 +959,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         
         // 执行前返回FALSE则不执行派发动作
-        $ret = call_user_func_array([$controller, 'onBeginExecute'], $args);        
+        $ret = call_user_func_array([$controller, 'onBeginExecute'], $args);
         if (FALSE === $ret)
         {
             return FALSE;
@@ -1027,7 +1027,7 @@ abstract class ApplicationBase implements IExceptionHandler
     
     /**
      * 初始化debug模块
-     * 
+     *
      * @param void
      * @return void
      */
@@ -1080,7 +1080,7 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             return;
         }
-
+        
         $plugins = (array)$this->properties['plugins'];
         if (key_exists('debug', $plugins))
         {
@@ -1088,7 +1088,7 @@ abstract class ApplicationBase implements IExceptionHandler
             unset($plugins['debug']);
         }
         foreach($plugins as $pluginClass)
-        {   
+        {
             if (!class_exists($pluginClass))
             {
                 throw new ApplicationException(sprintf('Plugin :%s is not exists!', $pluginClass));
@@ -1218,7 +1218,7 @@ abstract class ApplicationBase implements IExceptionHandler
      * @return void
      */
     protected function _onPlugin($method, $params)
-    {   
+    {
         $params[] = $this;
         foreach ($this->_plugins as $plugin)
         {
@@ -1300,7 +1300,7 @@ abstract class ApplicationBase implements IExceptionHandler
             $rule = (array)$rule;
             $router->addRule((array)$rule);
         }
-
+        
         $ret = $router->route($routeString);
         if(!$ret)
         {
@@ -1416,7 +1416,7 @@ abstract class ApplicationBase implements IExceptionHandler
     
     /**
      * 从运行时缓存获取数据
-     * 
+     *
      * @return data|FALSE
      */
     protected function _getDataFromRuntimeCache($key)
@@ -1435,7 +1435,7 @@ abstract class ApplicationBase implements IExceptionHandler
     
     /**
      * 保存数据到运行时缓存
-     * 
+     *
      * @param array $data
      * @return boolean
      */
