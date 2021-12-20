@@ -304,16 +304,14 @@ abstract class ApplicationBase implements IExceptionHandler
      * @param string $profile 配置文件路径
      * @return void
      */
-    public function __construct($path, $profile = NULL)
+    public function __construct(Runtime $runtime = null, $path, $profile = null)
     {
-        /*runtime inited*/
-        $this->runtime = Runtime::getInstance();
+        $this->runtime = $runtime;
+        $this->runtime->setApplication($this);
         $this->env = $this->runtime->env;
         $this->_runtimeCache =  $this->runtime->getApplicationCache();
-        if(!$this->runtime->getApplication())
-        {
-            $this->runtime->setApplication($this);
-        }
+        
+        
         /*应用实例路径配置和初始化*/
         $this->path = $path;
         if (!$profile)
@@ -994,7 +992,6 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         $this->_initProperties();
         $this->_initResponse();
-        $this->_initNamespace();
         $this->_initImport();
         $this->_initException();
         $this->_initRequest();
@@ -1009,27 +1006,21 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initProperties()
     {
-        $this->properties = new Properties($this->profile);
-        $this->properties->init($this);
+        $this->properties = new Properties($this->profile, $this);
+        
+        // default
         $this->isDebug = $this->properties['debug.enabled'];
         $this->setTimezone($this->properties['timezone']);
         $this->charset = (string)$this->properties['charset'] ?: 'zh_cn';
-    }
-    
-    /**
-     * 初始化命名空间
-     *
-     * @return void
-     */
-    protected function _initNamespace()
-    {
-        $prop = $this->properties['controller'];        
-        $cprefix =  (static::class == ConsoleApplication::class) ? $prop['namespace'] : $prop['console'];
-        $modeNamespace = $this->properties['model.namespace'];
         
+        //namepsace
+        $cnamespace = $this->properties['controller.namespace'];
+        $controllerNamespace =  (static::class == ConsoleApplication::class) ? $cnamespace['default'] : $cnamespace['console'];
+        $modeNamespace = $this->properties['model.namespace'];
         $this->_namespace = $this->properties['app.namespace'] ?: 'App';
-        $this->_cNamespace = '\\' . $this->_namespace . '\\' . $cprefix;
+        $this->_cNamespace = '\\' . $this->_namespace . '\\' . $controllerNamespace;
         $this->_mNamespace = '\\' . $this->_namespace . '\\' . $modeNamespace;
+        
     }
     
     /**

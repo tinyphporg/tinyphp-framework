@@ -48,7 +48,7 @@ class Runtime
      *
      * @var string
      */
-    const FRAMEWORK_VERSION = '1.0.01 stable';
+    const FRAMEWORK_VERSION = '1.0.0 stable';
 
     /**
      * 框架所在目录
@@ -56,27 +56,6 @@ class Runtime
      * @var string
      */
     const FRAMEWORK_PATH = TINY_FRAMEWORK_PATH;
-
-    /**
-     * WEB模式
-     *
-     * @var integer
-     */
-    const RUNTIME_MODE_WEB = 0;
-
-    /**
-     * 命令行模式
-     *
-     * @var integer
-     */
-    const RUNTIME_MODE_CONSOLE = 1;
-
-    /**
-     * RPC模式
-     *
-     * @var integer
-     */
-    const RUNTIME_MODE_RPC = 2;
     
     /**
      * 环境参数类
@@ -90,7 +69,7 @@ class Runtime
      *
      * @var Runtime
      */
-    protected static $_instance;
+    protected static $instance;
 
     /**
      * app策略集合
@@ -98,10 +77,10 @@ class Runtime
      * @var array 运行时模式对应创建的application具体对象
      *      WEB模式 | CONSOLE模式 | RPC模式
      */
-    protected static $_appMap = [
-        self::RUNTIME_MODE_CONSOLE => '\Tiny\MVC\ConsoleApplication', /*mode_console*/
-        self::RUNTIME_MODE_WEB => '\Tiny\MVC\WebApplication', /*mode__web*/
-        self::RUNTIME_MODE_RPC => '\Tiny\MVC\RPCApplication' /* mode_rpc */
+    protected static $appMap = [
+        Environment::RUNTIME_MODE_CONSOLE => '\Tiny\MVC\ConsoleApplication',
+        Environment::RUNTIME_MODE_WEB => '\Tiny\MVC\WebApplication',
+        //Environment::RUNTIME_MODE_RPC => '\Tiny\MVC\RPCApplication'
     ];
 
     /**
@@ -109,27 +88,27 @@ class Runtime
      *
      * @var ApplicationBase
      */
-    protected $_app;
+    protected $app;
 
     /**
      * 运行时创建的自动加载对象实例
      *
      * @var Autoloader
      */
-    protected $_autoloader;
+    protected $autoloader;
 
     /**
      * 运行时创建的异常处理实例
      *
      * @var ExceptionHandler
      */
-    protected $_exceptionHandler;
+    protected $exceptionHandler;
     
     /**
      * 运行时缓存实例集合
      * @var array
      */
-    protected $_runtimeCaches = [];
+    protected $runtimeCaches = [];
 
     /**
      * 注册或者替换已有的Application
@@ -138,31 +117,20 @@ class Runtime
      * @param string $className
      * @return bool TRUE success || TRUE falid
      */
-    public static function regApplicationMap($mode, $className): bool
+    public static function regApplication($mode, $className): bool
     {
         if (!$className instanceof ApplicationBase)
         {
-            return FALSE;
+            return false;
         }
-        self::$_appMap[$mode] = $className;
-        return TRUE;
+        if (!key_exists($mode, self::$appMap))
+        {
+            return false;
+        }
+        self::$appMap[$mode] = $className;
+        return true;
     }
 
-    /**
-     *
-     * @获取单例实例
-     *
-     * @return Runtime
-     */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self();
-        }
-        return self::$_instance;
-    }
-    
     /**
      * 设置当前运行时的应用实例
      * 
@@ -170,7 +138,7 @@ class Runtime
      */
     public function setApplication(ApplicationBase $app)
     {
-        $this->_app = $app;
+        $this->app = $app;
     }
     
     /**
@@ -179,7 +147,7 @@ class Runtime
      */
     public function getApplication()
     {
-        return $this->_app;
+        return $this->app;
     }
     
     /**
@@ -197,12 +165,12 @@ class Runtime
      */
     public function createApplication($appPath, $profile = NULL)
     {
-        if (!$this->_app)
+        if (!$this->app)
         {
-            $className = self::$_appMap[$this->env['RUNTIME_MODE']];
-            $this->_app = new $className($appPath, $profile);
+            $className = self::$appMap[$this->env['RUNTIME_MODE']];
+            $this->app = new $className($this, $appPath, $profile);
         }
-        return $this->_app;
+        return $this->app;
     }
     
     /**
@@ -216,7 +184,7 @@ class Runtime
      */
     public function import($path, $namespace = NULL)
     {
-        return $this->_autoloader->add($path, $namespace);
+        return $this->autoloader->add($path, $namespace);
     }
 
     /**
@@ -225,7 +193,7 @@ class Runtime
      */
     public function getImports()
     {
-        return $this->_autoloader->getImports();
+        return $this->autoloader->getImports();
     }
 
     /**

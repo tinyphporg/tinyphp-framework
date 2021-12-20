@@ -36,6 +36,13 @@ require_once __DIR__ . '/Runtime/Runtime.php';
 class Tiny
 {
     /**
+     * 当前Runtime实例
+     * 
+     * @var Runtime
+     */
+    protected static $runtime;
+    
+    /**
      * 注册或者替换已有的Application实例类
      *
      * @param int $mode
@@ -96,6 +103,16 @@ class Tiny
     public static function setENV(array $env)
     {
         return Environment::setEnv($env);
+    }
+    
+    
+    protected function getRuntime()
+    {
+        if (!self::$runtime)
+        {
+           self::$runtime =  new Runtime();
+        }
+        return self::$runtime;
     }
 }
 ?>

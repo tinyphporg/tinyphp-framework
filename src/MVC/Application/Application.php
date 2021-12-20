@@ -28,8 +28,9 @@ use Tiny\MVC\ApplicationBase;
 class Properties extends Configuration implements DefinitionProviderInterface
 {
 
-    public function init(ApplicationBase $app)
+    public function __construct($cpath, ApplicationBase $app)
     {
+        parent::__construct($cpath);
         $this->_app = $app;
         $this->initPath();
         $this->initDebug();
@@ -44,7 +45,7 @@ class Properties extends Configuration implements DefinitionProviderInterface
         return [];
     }
 
-    protected function initpath()
+    protected function initPath()
     {
         $appPath = $this->_app->path;
         $paths = $this->get('path');
