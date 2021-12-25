@@ -16,6 +16,7 @@ namespace Tiny\MVC\Controller;
 
 use Tiny\MVC\ApplicationBase;
 use Tiny\Tiny;
+use Tiny\DI\Container;
 
 /**
  * 控制器积类
@@ -40,6 +41,12 @@ abstract class Base
      * @var \Tiny\Config\Configuration
      */
     public $properties;
+    
+    /**
+     * 容器实例
+     * @var Container
+     */
+    public $container;
 
     /**
      * 当前WEB请求参数
@@ -249,6 +256,8 @@ abstract class Base
     {
         switch ($key)
         {
+            case 'cache':
+                return $this->application->container->get('cache');
             case 'view':
                 return $this->application->getView();
             case 'config':

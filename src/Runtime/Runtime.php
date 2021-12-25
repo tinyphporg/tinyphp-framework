@@ -48,7 +48,7 @@ class Runtime
      *
      * @var string
      */
-    const FRAMEWORK_VERSION = '1.0.01 stable';
+    const FRAMEWORK_VERSION = '1.0.0 stable';
 
     /**
      * 框架所在目录
@@ -56,27 +56,11 @@ class Runtime
      * @var string
      */
     const FRAMEWORK_PATH = TINY_FRAMEWORK_PATH;
-
+    
     /**
-     * WEB模式
-     *
-     * @var integer
+     * 开始的时间戳
      */
-    const RUNTIME_MODE_WEB = 0;
-
-    /**
-     * 命令行模式
-     *
-     * @var integer
-     */
-    const RUNTIME_MODE_CONSOLE = 1;
-
-    /**
-     * RPC模式
-     *
-     * @var integer
-     */
-    const RUNTIME_MODE_RPC = 2;
+    public $startTimestamp;
     
     /**
      * 环境参数类
@@ -86,22 +70,14 @@ class Runtime
     public $env;
 
     /**
-     * 单例
-     *
-     * @var Runtime
-     */
-    protected static $_instance;
-
-    /**
      * app策略集合
      *
      * @var array 运行时模式对应创建的application具体对象
      *      WEB模式 | CONSOLE模式 | RPC模式
      */
-    protected static $_appMap = [
-        self::RUNTIME_MODE_CONSOLE => '\Tiny\MVC\ConsoleApplication', /*mode_console*/
-        self::RUNTIME_MODE_WEB => '\Tiny\MVC\WebApplication', /*mode__web*/
-        self::RUNTIME_MODE_RPC => '\Tiny\MVC\RPCApplication' /* mode_rpc */
+    protected static $appMap = [
+        Environment::ENV_DEFAULT['RUNTIME_MODE_CONSOLE'] => '\Tiny\MVC\ConsoleApplication',
+        Environment::ENV_DEFAULT['RUNTIME_MODE_WEB'] => '\Tiny\MVC\WebApplication',
     ];
 
     /**
@@ -109,27 +85,27 @@ class Runtime
      *
      * @var ApplicationBase
      */
-    protected $_app;
+    protected $app;
 
     /**
      * 运行时创建的自动加载对象实例
      *
      * @var Autoloader
      */
-    protected $_autoloader;
+    public $autoloader;
 
     /**
      * 运行时创建的异常处理实例
      *
      * @var ExceptionHandler
      */
-    protected $_exceptionHandler;
+    public $exceptionHandler;
     
     /**
      * 运行时缓存实例集合
      * @var array
      */
-    protected $_runtimeCaches = [];
+    protected $runtimeCaches = [];
 
     /**
      * 注册或者替换已有的Application
@@ -138,31 +114,20 @@ class Runtime
      * @param string $className
      * @return bool TRUE success || TRUE falid
      */
-    public static function regApplicationMap($mode, $className): bool
+    public static function regApplication($mode, $className): bool
     {
         if (!$className instanceof ApplicationBase)
         {
-            return FALSE;
+            return false;
         }
-        self::$_appMap[$mode] = $className;
-        return TRUE;
+        if (!key_exists($mode, self::$appMap))
+        {
+            return false;
+        }
+        self::$appMap[$mode] = $className;
+        return true;
     }
 
-    /**
-     *
-     * @获取单例实例
-     *
-     * @return Runtime
-     */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self();
-        }
-        return self::$_instance;
-    }
-    
     /**
      * 设置当前运行时的应用实例
      * 
@@ -170,7 +135,7 @@ class Runtime
      */
     public function setApplication(ApplicationBase $app)
     {
-        $this->_app = $app;
+        $this->app = $app;
     }
     
     /**
@@ -179,7 +144,7 @@ class Runtime
      */
     public function getApplication()
     {
-        return $this->_app;
+        return $this->app;
     }
     
     /**
@@ -197,12 +162,12 @@ class Runtime
      */
     public function createApplication($appPath, $profile = NULL)
     {
-        if (!$this->_app)
+        if (!$this->app)
         {
-            $className = self::$_appMap[$this->env['RUNTIME_MODE']];
-            $this->_app = new $className($appPath, $profile);
+            $className = self::$appMap[$this->env['RUNTIME_MODE']];
+            $this->app = new $className($this, $appPath, $profile);
         }
-        return $this->_app;
+        return $this->app;
     }
     
     /**
@@ -216,7 +181,7 @@ class Runtime
      */
     public function import($path, $namespace = NULL)
     {
-        return $this->_autoloader->add($path, $namespace);
+        return $this->autoloader->add($path, $namespace);
     }
 
     /**
@@ -225,7 +190,7 @@ class Runtime
      */
     public function getImports()
     {
-        return $this->_autoloader->getImports();
+        return $this->autoloader->getImports();
     }
 
     /**
@@ -237,7 +202,7 @@ class Runtime
      */
     public function regExceptionHandler(IExceptionHandler $handler)
     {
-        return $this->_exceptionHandler->regExceptionHandler($handler);
+        return $this->exceptionHandler->regExceptionHandler($handler);
     }
 
     /**
@@ -250,11 +215,11 @@ class Runtime
         {
             return NULL;
         }
-        if (!$this->_runtimeCaches[$cacheId])
+        if (!$this->runtimeCaches[$cacheId])
         {
-           $this->_runtimeCaches[$cacheId] = new RuntimeCacheItem($cacheId);
+            $this->runtimeCaches[$cacheId] = new RuntimeCacheItem($this->runtimeCachePool, $cacheId);
         }
-        return $this->_runtimeCaches[$cacheId];
+        return $this->runtimeCaches[$cacheId];
     }
     
     /**
@@ -291,17 +256,21 @@ class Runtime
      *
      * @return void
      */
-    protected function __construct()
+    public function __construct()
     {
-        $this->env = Environment::getInstance();
-        $this->_autoloader = Autoloader::getInstance();
+        $this->startTimestamp = microtime(TRUE);
+        $this->env = new Environment();
+        $this->runtimeCachePool = new RuntimeCachePool($this);
+        $this->exceptionHandler = new ExceptionHandler();
+        $this->autoloader = new Autoloader();
         $acache = $this->getAutoloaderCache();
         if($acache)
         {
-            $this->_autoloader->setRuntimeCache($acache);
+            $this->autoloader->setRuntimeCache($acache);
         }
-        $this->_autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
-        $this->_exceptionHandler = ExceptionHandler::getInstance();
+        $this->autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
+        
+        
     }
     
 }
@@ -339,10 +308,10 @@ class RuntimeCacheItem
      * 
      * @param string $id
      */
-    public function __construct($id)
+    public function __construct(RuntimeCachePool $rp, $id)
     {
         $this->_id = (string)$id;
-        $this->_handler = RuntimeCachePool::getInstance();
+        $this->_handler = $rp;
     }
     
     /**
@@ -426,28 +395,15 @@ class RuntimeCachePool
     protected $_isUpdated = FALSE;
     
     /**
-     * 获取单一实例
-     * @return \Tiny\Runtime\RuntimeCache
-     */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self();
-        }
-        return self::$_instance;
-    }
-    
-    /**
      * 构造函数
      */
-    protected function __construct()
+    public function __construct(Runtime $runtime)
     {
         if (!extension_loaded('shmop'))
         {
             throw new RuntimeException('开启运行时内存需要shmop共享内存扩展支持');  
         }
-        $env = Environment::getInstance();
+        $env = $runtime->env;
         $this->_memoryId = $env['RUNTIME_CACHE_ID'];
         $this->_memorySize = $env['RUNTIME_CACHE_MEMORY'];
         $this->ttl = $env['RUNTIME_CACHE_TTL'];
@@ -570,15 +526,7 @@ class RuntimeCachePool
  * @final 2019年11月12日上午10:15:05
  */
 class Autoloader
-{
-
-    /**
-     * 单例
-     *
-     * @var Runtime
-     */
-    protected static $_instance;
-    
+{   
     /**
      * 运行时缓存实例
      * 
@@ -599,21 +547,6 @@ class Autoloader
      * @var array
      */
     protected $_paths;
-
-    /**
-     *
-     * @获取单例实例
-     *
-     * @return Autoloader
-     */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self();
-        }
-        return self::$_instance;
-    }
 
     /**
      * 添加组件库
@@ -787,7 +720,7 @@ class Autoloader
      *        void
      * @return void
      */
-    protected function __construct()
+    public function __construct()
     {
         spl_autoload_register([
             $this,
@@ -805,7 +738,6 @@ class Autoloader
  */
 class Environment implements \ArrayAccess
 {
-
     /**
      * 被允许的自定义运行时环境参数
      *
@@ -857,18 +789,11 @@ class Environment implements \ArrayAccess
         'RUNTIME_DEBUG_BACKTRACE' => NULL,
         'SCRIPT_FILENAME' => NULL,
         'SCRIPT_FILENAME' => NULL,
-        'RUNTIME_MODE' => Runtime::RUNTIME_MODE_WEB,
-        'RUNTIME_MODE_CONSOLE' => Runtime::RUNTIME_MODE_CONSOLE,
-        'RUNTIME_MODE_WEB' => Runtime::RUNTIME_MODE_WEB,
-        'RUNTIME_MODE_RPC' => Runtime::RUNTIME_MODE_RPC,
+        'RUNTIME_MODE' => 0,
+        'RUNTIME_MODE_CONSOLE' => 1,
+        'RUNTIME_MODE_WEB' => 0,
+        'RUNTIME_MODE_RPC' => 2,
     ];
-
-    /**
-     * 单例
-     *
-     * @var Environment
-     */
-    protected static $_instance;
 
     /**
      * 默认环境参数数组
@@ -902,21 +827,6 @@ class Environment implements \ArrayAccess
             self::$_defENV[$ename] = $evar;
         }
         return self::$_defENV;
-    }
-
-    /**
-     *
-     * @获取单例实例
-     *
-     * @return Environment
-     */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self();
-        }
-        return self::$_instance;
     }
     
     /**
@@ -1015,7 +925,7 @@ class Environment implements \ArrayAccess
      * RUNTIME_DEBUG_BACKTRACE
      * RUNTIME_SCRIPT_FILENAME
      */
-    protected function __construct()
+    public function __construct()
     {
         $env = array_merge($_SERVER, $_ENV, self::ENV_DEFAULT, self::$_defENV);
         if ('cli' == php_sapi_name())
@@ -1160,13 +1070,6 @@ class ExceptionHandler
     );
 
     /**
-     * 单例
-     *
-     * @var self
-     */
-    protected static $_instance;
-
-    /**
      * 需要抛出异常的错误级别数组
      *
      * @var array
@@ -1199,30 +1102,13 @@ class ExceptionHandler
     protected $_exceptionHandlers = [];
 
     /**
-     * 获取单例
-     *
-     * @param
-     *        void
-     * @return ExceptionHandler
-     */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self();
-        }
-        return self::$_instance;
-    }
-
-    /**
      * 初始化异常捕获句柄
      *
      *
-     * @param
-     *        void
+     * @param void
      * @return void
      */
-    protected function __construct()
+    public function __construct()
     {
         set_exception_handler([$this, 'onException']);
         set_error_handler([$this, 'onError']);

@@ -92,7 +92,7 @@ class Debug implements Iplugin
     public function __construct(\Tiny\MVC\ApplicationBase $app)
     {
         $this->_app = $app;
-        $this->_startTime = microtime(TRUE);
+        $this->_startTime = $app->runtime->startTimestamp;
     }
 
     /**
@@ -270,7 +270,7 @@ class Debug implements Iplugin
         $modelList = join(' ', $modelList);
 
         // Exception
-        $debugExceptions = ExceptionHandler::getInstance()->getExceptions();
+        $debugExceptions = $this->_app->runtime->exceptionHandler->getExceptions();
 
         // DEBUG集合
         $debugs = [

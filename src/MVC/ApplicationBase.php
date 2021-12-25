@@ -35,6 +35,7 @@ use Tiny\Filter\Filter;
 use Tiny\Runtime\RuntimeCacheItem;
 use Tiny\MVC\Router\RouterException;
 use Tiny\MVC\Application\Properties;
+use Tiny\DI\Container;
 
 // MVC下存放资源的文件夹
 const TINY_MVC_RESOURCES = __DIR__ . '/_resources/';
@@ -132,6 +133,12 @@ abstract class ApplicationBase implements IExceptionHandler
      *
      */
     public $properties;
+    
+    /**
+     * 容器实例
+     * @var Container
+     */
+    public $container;
     
     /**
      * 当前请求实例
@@ -304,31 +311,24 @@ abstract class ApplicationBase implements IExceptionHandler
      * @param string $profile 配置文件路径
      * @return void
      */
-    public function __construct($path, $profile = NULL)
+    public function __construct(Runtime $runtime = null, $path, $profile = null)
     {
-        /*runtime inited*/
-        $this->runtime = Runtime::getInstance();
+        $this->runtime = $runtime;
+        $this->runtime->setApplication($this);
         $this->env = $this->runtime->env;
-        if(!$this->runtime->getApplication())
-        {
-            $this->runtime->setApplication($this);
-        }
-        
-        /*设置应用实例的运行时缓存*/
-        $runtimeCache = $this->runtime->getApplicationCache();
-        if ($runtimeCache)
-        {
-            $this->_runtimeCache = $runtimeCache;
-        }
+        $this->_runtimeCache =  $this->runtime->getApplicationCache();
         
         /*应用实例路径配置和初始化*/
         $this->path = $path;
-        if (!$profile)
-        {
-            $profile = $path . DIRECTORY_SEPARATOR . 'profile.php';
-        }
-        $this->profile = $profile;
-        $this->_startTime = microtime(TRUE);
+        $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php';
+        $this->properties = new Properties($this->profile, $this);
+        
+        // container
+        $this->container = new Container($this->properties);
+        $this->container->set(self::class, $this);
+        $this->container->set(ApplicationBase::class, $this);
+        $this->container->set(Runtime::class, $this->runtime);
+        $this->container->set(Environment::class, $this);
         $this->_init();
     }
     
@@ -455,16 +455,16 @@ abstract class ApplicationBase implements IExceptionHandler
         
         $this->_cache = Cache::getInstance();
         
-        $prop['drivers'] = $prop['drivers'] ?: [];
-        $prop['policys'] = $prop['policys'] ?: [];
+        $config['drivers'] = $config['drivers'] ?: [];
+        $config['policys'] = $config['policys'] ?: [];
         foreach ($prop['drivers'] as $type => $className)
         {
             Cache::regDriver($type, $className);
         }
-        foreach ($prop['policys'] as $policy)
+        foreach ($config['policys'] as $policy)
         {
-            $policy['lifetime'] = $policy['lifetime'] ?: $prop['lifetime'];
-            $policy['path'] = $policy['path'] ?: $prop['path'];
+            $policy['lifetime'] = $policy['lifetime'] ?: $config['lifetime'];
+            $policy['path'] = $policy['path'] ?: $config['path'];
             $this->_cache->regPolicy($policy);
         }
         return $this->_cache;
@@ -1001,7 +1001,6 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         $this->_initProperties();
         $this->_initResponse();
-        $this->_initNamespace();
         $this->_initImport();
         $this->_initException();
         $this->_initRequest();
@@ -1016,57 +1015,21 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initProperties()
     {
-        $this->properties = new Properties($this->profile);
+
         
-        $this->_initPath($this->properties['path']);
-        $this->_namespace = $this->properties['app.namespace'];
+        // default
+        $this->isDebug = $this->properties['debug.enabled'];
         $this->setTimezone($this->properties['timezone']);
         $this->charset = (string)$this->properties['charset'] ?: 'zh_cn';
-        $this->_initDebug();
-    }
-    
-    /**
-     * 初始化debug模块
-     *
-     * @param void
-     * @return void
-     */
-    protected function _initDebug()
-    {
-        $config = $this->properties['debug'];
-        if (!$config['enabled'])
-        {
-            return;
-        }
-        $this->isDebug = TRUE;
-        if ($config['plugin'])
-        {
-            $this->properties['plugins.debug'] = $config['plugin'];
-        }
-    }
-    
-    /**
-     * 初始化命名空间
-     *
-     * @return void
-     */
-    protected function _initNamespace()
-    {
-        $this->_namespace = $this->properties['app.namespace'] ?: 'App';
         
-        $prop = $this->properties['controller'];
-        $cprefix = $prop['namespace'];
-        if (static::class == 'Tiny\MVC\ConsoleApplication')
-        {
-            $cprefix = $prop['console'];
-        }
-        elseif (static::class == 'Tiny\MVC\RPCApplication')
-        {
-            $cprefix = $prop['rpc'];
-        }
+        //namepsace
+        $cnamespace = $this->properties['controller.namespace'];
+        $controllerNamespace =  (static::class == ConsoleApplication::class) ? $cnamespace['console'] : $cnamespace['default'];
+        $modeNamespace = $this->properties['model.namespace'];
+        $this->_namespace = $this->properties['app.namespace'] ?: 'App';        
+        $this->_cNamespace = '\\' . $this->_namespace . '\\' . $controllerNamespace;
+        $this->_mNamespace = '\\' . $this->_namespace . '\\' . $modeNamespace;
         
-        $this->_cNamespace = '\\' . $this->_namespace . '\\' . $cprefix;
-        $this->_mNamespace = '\\' . $this->_namespace . '\\' . $this->properties['model.namespace'];
     }
     
     /**
@@ -1157,8 +1120,7 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _initImport()
     {
-        $runtime = Runtime::getInstance();
-        $runtime->import($this->path, $this->_namespace);
+        $this->runtime->import($this->path, $this->_namespace);
         $prop = $this->properties['autoloader'];
         if (!is_array($prop['librarys']))
         {
@@ -1168,13 +1130,13 @@ abstract class ApplicationBase implements IExceptionHandler
         {
             foreach ($prop['librarys'] as $ns => $p)
             {
-                $runtime->import($p, $ns);
+                $this->runtime->import($p, $ns);
             }
             return;
         }
         foreach ($prop['librarys'] as $ns => $p)
         {
-            $runtime->import($this->properties[$p], $ns);
+            $this->runtime->import($this->properties[$p], $ns);
         }
     }
     
@@ -1191,7 +1153,6 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         
         $this->request->setApplication($this);
-        $prop = $this->_prop;
         $this->request->setController($prop['controller']['default']);
         $this->request->setControllerParam($prop['controller']['param']);
         $this->request->setAction($prop['action']['default']);
