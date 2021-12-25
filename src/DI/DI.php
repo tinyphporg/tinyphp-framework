@@ -653,6 +653,7 @@ class InvokerParameterResolver implements ParameterResolverInterface
             
             return $resolvedParameters;
     }
+    public function get
     
 }
 ?>
