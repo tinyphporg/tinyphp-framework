@@ -157,14 +157,6 @@ interface CacheInterface
  */
 class Cache implements CacheInterface, \ArrayAccess
 {
-
-    /**
-     * Single instance
-     *
-     * @var Cache
-     */
-    protected static $instance;
-
     /**
      * Mapping array of cache driver
      *
@@ -188,21 +180,7 @@ class Cache implements CacheInterface, \ArrayAccess
      *
      * @var array
      */
-    protected $storages = [];
-
-    /**
-     * 单一模式，获取实例
-     *
-     * @return Cache
-     */
-    public static function getInstance()
-    {
-        if (!self::$instance)
-        {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }    
+    protected $storages = [];  
     
     /**
      * 注册缓存适配器

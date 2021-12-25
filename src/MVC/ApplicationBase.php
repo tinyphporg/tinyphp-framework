@@ -36,6 +36,10 @@ use Tiny\Runtime\RuntimeCacheItem;
 use Tiny\MVC\Router\RouterException;
 use Tiny\MVC\Application\Properties;
 use Tiny\DI\Container;
+use Tiny\Runtime\Autoloader;
+use Tiny\Runtime\ExceptionHandler;
+use Tiny\Runtime\RuntimeCachePool;
+use Tiny\DI\DefintionProivder;
 
 // MVC下存放资源的文件夹
 const TINY_MVC_RESOURCES = __DIR__ . '/_resources/';
@@ -315,20 +319,14 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         $this->runtime = $runtime;
         $this->runtime->setApplication($this);
+
         $this->env = $this->runtime->env;
         $this->_runtimeCache =  $this->runtime->getApplicationCache();
         
         /*应用实例路径配置和初始化*/
         $this->path = $path;
         $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php';
-        $this->properties = new Properties($this->profile, $this);
-        
-        // container
-        $this->container = new Container($this->properties);
-        $this->container->set(self::class, $this);
-        $this->container->set(ApplicationBase::class, $this);
-        $this->container->set(Runtime::class, $this->runtime);
-        $this->container->set(Environment::class, $this);
+        $this->properties = new Properties($this->profile, $this);        
         $this->_init();
     }
     
@@ -999,6 +997,7 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _init()
     {
+        $this->initContainer();
         $this->_initProperties();
         $this->_initResponse();
         $this->_initImport();
@@ -1008,6 +1007,20 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_prop = $this->properties->get();
     }
     
+    protected function initContainer()
+    {
+        // container
+        $proivder = new  DefintionProivder([$this->properties]);
+        $this->container = new Container($proivder);
+        $this->container->set(self::class, $this);
+        $this->container->set(Environment::class, $this->env);
+        $this->container->set(Autoloader::class, $this->runtime->autoloader);
+        $this->container->set(ExceptionHandler::class, $this->runtime->exceptionHandler);
+        $this->container->set(RuntimeCachePool::class, $this->runtime->runtimeCachePool);
+        $this->container->set(self::class, $this);
+        $this->container->set(ApplicationBase::class, $this);
+        $this->container->set(Properties::class, $this->properties);
+    }
     /**
      * 初始化应用程序的配置对象
      *

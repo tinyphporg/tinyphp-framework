@@ -22,6 +22,7 @@
 namespace Tiny\Runtime;
 
 use Tiny\MVC\ApplicationBase;
+use Tiny\DI\Container;
 
 /* 定义框架所在路径 */
 define('TINY_FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
@@ -68,7 +69,7 @@ class Runtime
      * @var Environment 环境参数类
      */
     public $env;
-
+    
     /**
      * app策略集合
      *
@@ -107,6 +108,13 @@ class Runtime
      */
     protected $runtimeCaches = [];
 
+    /**
+     * runtime唯一实例
+     *
+     * @var Runtime
+     */
+    protected $instance;
+    
     /**
      * 注册或者替换已有的Application
      *
@@ -269,7 +277,6 @@ class Runtime
             $this->autoloader->setRuntimeCache($acache);
         }
         $this->autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
-        
         
     }
     
@@ -722,10 +729,7 @@ class Autoloader
      */
     public function __construct()
     {
-        spl_autoload_register([
-            $this,
-            'load'
-        ]);
+        spl_autoload_register([$this, 'load']);
     }
 }
 
@@ -761,7 +765,7 @@ class Environment implements \ArrayAccess
         'FRAMEWORK_NAME' => Runtime::FRAMEWORK_NAME,
         'FRAMEWORK_PATH' => Runtime::FRAMEWORK_PATH,
         'FRAMEWORK_VERSION' => Runtime::FRAMEWORK_VERSION,
-         'RUNTIME_DIR' => null,
+        'RUNTIME_DIR' => null,
         'PHP_VERSION' => PHP_VERSION,
         'PHP_VERSION_ID' => PHP_VERSION_ID,
         'PHP_OS' => PHP_OS,
@@ -936,17 +940,20 @@ class Environment implements \ArrayAccess
         {
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
         }
+
+        // runtime dir
         if (!$env['RUNTIME_DIR'] || !is_dir($env['RUNTIME_DIR']))
         {
-            
+            $env['RUNTIME_DIR'] = dirname(dirname(get_included_files()[0]));
         }
-        //cli 或者没有shmop共享内存模块下，默认不进行运行时缓存
+        
+        // cli 或者没有shmop共享内存模块下，默认不进行运行时缓存
         if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'] || !extension_loaded('shmop'))
         {
             $env['RUNTIME_CACHE_ENABLED'] = FALSE;
         }
         
-        //缓存内存设置
+        // 缓存内存设置
         if ($env['RUNTIME_CACHE_ENABLED'])
         {
             $cacheMemory = (int)$env['RUNTIME_CACHE_MEMORY'];
@@ -1004,6 +1011,7 @@ class Environment implements \ArrayAccess
                 return get_included_files()[0];
         }
     }
+
 }
 
 /**
