@@ -49,11 +49,6 @@ abstract class Base
     protected $_charset = 'utf-8';
 
     /**
-     * 语言包
-     */
-    protected $_locale = '';
-
-    /**
      * 当前HTTP响应的输出流
      *
      * @var string
@@ -195,20 +190,11 @@ abstract class Base
     {
         $this->_app->isDebug = false;
 
-        if (!$this->_formatConfig)
+        if (!$this->_formatJSONConfig)
         {
-            $config = $this->_app->getLang();
-            $locale = $this->_locale;
+            $config = $this->_app->container->get('lang');
             $configId = $this->_app->properies['response']['formatJsonConfigId'] ?: 'status';
-            if ($locale)
-            {
-                $this->_formatJSONConfig = $config[$locale . '.' . $configId];
-            }
-
-            if (!$this->_formatJSONConfig)
-            {
-                $this->_formatJSONConfig = $config[$configId];
-            }
+            $this->_formatJSONConfig = $config->translate($configId);
         }
 
         if (!isset($this->_formatJSONConfig[$status]))
@@ -221,8 +207,9 @@ abstract class Base
         }
         $popId = count($param) - 1;
         $data = ($param && is_array($param[$popId])) ? array_pop($param) : [];
-        if ($msg && strpos($msg, '%') !== FALSE)
+        if ($param && $msg && strpos($msg, '%') !== FALSE)
         {
+            
             $msg = sprintf($msg, ...$param);
         }
 
@@ -246,22 +233,6 @@ abstract class Base
         if ($charset)
         {
             $this->_charset = $charset;
-        }
-    }
-
-    /**
-     * 设置语言包
-     *
-     * @param string $locale
-     *        语言包名称
-     *        编码
-     * @return void
-     */
-    public function setLocale($locale)
-    {
-        if ($locale)
-        {
-            $this->_locale = $locale;
         }
     }
 

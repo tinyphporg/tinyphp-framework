@@ -414,7 +414,7 @@ class Debug implements Iplugin
         if (!$this->_view)
         {
             $this->_request = $this->_app->request;
-            $this->_view = $this->_app->getView();
+            $this->_view = $this->_app->container->get('view');
             $this->_viewDir = TINY_MVC_RESOURCES . 'views/debug/';
         }
         return $this->_view;

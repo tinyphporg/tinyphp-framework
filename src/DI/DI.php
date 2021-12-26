@@ -288,6 +288,8 @@ interface DefinitionProviderInterface
 {
 
     public function getDefinition(string $name);
+    
+    public function getDefinitions(): array;
 }
 
 interface DefinitionInterface
@@ -360,7 +362,11 @@ class DefintionProivder implements DefinitionProviderInterface
             }
         }
     }
-
+    
+    public function getDefinitions(): array
+    {
+        
+    }
     public function addDefinition(DefinitionInterface $definition)
     {
         $name = $definition->getName();

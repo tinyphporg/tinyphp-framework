@@ -169,18 +169,32 @@ class Cache implements CacheInterface, \ArrayAccess
     ];
     
     /**
+     * Default ttl
+     *
+     * @var integer
+     */
+    protected $defaultTtl = 60;
+    
+    /**
      * Default cache instance ID
      *
      * @var string
      */
     protected $defaultStorageId = 'default';
+    
+    /**
+     * Default storage path
+     * 
+     * @var string
+     */
+    protected $defaultStoragePath = '';
 
     /**
      * Mapping array for cache policy
      *
      * @var array
      */
-    protected $storages = [];  
+    protected $storageInstances = [];  
     
     /**
      * 注册缓存适配器
@@ -211,26 +225,35 @@ class Cache implements CacheInterface, \ArrayAccess
      * @throws CacheException 配置参数异常时抛出
      *
      */
-    public function addStorageAdapter(array $cfg)
+    public function addStorageAdapter(string $cacheId, string $storageId, array $options = [])
     {
-        //[ 'id' => storageid, 'storage' => 'file', 'options' => 'ssss']
-        $id = (string)$cfg['id'];  
-        if (!$cfg['id'])
+        if (key_exists($cacheId, $this->storageInstances))
         {
-            throw new CacheException('config.id为无效参数');
-        }
-        if (key_exists($id, $this->storages))
-        {
-            throw new CacheException(sprintf('config.id:%s已存在 ', $id));
+            throw new CacheException(sprintf('config.id:%s已存在 ', $cacheId));
         }
         
-        $storageId = (string)$cfg['storage'];
         if (!key_exists($storageId, self::$storageAdapters))
         {
             throw new CacheException(sprintf('config.storage:%s 不存在', $storageId));
         }
-        $options = (array)$cfg['options'];
-        $this->storages[$id] = [
+        
+        $options['ttl'] = $options['ttl'] ?? $this->defaultTtl;
+        if(!is_int($options['ttl']))
+        {
+            $options['ttl'] = (int)$options['ttl'] ?: $this->defaultTtl; 
+        }
+        if (isset($options['storage_path']))
+        {
+            $options['storage_path'] = $options['storage_path']  ?: $this->defaultStoragePath;
+        }
+
+        if (isset($options['path']))
+        {
+            $options['path'] = $options['path']  ?: $this->defaultStoragePath;
+        }
+        
+        $this->storageInstances[$cacheId] = [
+            'cacheId' => $cacheId,
             'adapterName' => self::$storageAdapters[$storageId],
             'storageId' => $storageId,
             'instance' => null,
@@ -261,6 +284,46 @@ class Cache implements CacheInterface, \ArrayAccess
         return $this->_defaultStorageId;
     }
 
+    /**
+     * 设置 默认的缓存路径
+     * 
+     * @param string $path
+     */
+    public function setDefaultStoragePath(string $path)
+    {
+        $this->defaultStoragePath = $path;
+    }
+    
+    /**
+     * 获取默认的缓存路径
+     * 
+     * @return string
+     */
+    public function getDefaultStoragePath()
+    {
+        return $this->defaultStoragePath;
+    }
+    
+    /**
+     * 设置默认的缓存过期时间
+     * 
+     * @param int $ttl
+     */
+    public function setDefaultTtl(int $ttl)
+    {
+        $this->defaultTtl = $ttl;
+    }
+    
+    /**
+     * 获取默认的生存时间
+     * 
+     * @return number
+     */
+    public function getDefaultTtl()
+    {
+        return $this->defaultTtl;
+    }
+    
     /**
      * 根据ID获取一个缓存实例
      *
@@ -326,7 +389,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function set($key, $value = null, int $ttl = null): bool
     {
-        
+        return true;
     }
     
     /**
@@ -482,17 +545,6 @@ class Cache implements CacheInterface, \ArrayAccess
     public function __set($id, $cache)
     {
         
-    }
-
-    /**
-     * 构造函数 只能通过Cache::getInstance()获取新实例
-     *
-     * @param
-     *        void
-     * @return void
-     */
-    protected function __construct()
-    {
     }
 }
 

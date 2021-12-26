@@ -319,8 +319,8 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         $this->runtime = $runtime;
         $this->runtime->setApplication($this);
-
-        $this->env = $this->runtime->env;
+        $this->env = $this->runtime->env;     
+        
         $this->_runtimeCache =  $this->runtime->getApplicationCache();
         
         /*应用实例路径配置和初始化*/
@@ -339,18 +339,6 @@ abstract class ApplicationBase implements IExceptionHandler
     public function setBootstrap(BootstrapBase $bootStrap)
     {
         $this->_bootstrap = $bootStrap;
-        return $this;
-    }
-    
-    /**
-     * 设置配置实例
-     *
-     * @param Configuration $config 配置实例
-     * @return ApplicationBase
-     */
-    public function setConfig(Configuration $config)
-    {
-        $this->_config = $config;
         return $this;
     }
     
@@ -380,138 +368,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
         return $this->_router;
     }
-    
-    /**
-     * 获取app实例的配置实例
-     *
-     * @return Configuration
-     */
-    public function getConfig()
-    {
-        if ($this->_config)
-        {
-            return $this->_config;
-        }
-        
-        $prop = $this->properties['config'];
-        if (!$prop['enabled'])
-        {
-            throw new ApplicationException("properties.config.enabled is false!");
-        }
-        if (!$prop['path'])
-        {
-            throw new ApplicationException("properties.config.path is not allow null!");
-        }
-        $this->_config = new Configuration($prop['path']);
-        if ($this->isDebug || !$prop['cache']['enabled'])
-        {
-            return $this->_config;
-        }
-        
-        $data = $this->_getConfigDataFromRuntimeCache();
-        if ($data && is_array($data))
-        {
-            $this->_config->setData($data);
-        }
-        else
-        {
-            $data = $this->_config->get();
-            $this->_saveConfigDataToRuntimeCache($data);
-        }
-        return $this->_config;
-    }
-    
-    /**
-     * 设置缓存实例
-     *
-     * @param Cache $cache 缓存实例
-     * @return ApplicationBase
-     */
-    public function setCache(Cache $cache)
-    {
-        $this->_cache = $cache;
-        return $this;
-    }
-    
-    /**
-     * 获取应用实例的缓存对象
-     *
-     * @return Cache
-     */
-    public function getCache()
-    {
-        if ($this->cache)
-        {
-            return $this->cache;
-        }
-        
-        $config = $this->properties['cache'];
-        if (!$config['enabled'])
-        {
-            throw new ApplicationException("profile.cache.enabled is false!");
-        }
-        
-        $this->_cache = Cache::getInstance();
-        
-        $config['drivers'] = $config['drivers'] ?: [];
-        $config['policys'] = $config['policys'] ?: [];
-        foreach ($prop['drivers'] as $type => $className)
-        {
-            Cache::regDriver($type, $className);
-        }
-        foreach ($config['policys'] as $policy)
-        {
-            $policy['lifetime'] = $policy['lifetime'] ?: $config['lifetime'];
-            $policy['path'] = $policy['path'] ?: $config['path'];
-            $this->_cache->regPolicy($policy);
-        }
-        return $this->_cache;
-    }
-    
-    /**
-     * 设置数据池实例
-     *
-     * @param Data $data 数据池实例
-     * @return ApplicationBase
-     */
-    public function setData(Data $data)
-    {
-        $this->_data = $data;
-        return $this;
-    }
-    
-    /**
-     * 获取数据库连接池
-     *
-     * @return Data
-     */
-    public function getData()
-    {
-        if ($this->_data)
-        {
-            return $this->_data;
-        }
-        $prop = $this->_prop['data'];
-        if (!$prop['enabled'])
-        {
-            throw new ApplicationException("properties.data.enabled is false!");
-        }
-        $this->_data = Data::getInstance();
-        $prop['drivers'] = $prop['drivers'] ?: [];
-        $prop['policys'] = $prop['policys'] ?: [];
-        $prop['charset'] = $prop['charset'] ?: 'utf8';
-        foreach ($prop['drivers'] as $type => $className)
-        {
-            Data::regDriver($type, $className);
-        }
-        foreach ($prop['policys'] as $policy)
-        {
-            $policy['def_charset'] = $prop['charset'];
-            $this->_data->addPolicy($policy);
-        }
-        return $this->_data;
-    }
-    
+
     /**
      * 设置应用过滤器
      *
@@ -562,55 +419,6 @@ abstract class ApplicationBase implements IExceptionHandler
             }
         }
         return $this->_filter;
-    }
-    
-    /**
-     * 设置语言包实例
-     *
-     * @param Lang $lang 语言包实例
-     * @return self
-     */
-    public function setLang(Lang $lang)
-    {
-        $this->_lang = $lang;
-        return $this;
-    }
-    
-    /**
-     * 获取语言操作对象
-     *
-     * @param void
-     * @return Lang
-     */
-    public function getLang()
-    {
-        if ($this->_lang)
-        {
-            return $this->_lang;
-        }
-        $prop = $this->_prop['lang'];
-        if (!$prop['enabled'])
-        {
-            throw new ApplicationException("properties.lang.enabled is false!");
-        }
-        
-        $this->_lang = Lang::getInstance();
-        $this->_lang->setLocale($prop['locale'])->setPath($prop['path']);
-        if ($this->isDebug || !$prop['cache']['enabled'])
-        {
-            return $this->_lang;
-        }
-        $data = $this->_getLangDataFromRuntimeCache();
-        if ($data && is_array($data))
-        {
-            $this->_lang->setData($data);
-        }
-        else
-        {
-            $data = $this->_lang->getData();
-            $this->_saveLangDataToRuntimeCache($data);
-        }
-        return $this->_lang;
     }
     
     /**
@@ -763,108 +571,6 @@ abstract class ApplicationBase implements IExceptionHandler
     }
     
     /**
-     * 设置视图实例
-     *
-     * @param View $viewer 视图实例
-     * @return Base
-     */
-    public function setView(View $view)
-    {
-        $this->_view = $view;
-        return $this;
-    }
-    
-    /**
-     * 获取视图类型
-     *
-     * @return View
-     */
-    public function getView()
-    {
-        if ($this->_view)
-        {
-            return $this->_view;
-        }
-        $prop = $this->properties['view'];
-        
-        $this->_view = View::getInstance();
-        $this->_view->setApplication($this);
-        
-        $helpers = (array)$prop['helpers'];
-        $engines = (array)$prop['engines'];
-        $assign = (array)$prop['assign'] ?: [];
-        $assign['env'] = $this->runtime->env;
-        $assign['request'] = $this->request;
-        $assign['response'] = $this->response;
-        $assign['config'] = $this->getConfig();
-        
-        $defaultTemplateDirname = TINY_MVC_RESOURCES . 'views/';
-        $templateDirs = [$defaultTemplateDirname];
-        $templateDirname = $prop['template_dirname'] ?: 'default';
-        $templateDirs[] = $prop['src'] . $templateDirname . DIRECTORY_SEPARATOR;
-        
-        // composer require tinyphp-ui;
-        $uiconfig = $prop['ui'];
-        if ($uiconfig['enabled'])
-        {
-            $uiHelperName = (string)$uiconfig['helper'];
-            if ($uiHelperName)
-            {
-                $helpers[] = [ 'helper' => $uiHelperName];
-            }
-            $templatePlugin = (string)$uiconfig['template_plugin'];
-            if($templatePlugin)
-            {
-                $uiPluginConfig = [
-                    'public_path' => $prop['ui']['public_path'],
-                    'inject' => $prop['ui']['inject'],
-                    'dev_enabled' => $prop['ui']['dev_enabled'],
-                    'dev_public_path' => $prop['ui']['dev_public_path']
-                ];
-                $engines[] = ['engine' => '\Tiny\MVC\View\Engine\Template', 'config' => ['plugins' => [['plugin' => $templatePlugin, 'config' => $uiPluginConfig]]] ];
-            }
-            if ($uiconfig['template_dirname'])
-            {
-                $templateDirs[] = (string)$uiconfig['template_dirname'];
-            }
-        }
-        
-        if ($this->_prop['lang']['enabled'])
-        {
-            $assign['lang'] = $this->getLang();
-            if ($prop['view']['lang']['enabled'] !== FALSE)
-            {
-                $templateDirs[] = $prop['src'] . $this->_prop['lang']['locale'] . DIRECTORY_SEPARATOR;
-            }
-        }
-        
-        // 设置模板搜索目录
-        $templateDirs = array_reverse($templateDirs);
-        $this->_view->setTemplateDir($templateDirs);
-        if ($prop['cache'] && $prop['cache']['enabled'])
-        {
-            $this->_view->setCache($prop['cache']['dir'], (int)$prop['cache']['lifetime']);
-        }
-        
-        // engine初始化
-        foreach ($engines as $econfig)
-        {
-            $this->_view->bindEngine($econfig);
-        }
-        
-        //helper初始化
-        foreach ($helpers as $econfig)
-        {
-            $this->_view->bindHelper($econfig);
-        }
-        
-        $this->_view->setCompileDir($prop['compile']);
-        
-        $this->_view->assign($assign);
-        return $this->_view;
-    }
-    
-    /**
      * 设置默认的时区
      *
      *
@@ -912,7 +618,6 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->onRouterStartup();
         $this->_route();
         $this->onRouterShutdown();
-        //$this->_doFilter();
         $this->onPreDispatch();
         $this->dispatch();
         $this->onPostDispatch();
@@ -1017,6 +722,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->container->set(Autoloader::class, $this->runtime->autoloader);
         $this->container->set(ExceptionHandler::class, $this->runtime->exceptionHandler);
         $this->container->set(RuntimeCachePool::class, $this->runtime->runtimeCachePool);
+        $this->container->set('applicationCache', $this->runtime->getApplicationCache());
         $this->container->set(self::class, $this);
         $this->container->set(ApplicationBase::class, $this);
         $this->container->set(Properties::class, $this->properties);
@@ -1179,7 +885,6 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function _initResponse()
     {
         $this->response->setApplication($this);
-        $this->response->setLocale($this->properties['lang.locale']);
         $this->response->setCharset($this->properties['charset']);
     }
     
@@ -1365,27 +1070,6 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function _saveLangDataToRuntimeCache($data)
     {
         return $this->_saveDataToRuntimeCache(self::RUNTIME_CACHE_KEY['LANG'], $data);
-    }
-    
-    /**
-     * 从运行时缓存获取配置数据
-     *
-     * @return data|FALSE
-     */
-    protected function _getConfigDataFromRuntimeCache()
-    {
-        return $this->_getDataFromRuntimeCache(self::RUNTIME_CACHE_KEY['CONFIG']);
-    }
-    
-    /**
-     * 保存配置数据到运行时缓存
-     *
-     * @param array $data
-     * @return boolean
-     */
-    protected function _saveConfigDataToRuntimeCache($data)
-    {
-        return $this->_saveDataToRuntimeCache(self::RUNTIME_CACHE_KEY['CONFIG'], $data);
     }
     
     /**

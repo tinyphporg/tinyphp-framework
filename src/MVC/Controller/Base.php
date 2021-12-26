@@ -259,13 +259,11 @@ abstract class Base
             case 'cache':
                 return $this->application->container->get('cache');
             case 'view':
-                return $this->application->getView();
+                return $this->application->container->get('view');
             case 'config':
-                return $this->application->getConfig();
-            case 'cache':
-                return $this->application->getCache();
+              return $this->application->container->get('config');
             case 'lang':
-                return $this->application->getLang();
+                return $this->application->container->get('lang');
             case ('Model' == substr($key, -5) && strlen($key) > 6):
                 return $this->application->getModel(substr($key, 0, -5));
             default:

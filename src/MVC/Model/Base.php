@@ -106,17 +106,17 @@ abstract class Base
             case '_app':
                 return Tiny::getApplication(); // application实例
             case 'data':
-                return $this->_app->getData(); // 数据源池
+                return $this->_app->container->get('data');
             case 'config':
-                return $this->_app->getConfig(); // 配置池
+                return $this->_app->container->get('config'); // 配置池
             case 'cache':
-                return $this->_app->getCache(); // 缓冲池
+                return $this->_app->container->get('cache'); // 缓冲池
             case ('Model' == substr($key, -5)):
                 return $this->_app->getModel(substr($key, 0, -5)); // 魔术方法拉去model实例
             case 'log':
                 return $this->_app->getLogger(); // 日志写入器
             case 'lang':
-                return $this->_app->getLang(); // 语言转换实例
+                return $this->_app->container->get('lang'); // 语言转换实例
             default:
                 return FALSE;
         }
