@@ -31,18 +31,10 @@ use Tiny\MVC\ApplicationBase;
  */
 class View implements \ArrayAccess
 {
-
-    /**
-     * View当前实例
-     *
-     * @var View
-     */
-    protected static $_instance;
-
     /**
      * 当前application实例
      *
-     * @var ApplicationBase
+     * @var Tiny\MVC\ApplicationBase
      */
     protected $_app;
     
@@ -127,29 +119,21 @@ class View implements \ArrayAccess
      * @var integer
      */
     protected $_cacheLifetime = 120;
-
+    
     /**
-     * 获取当前视图单一实例
+     * 初始化视图层
      *
-     * @return View
+     * @return void
      */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self();
-        }
-        return self::$_instance;
-    }
-
-    /**
-     * 设置 当前的application实例
-     *
-     * @param ApplicationBase $app 当前的application实例
-     */
-    public function setApplication(ApplicationBase $app)
+    public function __construct(ApplicationBase $app)
     {
         $this->_app = $app;
+        $this->_variables = [
+            'request' => $app->request,
+            'response' => $app->response,
+            'env' => $app->runtime->env,
+            'view' => $this,
+        ];
     }
     
     /**
@@ -493,17 +477,6 @@ class View implements \ArrayAccess
         
         $this->{$helperName} = $helperInstance;
         return $helperInstance;
-    }
-
-    /**
-     * 初始化视图层
-     *
-     * @return void
-     */
-    protected function __construct()
-    {
-        // 将自身注入视图变量
-        $this->_variables['view'] = $this;
     }
 
     /**

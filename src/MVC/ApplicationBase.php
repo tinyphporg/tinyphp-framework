@@ -71,16 +71,6 @@ abstract class ApplicationBase implements IExceptionHandler
     ];
     
     /**
-     * 应用层 运行时缓存KEY
-     * @var array
-     */
-    const RUNTIME_CACHE_KEY = [
-        'CONFIG' => 'app.config',
-        'LANG' => 'app.lang',
-        'MODEL' => 'app.model'
-    ];
-    
-    /**
      * APP所在的目录路径
      *
      * @var string
@@ -253,27 +243,6 @@ abstract class ApplicationBase implements IExceptionHandler
     protected $_models = [];
     
     /**
-     * 默认的命名空间
-     *
-     * @var string
-     */
-    protected $_namespace = '';
-    
-    /**
-     * 控制器命名空间
-     *
-     * @var string
-     */
-    protected $_cNamespace;
-    
-    /**
-     * 模型命名空间
-     *
-     * @var string
-     */
-    protected $_mNamespace;
-    
-    /**
      * 应用程序运行的时间戳
      *
      * @var int timeline
@@ -326,7 +295,8 @@ abstract class ApplicationBase implements IExceptionHandler
         /*应用实例路径配置和初始化*/
         $this->path = $path;
         $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php';
-        $this->properties = new Properties($this->profile, $this);        
+        $this->properties = new Properties($this->profile, $this);       
+        $this->isDebug = $this->properties['debug.enabled'];
         $this->_init();
     }
     
@@ -504,7 +474,7 @@ abstract class ApplicationBase implements IExceptionHandler
             
             
             $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
-            $controllerName = $this->_cNamespace . $cparam;
+            $controllerName = '\App\Controller' . $cparam;
             if (!class_exists($controllerName))
             {
                 throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_NOFOUND);
@@ -642,25 +612,22 @@ abstract class ApplicationBase implements IExceptionHandler
      * @param string $aname 动作名称
      * @return mixed
      */
-    public function dispatch(string $cname = NULL, string $aname = NULL, array $args = [], bool $isEvent = FALSE)
+    public function dispatch(string $cname = NULL, string $aname = NULL, array $args = [])
     {
+        
         // 获取控制器实例
         $controller = $this->getController($cname);
         $this->controller = $controller;
         
         // 获取执行动作名称
-        $action = $this->getAction($aname, $isEvent);
+        $action = $this->getAction($aname, FALSE);
         
         // 触发事件
-        if ($isEvent)
+        if (method_exists($controller, $action))
         {
-            if (method_exists($controller, $action))
-            {
-                return call_user_func_array([$controller, $action], $args);
-            }
-            return FALSE;
+            return call_user_func_array([$controller, $action], $args);
         }
-        
+
         // 执行前返回FALSE则不执行派发动作
         $ret = call_user_func_array([$controller, 'onBeginExecute'], $args);
         if (FALSE === $ret)
@@ -716,6 +683,7 @@ abstract class ApplicationBase implements IExceptionHandler
     {
         // container
         $proivder = new  DefintionProivder([$this->properties]);
+        $proivder->addDefinitionFromPath($this->properties['container.config_path']);
         $this->container = new Container($proivder);
         $this->container->set(self::class, $this);
         $this->container->set(Environment::class, $this->env);
@@ -726,29 +694,6 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->container->set(self::class, $this);
         $this->container->set(ApplicationBase::class, $this);
         $this->container->set(Properties::class, $this->properties);
-    }
-    /**
-     * 初始化应用程序的配置对象
-     *
-     * @return void
-     */
-    protected function _initProperties()
-    {
-
-        
-        // default
-        $this->isDebug = $this->properties['debug.enabled'];
-        $this->setTimezone($this->properties['timezone']);
-        $this->charset = (string)$this->properties['charset'] ?: 'zh_cn';
-        
-        //namepsace
-        $cnamespace = $this->properties['controller.namespace'];
-        $controllerNamespace =  (static::class == ConsoleApplication::class) ? $cnamespace['console'] : $cnamespace['default'];
-        $modeNamespace = $this->properties['model.namespace'];
-        $this->_namespace = $this->properties['app.namespace'] ?: 'App';        
-        $this->_cNamespace = '\\' . $this->_namespace . '\\' . $controllerNamespace;
-        $this->_mNamespace = '\\' . $this->_namespace . '\\' . $modeNamespace;
-        
     }
     
     /**
@@ -790,45 +735,6 @@ abstract class ApplicationBase implements IExceptionHandler
         if ($this->properties['exception.enabled'])
         {
             $this->runtime->regExceptionHandler($this);
-        }
-    }
-    
-    /**
-     * 初始化路径
-     *
-     * @param array $paths 初始化路径
-     * @return void
-     *
-     */
-    protected function _initPath(array $paths)
-    {
-        $runtimePath = $this->properties['app.runtime'];
-        if (!$runtimePath)
-        {
-            $runtimePath = $this->path . 'runtime/';
-        }
-        if ($runtimePath && 0 === strpos($runtimePath, 'runtime'))
-        {
-            $runtimePath = $this->path . $runtimePath;
-        }
-        foreach ($paths as $p)
-        {
-            $path = $this->properties[$p];
-            if (!$path)
-            {
-                continue;
-            }
-            if (0 === strpos($path, 'runtime'))
-            {
-                $rpath = preg_replace("/\/+/", "/", $runtimePath . substr($path, 7));
-                if (!file_exists($rpath))
-                {
-                    mkdir($rpath, 0777, TRUE);
-                }
-                $this->properties[$p] = $rpath;
-                continue;
-            }
-            $this->properties[$p] = realpath($this->path . $path) . DIRECTORY_SEPARATOR;
         }
     }
     
@@ -1013,97 +919,13 @@ abstract class ApplicationBase implements IExceptionHandler
             {
                 $modelFullName = "\\" . $modelFullName;
             }
-            $modelFullName = $this->_mNamespace . $modelFullName;
+            $modelFullName = "\\App\\Model" . $modelFullName;
             if (class_exists($modelFullName))
             {
                 $this->_saveModelDataToRuntimeCache($mName, $modelFullName);
                 return $modelFullName;
             }
         }
-    }
-    
-    /**
-     * 从运行时缓存获取模型类查找配置数据
-     *
-     * @return data|FALSE
-     */
-    protected function _getModelDataFromRuntimeCache($mname)
-    {
-        if (FALSE === $this->_modelSearchNodes)
-        {
-            $this->_modelSearchNodes = $this->_getDataFromRuntimeCache(self::RUNTIME_CACHE_KEY['MODEL']) ?: [];
-        }
-        if($this->_modelSearchNodes[$mname])
-        {
-            return $this->_modelSearchNodes[$mname];
-        }
-    }
-    
-    /**
-     * 保存模型类配置数据到运行时缓存
-     *
-     * @param array $data
-     * @return boolean
-     */
-    protected function _saveModelDataToRuntimeCache($mname, $modelFullName)
-    {
-        $this->_modelSearchNodes[$mname] = $modelFullName;
-        return $this->_saveDataToRuntimeCache(self::RUNTIME_CACHE_KEY['MODEL'], $this->_modelSearchNodes);
-    }
-    
-    /**
-     * 从运行时缓存获取语言包配置数据
-     *
-     * @return data|FALSE
-     */
-    protected function _getLangDataFromRuntimeCache()
-    {
-        return $this->_getDataFromRuntimeCache(self::RUNTIME_CACHE_KEY['LANG']);
-    }
-    
-    /**
-     * 保存语言包配置数据到运行时缓存
-     *
-     * @param array $data
-     * @return boolean
-     */
-    protected function _saveLangDataToRuntimeCache($data)
-    {
-        return $this->_saveDataToRuntimeCache(self::RUNTIME_CACHE_KEY['LANG'], $data);
-    }
-    
-    /**
-     * 从运行时缓存获取数据
-     *
-     * @return data|FALSE
-     */
-    protected function _getDataFromRuntimeCache($key)
-    {
-        if (!$this->_runtimeCache)
-        {
-            return FALSE;
-        }
-        $data = $this->_runtimeCache->get($key);
-        if (!$data || !is_array($data))
-        {
-            return FALSE;
-        }
-        return $data;
-    }
-    
-    /**
-     * 保存数据到运行时缓存
-     *
-     * @param array $data
-     * @return boolean
-     */
-    protected function _saveDataToRuntimeCache($key, $data)
-    {
-        if (!$this->_runtimeCache)
-        {
-            return FALSE;
-        }
-        return $this->_runtimeCache->set($key, $data);
     }
 }
 ?>

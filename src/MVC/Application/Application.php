@@ -28,7 +28,15 @@ use Tiny\Runtime\RuntimeCacheItem;
 use Tiny\MVC\ApplicationException;
 use Tiny\Lang\Lang;
 use Tiny\MVC\View\View;
+use Tiny\DI\Container;
+use Tiny\Tiny;
+use const Tiny\MVC\TINY_MVC_RESOURCES;
+use Tiny\MVC\ConsoleApplication;
 
+class PropertiesException extends \Exception
+{
+    
+}
 class PropertiesDefinition implements DefinitionInterface, SelfResolvingDefinition
 {
     
@@ -87,8 +95,6 @@ class PropertiesDefinition implements DefinitionInterface, SelfResolvingDefiniti
             {
                 case 'cache':
                     return $this->createCacheInstance();
-                case 'view':
-                    return $this->createViewInstance();
                 case 'data':
                     return $this->createDataInstance();
                 case 'config':
@@ -96,7 +102,7 @@ class PropertiesDefinition implements DefinitionInterface, SelfResolvingDefiniti
                 case 'lang':
                     return $this->createLangInstance();
                 case 'view':
-                    return $this->createViewInstance();
+                    return $this->createViewInstance($container);
                 default:
                     return false;
             }
@@ -252,29 +258,28 @@ class PropertiesDefinition implements DefinitionInterface, SelfResolvingDefiniti
      *
      * @return View
      */
-    protected function createViewInstance()
+    protected function createViewInstance(ContainerInterface $container)
     {
         $config = $this->properties['view'];
         
-        $viewInstance = View::getInstance();
-        $viewInstance->setApplication($this->properties->app);
+        $app = $this->properties->app;
+        $viewInstance = new View($app);
         
-        $helpers = (array)$prop['helpers'];
-        $engines = (array)$prop['engines'];
+        $helpers = (array)$config['helpers'];
+        $engines = (array)$config['engines'];
         
-        $assign = (array)$prop['assign'] ?: [];
-        $assign['env'] = $this->runtime->env;
-        $assign['request'] = $this->request;
-        $assign['response'] = $this->response;
-        $assign['config'] = $this->getConfig();
-        
+        $assign = (array)$config['assign'] ?: [];
+        if ($this->properties['config.enabled'])
+        {
+            $assign['config'] = $container->get('config');
+        }
         $defaultTemplateDirname = TINY_MVC_RESOURCES . 'views/';
         $templateDirs = [$defaultTemplateDirname];
-        $templateDirname = $prop['template_dirname'] ?: 'default';
-        $templateDirs[] = $prop['src'] . $templateDirname . DIRECTORY_SEPARATOR;
+        $templateDirname = $config['template_dirname'] ?: 'default';
+        $templateDirs[] = $config['src'] . $templateDirname . DIRECTORY_SEPARATOR;
         
         // composer require tinyphp-ui;
-        $uiconfig = $prop['ui'];
+        $uiconfig = $config['ui'];
         if ($uiconfig['enabled'])
         {
             $uiHelperName = (string)$uiconfig['helper'];
@@ -286,10 +291,10 @@ class PropertiesDefinition implements DefinitionInterface, SelfResolvingDefiniti
             if($templatePlugin)
             {
                 $uiPluginConfig = [
-                    'public_path' => $prop['ui']['public_path'],
-                    'inject' => $prop['ui']['inject'],
-                    'dev_enabled' => $prop['ui']['dev_enabled'],
-                    'dev_public_path' => $prop['ui']['dev_public_path']
+                    'public_path' => $config['ui']['public_path'],
+                    'inject' => $config['ui']['inject'],
+                    'dev_enabled' => $config['ui']['dev_enabled'],
+                    'dev_public_path' => $config['ui']['dev_public_path']
                 ];
                 $engines[] = ['engine' => '\Tiny\MVC\View\Engine\Template', 'config' => ['plugins' => [['plugin' => $templatePlugin, 'config' => $uiPluginConfig]]] ];
             }
@@ -299,39 +304,39 @@ class PropertiesDefinition implements DefinitionInterface, SelfResolvingDefiniti
             }
         }
         
-        if ($this->_prop['lang']['enabled'])
+        if ($this->properties['lang.enabled'])
         {
-            $assign['lang'] = $this->getLang();
-            if ($prop['view']['lang']['enabled'] !== FALSE)
+            $assign['lang'] = $container->get('lang');
+            if ($config['view']['lang']['enabled'] !== FALSE)
             {
-                $templateDirs[] = $prop['src'] . $this->_prop['lang']['locale'] . DIRECTORY_SEPARATOR;
+                $templateDirs[] = $config['src'] . $this->_prop['lang']['locale'] . DIRECTORY_SEPARATOR;
             }
         }
         
         // 设置模板搜索目录
         $templateDirs = array_reverse($templateDirs);
-        $this->_view->setTemplateDir($templateDirs);
-        if ($prop['cache'] && $prop['cache']['enabled'])
+        $viewInstance->setTemplateDir($templateDirs);
+        if ($config['cache'] && $config['cache']['enabled'])
         {
-            $this->_view->setCache($prop['cache']['dir'], (int)$prop['cache']['lifetime']);
+            $viewInstance->setCache($config['cache']['dir'], (int)$config['cache']['lifetime']);
         }
         
         // engine初始化
         foreach ($engines as $econfig)
         {
-            $this->_view->bindEngine($econfig);
+            $viewInstance->bindEngine($econfig);
         }
         
         //helper初始化
         foreach ($helpers as $econfig)
         {
-            $this->_view->bindHelper($econfig);
+            $viewInstance->bindHelper($econfig);
         }
         
-        $this->_view->setCompileDir($prop['compile']);
+        $viewInstance->setCompileDir($config['compile']);
         
-        $this->_view->assign($assign);
-        return $this->_view;
+        $viewInstance->assign($assign);
+        return $viewInstance;
     }
     /**
      * 从运行时缓存获取语言包配置数据
@@ -426,19 +431,30 @@ class Properties extends Configuration implements DefinitionProviderInterface
      * @var array
      */
     protected $definitionProviderChain = [];
+    
 
     protected $propertiesDefinitions = [];
     
+    protected $definitionSourceArray = [
+        View::class
+    ];
+    
     public $app;
+    
+    public $namespace = 'App';
+    
+    public $controllerNamespace = 'Controlller';
+    
+    public $modelNameSpace = 'Model';
 
     public function __construct($cpath, ApplicationBase $app)
     {
         parent::__construct($cpath);
         $this->app = $app;
-
+        $this->init();
         $this->initPath();
         $this->initDebug();
-        // $this->definitionProviderChain[] = new DefintionProivder($this['container.config_path']);
+        //$this->definitionProviderChain[] = new DefintionProivder($this['container.config_path'], $this->definitionSourceArray);
     }
     
     /**
@@ -479,9 +495,38 @@ class Properties extends Configuration implements DefinitionProviderInterface
         return $this->propertiesDefinitions;
     }
     
+    protected function init()
+    {
+        // timezone 
+        $timezone = $this['timezone'] ?: 'PRC';
+        if ($timezone !== date_default_timezone_get())
+        {
+            date_default_timezone_set($timezone);
+        }
+        
+        //charset 
+        if (!$this['charset'])
+        {
+            $this['charset'] = 'zh_cn';
+        }
+       
+        // app namespace
+        $this->namespace = (string)$this->properties['app.namespace'] ?: 'App';
+        
+        // controller namespace
+        $cnamespace = $this->properties['controller.namespace'];
+        $controllerNamespace =  ($this->app instanceof ConsoleApplication) ? $cnamespace['console'] : $cnamespace['default'];  
+        $controllerNamespace = ((string)$controllerNamespace ?: $this->controllerNamespace);
+        $this->controllerNamespace = '\\' . $this->namespace . '\\' . ((string)$controllerNamespace ?: $this->controllerNamespace);
+        
+        // model namespace
+        $modelNameSpace = (string)$this->properties['model.namespace'] ?: $this->modelNameSpace;
+        $this->modelNameSpace = '\\' . $this->namespace . '\\' . $modelNameSpace;  
+    }
+    
     protected function initPath()
     {
-        $appPath = $this->_app->path;
+        $appPath = $this->app->path;
         $paths = $this->get('path');
         $runtimePath = $this->get('app.runtime');
 
@@ -511,11 +556,28 @@ class Properties extends Configuration implements DefinitionProviderInterface
                 $this->set($p, $rpath);
                 continue;
             }
-            $rpath = preg_replace("#/+#", '/', $appPath . $path);
+            
+            $rpath = $this->getAbsolutePath($appPath . $path);
             $this->set($p, $rpath);
         }
     }
-
+    
+    protected function getAbsolutePath($path) 
+    {
+        $path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $path);
+        $parts = array_filter(explode(DIRECTORY_SEPARATOR, $path), 'strlen');
+        $absolutes = array();
+        foreach ($parts as $part) {
+            if ('.' == $part) continue;
+            if ('..' == $part) {
+                array_pop($absolutes);
+            } else {
+                $absolutes[] = $part;
+            }
+        }
+        return (($path[0] == DIRECTORY_SEPARATOR) ? DIRECTORY_SEPARATOR : '') . implode(DIRECTORY_SEPARATOR, $absolutes) . DIRECTORY_SEPARATOR;
+    }
+    
     protected function initDebug()
     {
         $debugConfig = $this->get('debug');

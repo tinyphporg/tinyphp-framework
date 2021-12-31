@@ -23,5 +23,6 @@ namespace Tiny\MVC\Controller;
  */
 abstract class ConsoleController extends Base
 {
+    
 }
 ?>

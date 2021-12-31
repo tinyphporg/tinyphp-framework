@@ -284,6 +284,11 @@ class Container implements ContainerInterface, FactoryInterface, InvokerInterfac
     }
 }
 
+class InvalidDefinitionException extends \Exception
+{
+    
+}
+
 interface DefinitionProviderInterface
 {
 
@@ -338,6 +343,8 @@ class DefintionProivder implements DefinitionProviderInterface
      * @var array
      */
     protected $definitionProivders = [];
+    
+    protected $definitionFiles = [];
 
     protected $definitions = [];
 
@@ -367,10 +374,96 @@ class DefintionProivder implements DefinitionProviderInterface
     {
         
     }
+    
     public function addDefinition(DefinitionInterface $definition)
     {
         $name = $definition->getName();
         $this->definitions[$name] = $definition;
+    }
+    
+    public function addDefinitionFromPath($path)
+    {
+        if (is_array($path))
+        {
+            foreach($path as $p)
+            {
+                $this->addDefinitionFromPath($p);
+            }
+            return;
+        }
+        if (is_dir($path))
+        {
+            $files = scandir($path);
+            foreach($files as $file)
+            {
+                if ($file == '.' || $file == '..')
+                {
+                    continue;
+                }
+                $this->addDefinitionFromPath($path . '/' . $file);
+            }
+            $this->definitionFiles[] = $path;
+            return;
+        }
+        if(is_file($path) && pathinfo($path,PATHINFO_EXTENSION) == 'php')
+        {
+            if (!in_array($path, $this->definitionFiles))
+            {
+                $definitions = require $path;
+                if (!is_array($definitions))
+                {
+                    return;
+                }
+                $this->addDefinitionFromArray($definitions);
+                $this->definitionFiles[] = $path;
+            }
+        }
+    }
+    
+    public function addDefinitionFromArray(array $sourceDefinitions)
+    {
+        foreach($sourceDefinitions as $name => $sourceDefinition)
+        {
+            if (is_int($name))
+            {
+                $this->resolveSourceDefinitionItem($sourceDefinition);
+                continue;
+            }
+            if(is_string($name))
+            {
+                $this->resloveSourceDefinition($name, $sourceDefinition);
+            }
+            
+        }
+    }
+    
+    public function resolveSourceDefinitionItem($sourceDefinition)
+    {
+        if ($sourceDefinition instanceof DefinitionInterface)
+        {
+            return $this->addDefinition($sourceDefinition);
+        }
+        //echo strpos($sourceDefinition, '\\'),$sourceDefinition;
+        if (is_string($sourceDefinition) && false !== strpos($sourceDefinition, '\\'))
+        {
+            $objectDefinition = new ObjectDefinition($sourceDefinition, $sourceDefinition);
+            return $this->addDefinition($objectDefinition);
+        }
+    }
+    
+    public function resloveSourceDefinition($name, $sourceDefinition)
+    {
+        if ($sourceDefinition instanceof DefinitionInterface)
+        {
+            $sourceDefinition->setName($name);
+            return $this->addDefinition($sourceDefinition);
+        }
+        if ($sourceDefinition instanceof \Closure || is_callable($sourceDefinition))
+        {
+            
+            $definition = new CallableDefinition($name, $sourceDefinition);
+            $this->addDefinition($definition);
+        }
     }
 }
 
@@ -403,18 +496,101 @@ class CallableDefinition implements DefinitionInterface
     }
 }
 
+class ObjectDefinition implements DefinitionInterface
+{
+    protected $name;
+    protected $className;
+    
+    /**
+     * 
+     * @var \ReflectionClass
+     */
+    protected $reflectionClassInstance;
+    
+    public function __construct($name, $className)
+    {
+        $this->name = $name;
+        $this->className = $className;
+    }
+    
+    public function getName(): string
+    {
+        return $this->name;
+    }
+    
+    public function getClassName(): string
+    {
+        return $this->className;
+    }
+    
+    public function classExists()
+    {
+        return class_exists($this->className);
+    }
+    
+    public function setName(string $name)
+    {
+        $this->name = $name;
+    }
+    
+    public function isInstantiable()
+    {
+        return $this->getReflectionClassInstance()->isInstantiable();
+    }
+    
+    /**
+     * 
+     * @throws NotFoundExceptionInterface
+     * @return \ReflectionClass
+     */
+    public function getReflectionClassInstance()
+    {
+        if (!$this->classExists())
+        {
+            throw new NotFoundExceptionInterface(sprintf("class %s is not exists!", $this->className));
+        }
+        
+        if (!$this->reflectionClassInstance)
+        {
+            $this->reflectionClassInstance = new \ReflectionClass($this->className);
+        }
+        return $this->reflectionClassInstance;
+    }
+    
+    
+}
 class ResolverDispatcher
 {
 
     protected $container;
 
     protected $callableResolver;
-
+    
+    /**
+     * 
+     * @var ParameterResolver
+     */
+    protected $parameterResolver;
+    
+    
     public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
+        
     }
 
+    /**
+     * 
+     * @return \Tiny\DI\ParameterResolver
+     */
+    public function getParameterResolver()
+    {
+        if (!$this->parameterResolver)
+        {
+            $this->parameterResolver = new ParameterResolver($this->container);
+        }
+        return $this->parameterResolver;
+    }
     public function resolve(DefinitionInterface $definition, array $parameters = [])
     {
         // Special case, tested early for speed
@@ -433,7 +609,7 @@ class ResolverDispatcher
         // Special case, tested early for speed
         if ($definition instanceof SelfResolvingDefinition)
         {
-            // return $definition->isResolvable($this->container);
+            return $definition->isResolvable($this->container);
         }
 
         $definitionResolver = $this->getDefinitionResolver($definition);
@@ -456,6 +632,12 @@ class ResolverDispatcher
                     $this->callableResolver = new CallableResolver($this->container, $this);
                 }
                 return $this->callableResolver;
+            case $definition instanceof ObjectDefinition:
+                if (!$this->objectResolver)
+                {
+                    $this->objectResolver = new ObjectResolver($this->container, $this);
+                }
+                return $this->objectResolver;
             default:
                 throw new \RuntimeException('No definition resolver was configured for definition of type ' . get_class($definition));
         }
@@ -471,8 +653,15 @@ class CallableResolver implements DefinitionResolverInterface
 
     protected $invoker;
 
+    /**
+     * 
+     * @var ResolverDispatcher
+     */
+    protected $definitionResolver;
+    
     public function __construct(ContainerInterface $container, ResolverDispatcher $resolver)
     {
+        $this->definitionResolver = $resolver;    
         $this->container = $container;
     }
 
@@ -480,11 +669,75 @@ class CallableResolver implements DefinitionResolverInterface
     {
         if (! $this->invoker)
         {
-             $this->invoker = new Invoker(null, $this->container);
+             $this->invoker = new Invoker($this->definitionResolver->getParameterResolver(), $this->container);
         }
 
         return $this->invoker->call($definition->getCallable());
     }
+    
+    public function isResolvable(DefinitionInterface $definition):bool
+    {
+        return true;
+    }
+}
+
+class ClassNotExistsException extends \Exception
+{
+    
+}
+
+class ObjectResolver implements DefinitionResolverInterface
+{
+    protected $definition;
+    
+    protected $container;
+    
+    protected $invoker;
+    
+    protected $definitionResolver;
+    
+    public function __construct(ContainerInterface $container, ResolverDispatcher $resolver)
+    {
+        $this->container = $container;
+        $this->definitionResolver = $resolver;
+    }
+    
+    public function resolve(DefinitionInterface $definition, array $parameters = [])
+    {
+       return $this->createInstance($definition, $parameters);
+        
+        
+    }
+    
+    @inject('name=eonfig.s', 'name=aaa', 'aaa')
+    protected function createInstance(ObjectDefinition $definition, array $parameters = [])
+    {
+
+        if (!$definition->isInstantiable())
+        {
+            throw new InvalidDefinitionException(sprintf( 'Entry "%s" cannot be resolved: the class doesn\'t exist', $definition->getName()));
+        }
+        $className = $definition->getClassName();
+        $reflectionClassInstance = $definition->getReflectionClassInstance();
+        $construection = $reflectionClassInstance->getConstructor();
+
+        $parameterResolver = $this->definitionResolver->getParameterResolver();
+        $args = $parameterResolver->getParameters($construection, $parameters);
+        // Sort by array key because call_user_func_array ignores numeric keys
+
+        return new $className(...$args);
+        
+        //$args = $this->resolveParameters($construection)    ;
+    }
+    
+    protected function 
+    
+    protected function resolveParameters(\ReflectionMethod $reflectionMethod)
+    {
+        
+    }
+    
+    //@inject('config.aasss');
     
     public function isResolvable(DefinitionInterface $definition):bool
     {
@@ -515,18 +768,6 @@ class Invoker
         $callableReflection = $this->createCallableReflection($callable);
         
         $args = $this->parameterResolver->getParameters($callableReflection, $parameters, []);
-
-        // Sort by array key because call_user_func_array ignores numeric keys
-        ksort($args);
-
-        // Check all parameters are resolved
-        $diff = array_diff_key($callableReflection->getParameters(), $args);
-        $parameter = reset($diff);
-        if ($parameter && \assert($parameter instanceof \ReflectionParameter) && ! $parameter->isVariadic())
-        {
-            throw new NotEnoughParametersException(sprintf('Unable to invoke the callable because no value was given for parameter %d ($%s)', $parameter->getPosition() + 1, $parameter->name));
-        }
-
         return call_user_func_array($callable, $args);
     }
 
@@ -688,28 +929,99 @@ class ParameterResolver implements ParameterResolverInterface
     {
         $this->container = $container;
     }
-
-    public function getParameters(\ReflectionFunctionAbstract $reflection, array $providedParameters, array $resolvedParameters): array
+    
+    /**
+     * 
+     * @param \ReflectionFunctionAbstract $reflection
+     * @param array $providedParameters
+     * @param array $resolvedParameters
+     * @return array
+     */
+    public function getParameters(\ReflectionFunctionAbstract $reflection, array $providedParameters, array $resolvedParameters = []): array
     {
-        $reflectionParameters = $reflection->getParameters();
+      $reflectionParameters = $reflection->getParameters();
         
-        foreach ($this->resolvers as $resolver)
-        {
-            $resolvedParameters = $resolver->getParameters($reflection, $providedParameters, $resolvedParameters);
-
-            $diff = array_diff_key($reflectionParameters, $resolvedParameters);
-            if (empty($diff))
-            {
-                // Stop traversing: all parameters are resolved
-                return $resolvedParameters;
-            }
-        }
-
+      // custom class
+      $this->getTypeParameters($reflectionParameters, $resolvedParameters);
+        
+      // default
+      $this->getDefaultParameters($reflectionParameters, $resolvedParameters);
+      
+      // Sort by array key because call_user_func_array ignores numeric keys
+      ksort($resolvedParameters);
+      
+      // Check all parameters are resolved
+      $diff = array_diff_key($reflectionParameters, $resolvedParameters);
+      $parameter = reset($diff);
+      if ($parameter && \assert($parameter instanceof \ReflectionParameter) && ! $parameter->isVariadic())
+      {
+          throw new NotEnoughParametersException(sprintf('Unable to invoke the callable because no value was given for parameter %d ($%s)', $parameter->getPosition() + 1, $parameter->name));
+      }
+      
         return $resolvedParameters;
     }
 
-    public function get()
+    public function getTypeParameters(array $parameters, array &$resolvedParameters)
     {
+        if (!empty($resolvedParameters))
+        {
+            $parameters = array_diff_key($parameters, $resolvedParameters);
+        }
+        foreach($parameters as $index => $parameter)
+        {
+            $parameterType = $parameter->getType();
+            if (!$parameterType) {
+                continue;
+            }
+            if (!$parameterType instanceof \ReflectionNamedType) {
+                // Union types are not supported
+                continue;
+            }
+            if ($parameterType->isBuiltin()) {
+                // Primitive types are not supported
+                continue;
+            }
+            $parameterClass = $parameterType->getName();
+            
+            if ($parameterClass === ContainerInterface::class) {
+                $resolvedParameters[$index] = $this->container;
+            } elseif ($this->container->has($parameterClass)) {
+                $resolvedParameters[$index] = $this->container->get($parameterClass);
+            }
+        }
+        
+        return $resolvedParameters;
+        
     }
+    
+    public function getDefaultParameters(array $parameters, array &$resolvedParameters)
+    {
+        if (!empty($resolvedParameters))
+        {
+            $parameters = array_diff_key($parameters, $resolvedParameters);
+        }
+        
+        foreach($parameters as $index => $parameter)
+        {
+            \assert($parameter instanceof \ReflectionParameter);
+            if ($parameter->isDefaultValueAvailable()) {
+                try {
+                    $resolvedParameters[$index] = $parameter->getDefaultValue();
+                } catch (\ReflectionException $e) {
+                    // Can't get default values from PHP internal classes and functions
+                }
+            } else {
+                $parameterType = $parameter->getType();
+                if ($parameterType && $parameterType->allowsNull()) {
+                    $resolvedParameters[$index] = null;
+                }
+            }
+        }
+    }
+}
+
+class AnnotationsReader
+{
+    
 }
 ?>
