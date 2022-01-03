@@ -33,8 +33,8 @@ class View implements \ArrayAccess
 {
     /**
      * 当前application实例
-     *
-     * @var Tiny\MVC\ApplicationBase
+     * @Autowired
+     * @var \Tiny\MVC\ApplicationBase
      */
     protected $_app;
     
@@ -122,12 +122,14 @@ class View implements \ArrayAccess
     
     /**
      * 初始化视图层
-     *
+     * 
      * @return void
      */
     public function __construct(ApplicationBase $app)
     {
-        $this->_app = $app;
+        
+        
+      //  $this->_app = $app;
         $this->_variables = [
             'request' => $app->request,
             'response' => $app->response,

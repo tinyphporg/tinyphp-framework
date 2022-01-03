@@ -621,11 +621,12 @@ abstract class ApplicationBase implements IExceptionHandler
         
         // 获取执行动作名称
         $action = $this->getAction($aname, FALSE);
-        
+
+      
         // 触发事件
         if (method_exists($controller, $action))
         {
-            return call_user_func_array([$controller, $action], $args);
+           // return call_user_func_array([$controller, $action], $args);
         }
 
         // 执行前返回FALSE则不执行派发动作
@@ -641,7 +642,9 @@ abstract class ApplicationBase implements IExceptionHandler
             $aname = $action;
             throw new ApplicationException("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ", E_NOFOUND);
         }
-        $ret = call_user_func_array([$controller, $action], $args);
+        $ret = $this->container->call([$controller, $action]);
+       // return $ret;  
+       // $ret = call_user_func_array([$controller, $action], $args);
         call_user_func_array([$controller, 'onEndExecute'], $args);
         return $ret;
     }
@@ -682,7 +685,7 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function initContainer()
     {
         // container
-        $proivder = new  DefintionProivder([$this->properties]);
+        $proivder = new  \Tiny\DI\Definition\DefintionProivder([$this->properties]);
         $proivder->addDefinitionFromPath($this->properties['container.config_path']);
         $this->container = new Container($proivder);
         $this->container->set(self::class, $this);

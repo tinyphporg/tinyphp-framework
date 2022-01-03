@@ -15,14 +15,9 @@
 namespace Tiny\MVC\Application;
 
 use Tiny\Config\Configuration;
-use Tiny\DI\DefinitionProviderInterface;
 use Tiny\MVC\ApplicationBase;
 use Tiny\Cache\Cache;
 use Tiny\DI\ContainerInterface;
-use Tiny\DI\DefintionProivder;
-use Tiny\DI\CallableDefinition;
-use Tiny\DI\DefinitionInterface;
-use Tiny\DI\SelfResolvingDefinition;
 use Tiny\Data\Data;
 use Tiny\Runtime\RuntimeCacheItem;
 use Tiny\MVC\ApplicationException;
@@ -32,6 +27,9 @@ use Tiny\DI\Container;
 use Tiny\Tiny;
 use const Tiny\MVC\TINY_MVC_RESOURCES;
 use Tiny\MVC\ConsoleApplication;
+use Tiny\DI\Definition\DefinitionInterface;
+use Tiny\DI\Definition\SelfResolvingDefinition;
+use Tiny\DI\Definition\DefinitionProviderInterface;
 
 class PropertiesException extends \Exception
 {
@@ -460,7 +458,6 @@ class Properties extends Configuration implements DefinitionProviderInterface
     /**
      * 获取容器定义实例
      * 
-     * @see \Tiny\DI\DefinitionProviderInterface::getDefinition()
      */
     public function getDefinition($name)
     {
