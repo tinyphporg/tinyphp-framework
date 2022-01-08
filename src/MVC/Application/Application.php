@@ -88,14 +88,13 @@ class Properties extends Configuration implements DefinitionProviderInterface
     {
         
         switch ($name) {
-            case Router::class:
-                return new CallableDefinition($name, [$this, 'mackRouter']);
             case Request::class:
                 return $this->getDefinitionFromClassAlias($name);
             case Response::class:
                 return $this->getDefinitionFromClassAlias($name);
             case Router::class:
-                return new CallableDefinition($name, );
+                echo "aaa";
+                return $this->getRouterDefinition();
         }
     }
     
@@ -308,14 +307,33 @@ class Properties extends Configuration implements DefinitionProviderInterface
         });
         
     }
+    
     protected function getRouterDefinition()
     {
-        if (!$this['router.enabled'])
+        echo "aaa";
+        $routerConfig = $this['router'];
+        if (!$routerConfig['enabled'])
         {
             return;
         }
-        return new CallableDefinition(Router::class, function(Request $request){
-            $router = new Router();
+        $routerConfig['routers'] = (array)$routerConfig['routers'];
+        $routerConfig['rules'] = (array)$routerConfig['rules'];
+        
+        return new CallableDefinition(Router::class, function(Request $request, Environment $env) use ($routerConfig) {
+            $routerInstance = new Router($request, $env->isConsole());
+
+            // 注册路由
+            foreach ($routerConfig['routers'] as $routerName => $routerclass)
+            {
+                $routerInstance->regDriver($routerName, $routerclass);
+            }
+            
+            // 注册路由规则
+            foreach ($routerConfig['rules'] as $rule)
+            {
+                $routerInstance->addRule((array)$rule);
+            }
+            return $routerInstance;
         });
     }
 }

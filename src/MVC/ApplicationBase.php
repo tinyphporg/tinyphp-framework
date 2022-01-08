@@ -307,21 +307,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_init();
     }
     
-    /**
-     *
-     * @return Router
-     *
-     */
-    public function getRouter()
-    {
-        if (!$this->_router)
-        {
-            $isConsolemode = $this->env->isConsole();
-            $this->_router = new Router($this->request, $isConsolemode);
-        }
-        return $this->_router;
-    }
-
+    
     /**
      * 设置应用过滤器
      *
@@ -571,7 +557,8 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->bootstrap();
         
         $this->onRouterStartup();
-        $this->call([$this, 'route']);
+        
+        $this->route();
         return;
         $this->onRouterShutdown();
         $this->onPreDispatch();
@@ -777,38 +764,27 @@ abstract class ApplicationBase implements IExceptionHandler
      *
      * @return void
      */
-    protected function route(Router $routerInstance)
+    protected function route()
     {
-        $routerInstance = $this->get();
-        $prop = $this->_prop['router'];
-        if (!$prop['enabled'])
-        {
-            return;
-        }
-        $routeString = $this->request->getRouterString();
+       
+        $routeString = $this->request->getRouterString(); 
         if (!$routeString || $routeString === '/')
         {
+            //return;
+        }
+        
+        $routerInstance = $this->get(Router::class);
+        if (!$routerInstance)
+        {
             return;
         }
-        $routers = $prop['routers'] ?: [];
-        $rules = $prop['rules'] ?: [];
-        $router = $this->getRouter();
         
-        foreach ($routers as $k => $r)
-        {
-            $router->regDriver($k, $r);
-        }
-        foreach ($rules as $rule)
-        {
-            $rule = (array)$rule;
-            $router->addRule((array)$rule);
-        }
-        
-        $ret = $router->route($routeString);
+        $ret = $routerInstance->route($routeString);
         if(!$ret)
         {
             throw new ApplicationException(sprintf('The RouterString[%s] does not match a router!', $routeString), E_NOFOUND);
         }
+        echo "aaa";
     }
     
     /**
