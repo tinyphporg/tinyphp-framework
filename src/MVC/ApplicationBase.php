@@ -39,10 +39,14 @@ use Tiny\DI\Container;
 use Tiny\Runtime\Autoloader;
 use Tiny\Runtime\ExceptionHandler;
 use Tiny\Runtime\RuntimeCachePool;
-use Tiny\DI\DefintionProivder;
+use Tiny\DI\Definition\DefinitionProivder;
+use Tiny\DI\ContainerInterface;
+use Tiny\MVC\Bootstrap\Bootstrap;
+use Tiny\MVC\Request\Request;
+use Tiny\MVC\Response\Response;
 
 // MVC下存放资源的文件夹
-const TINY_MVC_RESOURCES = __DIR__ . '/_resources/';
+const TINY_MVC_RESOURCES = TINY_FRAMEWORK_RESOURCE . 'mvc' . DIRECTORY_SEPARATOR;
 
 /**
  * app实例基类
@@ -243,13 +247,6 @@ abstract class ApplicationBase implements IExceptionHandler
     protected $_models = [];
     
     /**
-     * 应用程序运行的时间戳
-     *
-     * @var int timeline
-     */
-    protected $_startTime = 0;
-    
-    /**
      * Application注册的插件
      *
      * @var array
@@ -284,44 +281,30 @@ abstract class ApplicationBase implements IExceptionHandler
      * @param string $profile 配置文件路径
      * @return void
      */
-    public function __construct(Runtime $runtime = null, $path, $profile = null)
+    public function __construct(ContainerInterface $container = null, $path, $profile = null)
     {
-        $this->runtime = $runtime;
-        $this->runtime->setApplication($this);
-        $this->env = $this->runtime->env;     
-        
-        $this->_runtimeCache =  $this->runtime->getApplicationCache();
-        
-        /*应用实例路径配置和初始化*/
+        // application workdir
         $this->path = $path;
-        $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php';
-        $this->properties = new Properties($this->profile, $this);       
+        
+        // container
+        $this->container = $container;
+        $this->container->set(self::class, $this);
+        $this->container->set(ApplicationBase::class, $this);
+        
+        // properties
+        $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php'; 
+        $this->properties = new Properties($this->profile, $this);     
+        
+        // injection properties
+        $this->container->injectOn($this->properties);                
+
+        // resquest
+        $this->request = $this->container->get(Request::class);
+        $this->response = $this->container->get(Response::class);
         $this->isDebug = $this->properties['debug.enabled'];
+        
+        // echo "aaa";
         $this->_init();
-    }
-    
-    /**
-     * 设置引导类
-     *
-     * @param BootstrapBase $bootStrap 继承了BootstrapBase的引导类实例
-     * @return ApplicationBase
-     */
-    public function setBootstrap(BootstrapBase $bootStrap)
-    {
-        $this->_bootstrap = $bootStrap;
-        return $this;
-    }
-    
-    /**
-     * 设置路由器
-     *
-     * @param Router $router 路由器
-     * @return ApplicationBase
-     */
-    public function setRouter(Router $router)
-    {
-        $this->_router = $router;
-        return $this;
     }
     
     /**
@@ -441,6 +424,7 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     public function onException($e, $exceptions)
     {
+        print_r($e);
         $isLog = $this->_prop['exception']['log'];
         $logId = $this->_prop['exception']['logid'];
         if ($isLog)
@@ -584,9 +568,11 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     public function run()
     {
-        $this->_bootstrap();
+        $this->bootstrap();
+        
         $this->onRouterStartup();
-        $this->_route();
+        $this->call([$this, 'route']);
+        return;
         $this->onRouterShutdown();
         $this->onPreDispatch();
         $this->dispatch();
@@ -642,7 +628,7 @@ abstract class ApplicationBase implements IExceptionHandler
             $aname = $action;
             throw new ApplicationException("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ", E_NOFOUND);
         }
-        $ret = $this->container->call([$controller, $action]);
+      //  $ret = $this->container->call([$controller, $action]);
        // return $ret;  
        // $ret = call_user_func_array([$controller, $action], $args);
         call_user_func_array([$controller, 'onEndExecute'], $args);
@@ -672,8 +658,6 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function _init()
     {
-        $this->initContainer();
-        $this->_initProperties();
         $this->_initResponse();
         $this->_initImport();
         $this->_initException();
@@ -681,23 +665,7 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->_initPlugin();
         $this->_prop = $this->properties->get();
     }
-    
-    protected function initContainer()
-    {
-        // container
-        $proivder = new  \Tiny\DI\Definition\DefintionProivder([$this->properties]);
-        $proivder->addDefinitionFromPath($this->properties['container.config_path']);
-        $this->container = new Container($proivder);
-        $this->container->set(self::class, $this);
-        $this->container->set(Environment::class, $this->env);
-        $this->container->set(Autoloader::class, $this->runtime->autoloader);
-        $this->container->set(ExceptionHandler::class, $this->runtime->exceptionHandler);
-        $this->container->set(RuntimeCachePool::class, $this->runtime->runtimeCachePool);
-        $this->container->set('applicationCache', $this->runtime->getApplicationCache());
-        $this->container->set(self::class, $this);
-        $this->container->set(ApplicationBase::class, $this);
-        $this->container->set(Properties::class, $this->properties);
-    }
+   
     
     /**
      * 初始化debug插件
@@ -728,45 +696,7 @@ abstract class ApplicationBase implements IExceptionHandler
         }
     }
     
-    /**
-     * 初始化异常处理
-     *
-     * @return void
-     */
-    protected function _initException()
-    {
-        if ($this->properties['exception.enabled'])
-        {
-            $this->runtime->regExceptionHandler($this);
-        }
-    }
-    
-    /**
-     * 初始化加载类库
-     *
-     * @return void
-     */
-    protected function _initImport()
-    {
-        $this->runtime->import($this->path, $this->_namespace);
-        $prop = $this->properties['autoloader'];
-        if (!is_array($prop['librarys']))
-        {
-            return;
-        }
-        if ($prop['no_realpath'])
-        {
-            foreach ($prop['librarys'] as $ns => $p)
-            {
-                $this->runtime->import($p, $ns);
-            }
-            return;
-        }
-        foreach ($prop['librarys'] as $ns => $p)
-        {
-            $this->runtime->import($this->properties[$p], $ns);
-        }
-    }
+ 
     
     /**
      * 初始化请求
@@ -815,56 +745,41 @@ abstract class ApplicationBase implements IExceptionHandler
     }
     
     /**
-     * 获取bootstrap实例 考虑到在application的初始化，不提供外部获取方式，避免错误使用。
-     *
-     * @throws ApplicationException
-     * @return \Tiny\MVC\Bootstrap\Base
+     * 从容器中获取实例
+     * 
+     * @param string $name
+     * @return mixed|\Tiny\DI\Container|\Tiny\DI\ContainerInterface
      */
-    protected function _getBootstrap()
+    public function get(string $name)
     {
-        if ($this->_bootstrap)
-        {
-            return $this->_bootstrap;
-        }
-        if (!$this->_prop['bootstrap']['enabled'])
-        {
-            return FALSE;
-        }
-        $className = $this->_prop['bootstrap']['class'];
-        if (!class_exists($className))
-        {
-            throw new ApplicationException(sprintf('bootstrap faild:%s 不存在', $className));
-        }
-        
-        $this->_bootstrap = new $className();
-        if (!$this->_bootstrap instanceof BootstrapBase)
-        {
-            throw new ApplicationException(sprintf('bootstrap faild:%s 没有继承\Tiny\Bootstrap\Base基类', $className));
-        }
-        return $this->_bootstrap;
+        return $this->container->get($name);
     }
+    
     
     /**
      * 引导
      *
      * @return void
      */
-    protected function _bootstrap()
+    protected function bootstrap()
     {
-        $bootstrap = $this->_getBootstrap();
-        if ($bootstrap)
-        {
-            $bootstrap->bootstrap($this);
-        }
+         $bootstrapInstance = $this->container->get(Bootstrap::class);
+         if ($bootstrapInstance && $bootstrapInstance  instanceof Bootstrap)
+         {
+             $bootstrapInstance ->bootstrap();
+         }
+         return $this;
     }
+    
     
     /**
      * 执行路由
      *
      * @return void
      */
-    protected function _route()
+    protected function route(Router $routerInstance)
     {
+        $routerInstance = $this->get();
         $prop = $this->_prop['router'];
         if (!$prop['enabled'])
         {

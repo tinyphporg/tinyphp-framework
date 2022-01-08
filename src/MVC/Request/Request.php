@@ -23,7 +23,7 @@ use Tiny\MVC\ApplicationBase;
  * @since 2017年4月4日下午8:47:29
  * @final 2017年4月4日下午8:47:29
  */
-abstract class Base
+abstract class Request
 {
 
     /**

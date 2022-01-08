@@ -23,7 +23,7 @@ use Tiny\MVC\Request\Param\Readonly;
  * @since 2017年4月4日下午8:48:32
  * @final 2017年4月4日下午8:48:32
  */
-class ConsoleRequest extends Base
+class ConsoleRequest extends Request
 {
 
     /**

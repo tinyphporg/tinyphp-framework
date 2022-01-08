@@ -24,7 +24,7 @@ use Tiny\Config\Configuration;
  * @since 2017年3月13日下午1:47:14
  * @final 2017年3月13日下午1:47:14
  */
-abstract class Base
+abstract class Response
 {
 
     /**

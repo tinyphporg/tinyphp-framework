@@ -23,9 +23,14 @@ namespace Tiny\Runtime;
 
 use Tiny\MVC\ApplicationBase;
 use Tiny\DI\Container;
+use Tiny\DI\ContainerInterface;
+use Tiny\DI\Definition\DefinitionProivder;
 
-/* 定义框架所在路径 */
+// 定义框架所在路径
 define('TINY_FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
+
+// 定义框架资源路径
+define('TINY_FRAMEWORK_RESOURCE', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR);
 
 /**
  * 运行时主体类
@@ -103,6 +108,13 @@ class Runtime
     public $exceptionHandler;
     
     /**
+     * 容器实例
+     * 
+     * @var ContainerInterface
+     */
+    public $container;
+    
+    /**
      * 运行时缓存实例集合
      * @var array
      */
@@ -173,7 +185,7 @@ class Runtime
         if (!$this->app)
         {
             $className = self::$appMap[$this->env['RUNTIME_MODE']];
-            $this->app = new $className($this, $appPath, $profile);
+            $this->app = new $className($this->container, $appPath, $profile);
         }
         return $this->app;
     }
@@ -212,52 +224,6 @@ class Runtime
     {
         return $this->exceptionHandler->regExceptionHandler($handler);
     }
-
-    /**
-     * 创建一个运行时缓存
-     * @param string $cacheId
-     */
-    public function createRuntimeCache($cacheId)
-    {
-        if (!$this->env['RUNTIME_CACHE_ENABLED'])
-        {
-            return NULL;
-        }
-        if (!$this->runtimeCaches[$cacheId])
-        {
-            $this->runtimeCaches[$cacheId] = new RuntimeCacheItem($this->runtimeCachePool, $cacheId);
-        }
-        return $this->runtimeCaches[$cacheId];
-    }
-    
-    /**
-     * 获取加载器的运行时缓存实例
-     * 
-     * @return RuntimeCacheItem|FALSE
-     */
-    public function getAutoloaderCache()
-    {
-        return $this->createRuntimeCache($this->env['RUNTIME_CACHE_ID_AUTOLOADER']);
-    }
-    
-    /**
-     * 获取当前应用实例的运行时缓存实例
-     * @return boolean
-     */
-    public function getApplicationCache()
-    {
-        return $this->createRuntimeCache($this->env['RUNTIME_CACHE_ID_APPLICATION']);
-    }
-    
-    /**
-     *  是否开启运行时缓存
-     *  
-     * @return \Tiny\Runtime\Environment
-     */
-    public function isRuntimeCached()
-    {
-        return $this->env['RUNTIME_CACHE_ENABLED'];       
-    }
     
     /**
      * 构建基本运行环境所需的各种类
@@ -267,17 +233,31 @@ class Runtime
     public function __construct()
     {
         $this->startTimestamp = microtime(TRUE);
+        
+        // default
         $this->env = new Environment();
         $this->runtimeCachePool = new RuntimeCachePool($this);
         $this->exceptionHandler = new ExceptionHandler();
+        
+        // autoload
         $this->autoloader = new Autoloader();
-        $acache = $this->getAutoloaderCache();
-        if($acache)
-        {
-            $this->autoloader->setRuntimeCache($acache);
-        }
+       // $acache = $this->getAutoloaderCache();
+        //if($acache)
+        //{
+        //    $this->autoloader->setRuntimeCache($acache);
+        //}
         $this->autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
         
+        //  build container
+        $proivder = new  DefinitionProivder([]);
+        $this->container = new Container($proivder);
+        
+        $this->container->set(self::class, $this);
+        $this->container->set(Environment::class, $this->env);
+        $this->container->set(Autoloader::class, $this->autoloader);
+        $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
+        $this->container->set(RuntimeCachePool::class, $this->runtimeCachePool);
+        $this->container->set(DefinitionProivder::class, $proivder);
     }
     
 }
@@ -714,7 +694,7 @@ class Autoloader
                     return FALSE;
                 }
             }
-            $this->_saveToRuntimeCache($cname, $ipath);
+            //$this->_saveToRuntimeCache($cname, $ipath);
             include_once($ipath);
         }
         return FALSE;

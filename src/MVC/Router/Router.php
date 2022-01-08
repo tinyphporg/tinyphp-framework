@@ -14,7 +14,6 @@
  */
 namespace Tiny\MVC\Router;
 
-use Tiny\MVC\Request\Base as Request;
 
 /**
  * 路由器主体类

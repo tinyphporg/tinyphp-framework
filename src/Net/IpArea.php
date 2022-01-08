@@ -18,7 +18,7 @@
 namespace Tiny\Net;
 
 // IP库地址
-define('IPAREA_PATH', __DIR__ . '/__res/qqwry.dat');
+define('TINY_NET_IPAREA_DAT', TINY_FRAMEWORK_RESOURCE . 'net/qqwry.dat');
 
 /**
  * 获取ip所在的地区和城市
@@ -37,7 +37,7 @@ class IpArea
      * @var string
      *
      */
-    const IPAREA_PATH = IPAREA_PATH;
+    const IPAREA_PATH = TINY_NET_IPAREA_DAT;
 
     /**
      * 默认编码

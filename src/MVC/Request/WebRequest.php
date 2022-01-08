@@ -24,7 +24,7 @@ use Tiny\MVC\ApplicationBase;
  * @since 2017年3月8日下午4:33:02
  * @final 2017年3月8日下午4:33:02
  */
-class WebRequest extends Base
+class WebRequest extends Request
 {
 
     /**
@@ -146,7 +146,7 @@ class WebRequest extends Base
      *
      * @return void
      */
-    protected function __construct()
+    public function __construct()
     {
         $this->_data = [
             'cookie' => $_COOKIE,

@@ -129,7 +129,7 @@ class View implements \ArrayAccess
     {
         
         
-      //  $this->_app = $app;
+        $this->_app = $app;
         $this->_variables = [
             'request' => $app->request,
             'response' => $app->response,

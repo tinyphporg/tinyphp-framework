@@ -19,7 +19,7 @@ namespace Tiny\MVC\Response;
  * @package Tiny.MVC.Response
  *
  */
-class ConsoleResponse extends Base
+class ConsoleResponse extends Response
 {
 }
 ?>

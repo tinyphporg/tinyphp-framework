@@ -24,7 +24,7 @@ use Tiny\MVC\Web\HttpMimeMapping;
  * @since 2017年3月13日下午2:19:46
  * @final 2017年3月13日下午2:19:46
  */
-class WebResponse extends Base
+class WebResponse extends Response
 {
 
     /**
