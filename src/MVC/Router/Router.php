@@ -15,6 +15,8 @@
 namespace Tiny\MVC\Router;
 
 use Tiny\MVC\Request\Request;
+use Tiny\MVC\Request\Param\Readonly;
+use Tiny\MVC\Request\WebRequest;
 
 /**
  * 路由器接口
@@ -23,7 +25,7 @@ use Tiny\MVC\Request\Request;
  * @since 2017年3月12日下午5:57:08
  * @final 2017年3月12日下午5:57:08
  */
-interface RouterInterface
+interface RouteInterface
 {
 
     /**
@@ -33,7 +35,7 @@ interface RouterInterface
      * @param string $routerString 路由规则
      * @return bool
      */
-    public function checkRule(array $regRule, $routerString);
+    public function match(array $regRule, $routerString);
 
     /**
      * 获取解析后的参数，如果该路由不正确，则不返回任何数据
@@ -63,48 +65,44 @@ class Router
 {
 
     /**
-     * 路由驱动类的集合数组
-     *
+     * 路由提供者集合
+     *  name => routeInterface
      * @var array
      */
-    protected $routerClasses = [
+    protected $routeFactoryConfig = [
         'regex' => RegEx::class,
-        'pathinfo' => PathInfo::class];
-
+        'pathinfo' => PathInfo::class
+    ];
+    
+    
+    
     /**
      * 路由器实例集合
      *
      * @var array
      */
-    protected $_routers = [];
+    protected $routes = [];
 
     /**
      * 路由器配置集合
      *
      * @var array
      */
-    protected $_routerRules = [];
+    protected $routeRules = [];
 
     /**
      * 匹配的路由实例
      *
-     * @var RouterInterface
+     * @var RouteInterface
      */
-    protected $_matchRouter;
-
-    /**
-     * 是否为命令行形式下的路由模式
-     *
-     * @var bool
-     */
-    protected $isMatchDomain = true;
+    protected $matchedRoute;
 
     /**
      * 是否已经执行过路由检测
      *
      * @var bool
      */
-    protected $_isRouted = false;
+    protected $isRouted = false;
 
     /**
      * 解析的参数
@@ -120,14 +118,13 @@ class Router
      * @param string $routerName 实现了IRouter接口的路由器类名
      * @return bool
      */
-    public function regRouter($routerId, $routerName)
+    public function addRoute(string $name, $className)
     {
-        if (! key_exists($routerId, $this->routerClasses))
+        if (! key_exists($name, $this->routeFactoryConfig))
         {
             return false;
         }
-        $this->_routerMaps[$routerId] = $routerName;
-        return TRUE;
+        $this->routeFactoryConfig[] = $className;
     }
 
     /**
@@ -139,32 +136,28 @@ class Router
      *        damain array 可通配匹配的域名 默认为空
      * @return boolean
      */
-    public function addRule(array $rule)
+    public function addRouteRule(array $rule)
     {
-        $routerId = (string) $rule['router'];
-        if (! key_exists($routerId, $this->_routerMaps))
-        {
-            return FALSE;
+        $name = (string) $rule['route'];
+        if (!key_exists($name, $this->routeProviderConfig)) {
+            if (!$rule['class']) {
+                return false;
+            }
+            $this->addRoute($name, $rule['class']);
         }
-        $domain = [];
-        if (key_exists('domain', $rule) && $rule['domain'])
-        {
-            $domain = is_array($rule['domain']) ? $rule['domain'] : [
-                (string) $rule['domain']];
-        }
-        $ruleData = [];
+        
+        $ruleConfig = [];
         if (key_exists('rule', $rule) && is_array($rule['rule']))
         {
-            $ruleData = $rule['rule'];
+            $ruleConfig = $rule['rule'];
         }
 
-        $routerRule = [];
-        $routerRule['routerId'] = $routerId;
-        $routerRule['routerName'] = $this->_routerMaps[$routerId];
-        $routerRule['ruleData'] = $ruleData;
-        $routerRule['domain'] = $domain;
-        $this->_routerRules[] = $routerRule;
-        return TRUE;
+        $routeRule = [];
+        $routeRule['name'] = $name;
+        $routeRule['class'] = $this->routeFactoryConfig[$name];
+        $routeRule['rule'] = $ruleConfig;
+        $this->routeRules[] = $routeRule;
+        return true;
     }
 
     /**
@@ -172,20 +165,21 @@ class Router
      *
      * @return void
      */
-    public function route($routerString)
+    public function match(Request $request, array $options = [])
     {
+        $routerString = $request->getUri();
         if (! $routerString || $routerString === '/')
         {
-            return FALSE;
+            return true;
+        }
+        if ($request instanceof WebRequest)
+        {
+            //$this-
         }
         foreach ($this->_routerRules as $routerRule)
         {
-            $routerName = $routerRule['routerName'];
+            $routerName = $routerRule['name'];
             if (! $routerName)
-            {
-                continue;
-            }
-            if ($this->_isConsoleMode && ! $this->_isMatchedDomain($routerRule['domain']))
             {
                 continue;
             }
@@ -323,5 +317,18 @@ class Router
         $this->_routers[$routerName] = $routerInstance;
         return $routerInstance;
     }
+}
+
+
+/**
+* Http环境下的参数验证
+* 
+* @package namespace
+* @since 2022年1月9日上午8:30:59
+* @final 2022年1月9日上午8:30:59
+*/
+class HttpRoute implements RouteInterface
+{
+    
 }
 ?>

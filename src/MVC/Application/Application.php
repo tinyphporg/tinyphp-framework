@@ -310,20 +310,19 @@ class Properties extends Configuration implements DefinitionProviderInterface
     
     protected function getRouterDefinition()
     {
-        echo "aaa";
         $routerConfig = $this['router'];
         if (!$routerConfig['enabled'])
         {
             return;
         }
-        $routerConfig['routers'] = (array)$routerConfig['routers'];
+        $routerConfig['routes'] = (array)$routerConfig['routers'];
         $routerConfig['rules'] = (array)$routerConfig['rules'];
         
         return new CallableDefinition(Router::class, function(Request $request, Environment $env) use ($routerConfig) {
             $routerInstance = new Router($request, $env->isConsole());
 
             // 注册路由
-            foreach ($routerConfig['routers'] as $routerName => $routerclass)
+            foreach ($routerConfig['routes'] as $routerName => $routerclass)
             {
                 $routerInstance->regDriver($routerName, $routerclass);
             }

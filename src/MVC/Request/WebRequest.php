@@ -42,11 +42,11 @@ class WebRequest extends Request
     protected $_server;
 
     /**
-     * 获取路由字符串
+     * 获取路径字符串
      *
      * @return string
      */
-    public function getRouterString()
+    public function getUri()
     {
         return $this->uri;
     }
@@ -58,7 +58,7 @@ class WebRequest extends Request
      *        路由参数
      * @return void
      */
-    public function setRouterParam(array $param)
+    public function setParam(array $param)
     {
         $this->_data['get'] = array_merge($this->_data['get'], $param);
         $this->_data['request'] = array_merge($this->_data['request'], $param);

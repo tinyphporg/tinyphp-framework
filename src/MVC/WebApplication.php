@@ -43,27 +43,7 @@ class WebApplication extends ApplicationBase
      */
     protected $_session;
     
-    /**
-     * 初始化请求实例
-     *
-     * @return void
-     */
-    protected function _initRequest()
-    {
-        $this->request = WebRequest::getInstance();
-        parent::_initRequest();
-    }
 
-    /**
-     * 初始化响应实例
-     *
-     * @return void
-     */
-    protected function _initResponse()
-    {
-        $this->response = WebResponse::getInstance();
-        parent::_initResponse();
-    }
     
     /**
      * 获取http对话信息

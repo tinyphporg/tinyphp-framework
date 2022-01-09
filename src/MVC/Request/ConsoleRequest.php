@@ -59,7 +59,7 @@ class ConsoleRequest extends Request
      *
      * @return string
      */
-    public function getRouterString()
+    public function getUri()
     {
         return $this->_uri;
     }
@@ -71,7 +71,7 @@ class ConsoleRequest extends Request
      *        参数
      * @return void
      */
-    public function setRouterParam(array $param)
+    public function setParam(array $param)
     {
         
         $this->param->merge($param);

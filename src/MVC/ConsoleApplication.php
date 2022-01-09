@@ -70,16 +70,6 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
         $this->_initUIInstaller(); //UI安装
     }
     
-    /**
-     * 初始化请求实例
-     *
-     * @return void
-     */
-    protected function _initRequest()
-    {
-        $this->request = ConsoleRequest::getInstance();
-        parent::_initRequest();
-    }
     
     /**
      * 初始化debug模块
@@ -96,16 +86,6 @@ class ConsoleApplication extends ApplicationBase implements IWorkerHandler, IDae
         parent::_initDebug();
     }
 
-    /**
-     * 初始化响应实例
-     *
-     * @return void
-     */
-    protected function _initResponse()
-    {
-        $this->response = ConsoleResponse::getInstance();
-    }
-    
     
     /**
      *  初始化WEB环境下的tinyphp-ui

@@ -25,27 +25,12 @@ use Tiny\MVC\ApplicationBase;
  */
 abstract class Request
 {
-
-    /**
-     * 实例
-     *
-     * @var self
-     */
-    protected static $_instance;
-
-    /**
-     * 当前应用实例
-     *
-     * @var ApplicationBase
-     */
-    protected $_app;
-
     /**
      * 控制器名称
      *
      * @var string
      */
-    protected $_cname = 'Main';
+    protected $controllname = 'main';
 
     /**
      * 动作名
@@ -74,7 +59,6 @@ abstract class Request
      * @var string
      */
     protected $_routeParamString;
-
     /**
      * 路由参数
      *
@@ -82,20 +66,6 @@ abstract class Request
      */
     protected $_routeParams = [];
 
-    /**
-     * 获取单例
-     *
-     * @return Base
-     */
-    public static function getInstance()
-    {
-        if (!self::$_instance)
-        {
-            $className = static::class;
-            self::$_instance = new $className();
-        }
-        return self::$_instance;
-    }
 
     /**
      * 设置当前应用实例
@@ -242,7 +212,7 @@ abstract class Request
      *
      * @return string
      */
-    abstract public function getRouterString();
+    abstract public function getUri();
 
     /**
      * 设置路由解析的参数
@@ -251,7 +221,7 @@ abstract class Request
      *        参数
      * @return void
      */
-    abstract public function setRouterParam(array $param);
+    abstract public function setParam(array $param);
 
     /**
      * 魔法函数

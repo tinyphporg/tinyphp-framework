@@ -767,7 +767,7 @@ abstract class ApplicationBase implements IExceptionHandler
     protected function route()
     {
        
-        $routeString = $this->request->getRouterString(); 
+        $routeString = $this->request->getUri(); 
         if (!$routeString || $routeString === '/')
         {
             //return;
