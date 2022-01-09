@@ -122,7 +122,7 @@ class Properties extends Configuration implements DefinitionProviderInterface
      * @autowired
      * @param Runtime $runtime
      */
-    protected function autowireExceptionHandler(Runtime $runtime, ApplicationBase $app)
+    protected function initExceptionHandler(Runtime $runtime, ApplicationBase $app)
     {
         if (!(bool)$this['exception.enabled'])
         {
