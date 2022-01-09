@@ -43,6 +43,7 @@ use Tiny\MVC\Request\Request;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\Response\ConsoleResponse;
 use Tiny\MVC\Response\WebResponse;
+use Tiny\MVC\Controller\Dispatcher;
 
 
 
@@ -62,12 +63,18 @@ class Properties extends Configuration implements DefinitionProviderInterface
     protected ApplicationBase $app;
     
     /**
+     * application的命名空间
+     * @var String
+     */
+    protected $namespace;
+    
+    /**
      * 源定义
      * 
      * @var array
      */
     protected $sourceDefinitions = [
-      // Router::class,
+      
     ];
     
     protected $classAlias = [];
@@ -93,8 +100,9 @@ class Properties extends Configuration implements DefinitionProviderInterface
             case Response::class:
                 return $this->getDefinitionFromClassAlias($name);
             case Router::class:
-                echo "aaa";
                 return $this->getRouterDefinition();
+            case Dispatcher::class:
+                return $this->getDispatcherDefinition();
         }
     }
     
@@ -318,21 +326,51 @@ class Properties extends Configuration implements DefinitionProviderInterface
         $routerConfig['routes'] = (array)$routerConfig['routers'];
         $routerConfig['rules'] = (array)$routerConfig['rules'];
         
-        return new CallableDefinition(Router::class, function(Request $request, Environment $env) use ($routerConfig) {
-            $routerInstance = new Router($request, $env->isConsole());
+        return new CallableDefinition(Router::class, function(Request $request) use ($routerConfig) {
+            $routerInstance = new Router($request);
 
             // 注册路由
             foreach ($routerConfig['routes'] as $routerName => $routerclass)
             {
-                $routerInstance->regDriver($routerName, $routerclass);
+                $routerInstance->addRoute($routerName, $routerclass);
             }
             
             // 注册路由规则
             foreach ($routerConfig['rules'] as $rule)
             {
-                $routerInstance->addRule((array)$rule);
+                $routerInstance->addRouteRule((array)$rule);
             }
             return $routerInstance;
+        });
+    }
+    
+    protected function getDispatcherDefinition()
+    {
+        
+        return new CallableDefinition(Router::class, function(ContainerInterface $container, Properties $properties, Request $request, DefinitionProivder $proivder) {
+            //$profile['controller']['namespace']['default'] = 'Controller';
+            //$profile['controller']['namespace']['console'] = 'Controller\Console';
+            //$profile['controller']['namepsace']['rpc'] = 'Controller\RPC';
+            //$profile['controller']['src'] = 'controller/';
+            //$profile['controller']['default'] = 'main';
+            //$profile['controller']['param'] = 'c';
+            
+            $dispatcher = new Dispatcher($container);
+            
+            //添加到容器的定义源里
+            $proivder->addDefinitionProivder($dispatcher);
+            
+            //controller
+            $namespaceNode = ($request instanceof ConsoleRequest) ?  'controller.namespace.console' : 'controller.namespace.default'; 
+            $namespace = $properties->namespace . '\\' . $properties[$namespaceNode];
+            $dispatcher->setControllerNamespace($namespace);
+            
+            //action
+            if ($properties['action.suffix'])
+            {
+                $dispatcher->setActionSuffix($properties['action.suffix']);
+            }
+            return $dispatcher;
         });
     }
 }

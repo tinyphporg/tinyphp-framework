@@ -16,9 +16,111 @@ namespace Tiny\MVC\Controller;
 
 use Tiny\MVC\ApplicationBase;
 use Tiny\MVC\View\View;
+use Tiny\DI\Definition\DefinitionProviderInterface;
+use Tiny\DI\Definition\ObjectDefinition;
+use Tiny\DI\ContainerInterface;
+use Tiny\MVC\Request\Request;
+use Tiny\MVC\Application\Properties;
+use Tiny\MVC\Response\Response;
+use Tiny\MVC\WebApplication;
+use Tiny\MVC\Request\WebRequest;
+use Tiny\MVC\Response\WebResponse;
+use Tiny\MVC\ConsoleApplication;
+use Tiny\MVC\Request\ConsoleRequest;
+use Tiny\MVC\Response\ConsoleResponse;
 
-class Dispatcher
+class Dispatcher implements DefinitionProviderInterface
 {
+    
+    /**
+     * 容器实例
+     *
+     * @var ContainerInterface
+     */
+    protected $container;
+    
+    /**
+     * 控制器的命名空间
+     *
+     * @var string
+     */
+    protected $namespace;
+    
+    /**
+     * 动作名称前缀
+     *
+     * @var string
+     */
+    protected $actionSuffix = 'Action';
+    
+    /**
+     * 控制器定义集合
+     *
+     * @var array
+     */
+    protected $controllerDefinitions = [];
+    
+    /**
+     * 控制器的名称集合
+     *
+     * @var array
+     */
+    protected $controllerClasses = [];
+    
+    /**
+     * 设置控制器的命名空间
+     *
+     * @param string $namespace
+     */
+    public function setControllerNamespace(string $namespace)
+    {
+        $this->namespace = $namespace;
+    }
+    
+    /**
+     * 设置动作后缀
+     *
+     * @param string $suffix
+     */
+    public function setActionSuffix(string $suffix)
+    {
+        $this->actionSuffix = $suffix;
+    }
+    
+    /**
+     *
+     * @param ApplicationBase $app
+     */
+    public function __construct(ContainerInterface $container)
+    {
+        $this->container = $container;
+    }
+    
+    /**
+     *
+     * @param string $name
+     * @return \Tiny\DI\Definition\ObjectDefinition
+     */
+    public function getDefinition(string $name)
+    {
+        if (strpos($name, $this->namespace) !== 0) {
+            return false;
+        }
+        if (!key_exists($name, $this->controllerDefinitions)) {
+            $this->controllerDefinitions[$name] = new ObjectDefinition($name, $name);
+        }
+        return $this->controllerDefinitions[$name];
+    }
+    
+    /**
+     *
+     * @return array
+     */
+    public function getDefinitions(): array
+    {
+        return [];
+    }
+    
     /**
      * 分发
      *
@@ -27,39 +129,56 @@ class Dispatcher
      * @param string $aname 动作名称
      * @return mixed
      */
-    public function dispatch(string $cname = NULL, string $aname = NULL, array $args = [])
+    public function dispatch(string $cname, string $aname)
     {
-        // 获取控制器实例
-        $controller = $this->getController($cname);
-        $this->controller = $controller;
-        
-        // 获取执行动作名称
-        $action = $this->getAction($aname, $isEvent);
-        
-        // 触发事件
-        if (method_exists($controller, $action))
-        {
-            return call_user_func_array([$controller, $action], $args);
+        $controllerClass = $this->getControllerClass($cname);
+        $controllerInstance = $this->container->get($controllerClass);
+        if (!$controllerInstance instanceof ControllerBase) {
+            throw new \Exception("Controller:'{$controllerClass}' is not instanceof Tiny\MVC\Controlller\Controller!", E_NOFOUND);
         }
         
-        // 执行前返回FALSE则不执行派发动作
-        $ret = call_user_func_array([$controller, 'onBeginExecute'], $args);
-        if (FALSE === $ret)
+        $actionMethod = $this->getActionName($aname);
+        
+        // 执行前置函数 结果为false时不执行动作函数
+        $beginRet = $this->container->call([$controllerInstance, 'onBeginExecute']);
+        if (false === $beginRet)
         {
-            return FALSE;
+            return false;
         }
         
-        if (!method_exists($controller, $action))
-        {
-            $cname = get_class($controller);
-            $aname = $action;
-            throw new ApplicationException("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ", E_NOFOUND);
+        //执行动作函数
+        if (!method_exists($controllerInstance, $actionMethod)) {
+            throw new \Exception(sprintf("Dispatch error: The Action '{$aname}' of Controller '{$cname}' is not exists ", $actionMethod, $controllerClass));
         }
-        $ret = call_user_func_array([$controller, $action], $args);
-        call_user_func_array([$controller, 'onEndExecute'], $args);
-        return $ret;
+        $this->container->call([$controllerInstance, $actionMethod]);
+        
+        
+        // 执行后触发动作
+        $this->container->call([$controllerInstance, 'onEndExecute']);
     }
- 
+    
+    protected function getControllerClass($cname)
+    {
+        if (!$cname) {
+            throw new \Exception('aaa');
+        }
+        if (key_exists($cname, $this->controllerClasses)) {
+            return $this->controllerClasses[$cname];
+        }
+        
+        $cparam = preg_replace_callback("/\b\w/", function ($param) {
+            return strtoupper($param[0]);
+        }, $cname);
+        $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
+        
+        $controllerClass = $this->namespace . $cparam;
+        if (!class_exists($controllerClass)) {
+            throw new \Exception("Dispatch errror:controller,{$controllerClass}不存在，无法加载", E_NOFOUND);
+        }
+        $this->controllerClasses[$cname] = $controllerClass;
+        return $controllerClass;
+    }
+    
     /**
      * 简单获取控制器
      *
@@ -69,44 +188,35 @@ class Dispatcher
     public function getController($cname)
     {
         $cname = $cname ?: $this->request->getController();
-        if ($this->_controllers[$cname])
-        {
+        if ($this->_controllers[$cname]) {
             return $this->_controllers[$cname];
         }
         $cparam = preg_replace_callback("/\b\w/", function ($param) {
             return strtoupper($param[0]);
         }, $cname);
-            
-            
-            $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
-            $controllerName = $this->_cNamespace . $cparam;
-            if (!class_exists($controllerName))
-            {
-                throw new ApplicationException("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_NOFOUND);
-            }
-            
-            $controllerInstance = new $controllerName();
-            if (!$controllerInstance instanceof \Tiny\MVC\Controller\Base)
-            {
-                throw new ApplicationException("Controller:'{$controllerName}' is not instanceof Tiny\MVC\Controlller\Controller!", E_NOFOUND);
-            }
-            $controllerInstance->setApplication($this);
-            $this->_controllers[$cname] = $controllerInstance;
-            return $controllerInstance;
+        
+        if (!class_exists($controllerName)) {
+            throw new \Exception("Dispatch errror:controller,{$controllerName}不存在，无法加载", E_NOFOUND);
+        }
+        
+        $controllerInstance = new $controllerName();
+        if (!$controllerInstance instanceof \Tiny\MVC\Controller\Base) {
+            throw new \Exception("Controller:'{$controllerName}' is not instanceof Tiny\MVC\Controlller\Controller!", E_NOFOUND);
+        }
+        $controllerInstance->setApplication($this);
+        $this->_controllers[$cname] = $controllerInstance;
+        return $controllerInstance;
     }
-
+    
     /**
      * 获取动作名称
      *
      * @param string $aname
      */
-    public function getAction($aname, bool $isEvent = FALSE)
+    public function getActionName($aname, bool $isEvent = FALSE)
     {
-        $aname = $aname ?: $this->request->getAction();
-        $aname = $isEvent ? $aname : $aname . 'Action';
-        return $aname;
+        return $aname . $this->actionSuffix;
     }
-    
 }
 
 /**
@@ -116,63 +226,54 @@ class Dispatcher
  * @since 2017年3月12日下午2:57:20
  * @final 2017年3月12日下午2:57:20
  */
-abstract class Base
+abstract class ControllerBase
 {
     
     /**
      * 当前应用程序实例
      *
-     * @var \Tiny\MVC\WebApplication
+     * @var ApplicationBase
      */
-    public $application;
+    protected $application;
     
     /**
      * 当前应用程序的状态和配置数据
      *
-     * @var \Tiny\Config\Configuration
+     * @var Properties
      */
-    public $properties;
+    protected Properties $properties;
     
     /**
-     * 容器实例
-     * @var Container
-     */
-    public $container;
-    
-    /**
-     * 当前WEB请求参数
+     * 当前请求参数
      *
-     * @var \Tiny\MVC\Request\WebRequest
+     * @var Request
      */
-    public $request;
+    protected $request;
     
     /**
-     * 当前WEB请求响应实例
+     * 当前响应实例
      *
-     * @var \Tiny\MVC\Response\WebResponse
+     * @var Response
      */
-    public $response;
-    
+    protected $response;
+        
     /**
-     * 设置当前应用实例
      *
-     * @param
-     *        void
-     * @return void
+     * @autowired
+     * @param ApplicationBase $app
      */
-    public function setApplication(ApplicationBase $app)
+    public function init(ApplicationBase $app)
     {
+        $this->properties = $app->properties;
         $this->application = $app;
         $this->request = $app->request;
         $this->response = $app->response;
-        $this->properties = $app->properties;
     }
     
     /**
      * 关闭或开启调试模块
      *
-     * @param bool $isDebug
-     *        是否输出调试模块
+     * @param bool $isDebug 是否输出调试模块
      * @return void
      */
     public function setDebug($isDebug)
@@ -183,14 +284,10 @@ abstract class Base
     /**
      * 写入日志
      *
-     * @param string $id
-     *        日志ID
-     * @param string $message
-     *        日志信息
-     * @param int $priority
-     *        日志优先级别 0-7
-     * @param array $extra
-     *        附加信息
+     * @param string $id 日志ID
+     * @param string $message 日志信息
+     * @param int $priority 日志优先级别 0-7
+     * @param array $extra 附加信息
      * @return void
      */
     public function log($id, $message, $priority = 1, $extra = [])
@@ -217,69 +314,55 @@ abstract class Base
     }
     
     /**
-     * 初始化视图实例后执行该函数
-     *
-     * @return void
-     */
-    public function onViewInited()
-    {
-    }
-    
-    /**
      * 给试图设置预定义变量
      *
-     * @param string|array $key
-     *        变量键 $key为array时 $value默认为空
-     * @param mixed $value
-     *        变量值
+     * @param string|array $key 变量键 $key为array时 $value默认为空
+     * @param mixed $value 变量值
      * @return bool
      */
     public function assign($key, $value = NULL)
     {
-        return $this->view->assign($key, $value);
+        return $this->getView()->assign($key, $value);
     }
     
     /**
      * 解析视图模板，注入到响应实例里
      *
-     * @param string $viewPath
-     *        视图模板文件的相对路径
+     * @param string $viewPath 视图模板文件的相对路径
      *        视图相对路径
      * @return void
      */
     public function parse($viewPath)
     {
-        return $this->view->display($viewPath);
+        return $this->getView()->display($viewPath);
     }
     
     /**
      * 解析视图模板并注入response
+     *
      * @param string $viewPath
      * @return void
      */
     public function display($viewPath)
     {
-        return $this->view->display($viewPath);
+        return $this->getView()->display($viewPath);
     }
     
     /**
      * 解析视图模板，并返回解析后的字符串
      *
-     * @param string $viewPath
-     *        视图模板文件的相对路径
-     *
+     * @param string $viewPath 视图模板文件的相对路径
      * @return void
      */
     public function fetch($viewPath)
     {
-        return $this->view->fetch($viewPath);
+        return $this->getView()->fetch($viewPath);
     }
     
     /**
      * 加载Model
      *
-     * @param string $modelName
-     *        模型名称
+     * @param string $modelName 模型名称
      * @return Base
      */
     public function getModel($modelName)
@@ -290,10 +373,8 @@ abstract class Base
     /**
      * 调用另外一个控制器的动作并派发
      *
-     * @param string $cName
-     *        控制器名称
-     * @param string $aName
-     *        动作名称
+     * @param string $cName 控制器名称
+     * @param string $aName 动作名称
      * @return void
      */
     public function toDispathcher($cName, $aName)
@@ -304,63 +385,25 @@ abstract class Base
     /**
      * 输出格式化的JSON串
      *
-     * @param array ...$params
-     *        输入参数
+     * @param array ...$params 输入参数
      */
-    public funCtion outFormatJSON(...$params)
+    public function outFormatJSON(...$params)
     {
         return $this->response->outFormatJSON(...$params);
     }
     
     /**
-     * 魔法函数，加载视图层
-     *
-     * @param $key string
-     *        属性名
-     * @return mixed view Tiny\MVC\Viewer\Viewer 视图层对象
-     *         config Tiny\Config\Configuration 默认配置对象池
-     *         cache Tiny\Cache\Cache 默认缓存对象池
-     *         lang 语言对象
-     *         *Model 尾缀为Model的模型对象
+     * 获取视图实例
+     * 
+     * @return View
      */
-    public function __get($key)
+    protected function getView()
     {
-        $ins = $this->_magicGet($key);
-        if ($ins)
+        if (!$this->view)
         {
-            $this->{$key} = $ins;
+            $this->view = $this->application->get(View::class);
         }
-        if ('view' == $key)
-        {
-            $this->onViewInited();
-        }
-        return $ins;
-    }
-    
-    /**
-     * 魔术方式获取属性
-     *
-     * @param string $key
-     * @return mixed
-     */
-    protected function _magicGet($key)
-    {
-        switch ($key)
-        {
-            case 'cache':
-                return $this->application->container->get('cache');
-            case 'view':
-                //return $this->application->container->get('view');
-                return $this->application->container->get(View::class);
-            case 'config':
-                return $this->application->container->get('config');
-            case 'lang':
-                return $this->application->container->get('lang');
-            case ('Model' == substr($key, -5) && strlen($key) > 6):
-                return $this->application->getModel(substr($key, 0, -5));
-            default:
-                return FALSE;
-        }
+        return $this->view;
     }
 }
 
@@ -371,28 +414,29 @@ abstract class Base
  * @since 2017年3月11日上午12:20:13
  * @final 2017年3月11日上午12:20:13
  */
-abstract class Controller extends Base
+abstract class Controller extends ControllerBase
 {
-
+    
     /**
-     * 魔术方式获取属性
+     * 当前应用程序实例
      *
-     * @param string $key
-     * @return mixed session HttpsSession操作对象
-     *         cookie HttpCookie操作对象
+     * @var WebApplication
      */
-    protected function _magicGet($key)
-    {
-        switch ($key)
-        {
-            case 'cookie':
-                return $this->application->getCookie();
-            case 'session':
-                return $this->application->getSession();
-            default:
-                return parent::_magicGet($key);
-        }
-    }
+    protected $application;
+    
+    /**
+     * 当前请求参数
+     *
+     * @var WebRequest
+     */
+    protected $request;
+    
+    /**
+     * 当前响应实例
+     *
+     * @var WebResponse
+     */
+    protected $response;
 }
 
 /**
@@ -402,8 +446,27 @@ abstract class Controller extends Base
  * @since 2017年3月12日下午3:04:19
  * @final 2017年3月12日下午3:04:19
  */
-abstract class ConsoleController extends Base
+abstract class ConsoleController extends ControllerBase
 {
+    /**
+     * 当前应用程序实例
+     *
+     * @var ConsoleApplication
+     */
+    protected $application;
     
+    /**
+     * 当前请求参数
+     *
+     * @var ConsoleRequest
+     */
+    protected $request;
+    
+    /**
+     * 当前响应实例
+     *
+     * @var ConsoleResponse
+     */
+    protected $response;
 }
 ?>

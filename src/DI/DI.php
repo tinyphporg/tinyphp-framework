@@ -25,6 +25,7 @@ use Tiny\DI\Injection\InjectionInterface;
 use Tiny\DI\Injection\Injection;
 use Tiny\DI\Definition\ObjectDefinition;
 use Tiny\DI\Definition\InstanceDefinition;
+use Tiny\DI\Definition\DefinitionProivder;
 
 /**
  * 容器接口
@@ -103,7 +104,7 @@ class Container implements ContainerInterface, InvokerInterface
     /**
      * 定义提供者
      *
-     * @var DefintionProivder
+     * @var DefinitionProivder
      */
     protected $defintionProvider;
     
@@ -133,7 +134,17 @@ class Container implements ContainerInterface, InvokerInterface
      */
     protected $injection;
     
+    /**
+     * 
+     * @var array
+     */
     protected $entriesBeingResolved = [];
+    
+    /**
+     * 
+     * @var array
+     */
+    protected $entriesAlias = [];
     
     /**
      * 构造函数
@@ -292,7 +303,7 @@ class Container implements ContainerInterface, InvokerInterface
      */
     protected function createDefintionProvider()
     {
-        return new DefintionProivder();
+        return new DefinitionProivder();
     }
     
     /**

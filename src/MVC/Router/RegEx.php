@@ -34,7 +34,7 @@ class RegEx implements IRouter
      *
      * @var array
      */
-    protected $_params = [];
+    protected $params = [];
 
     /**
      * 检查该规则是否成功
@@ -44,7 +44,7 @@ class RegEx implements IRouter
      */
     public function checkRule(array $regRule, $routerString)
     {
-        $reg = $regRule['reg'];
+        $regex = $regRule['regex'];
         $regArray = $regRule['keys'];
 
         $out = NULL;

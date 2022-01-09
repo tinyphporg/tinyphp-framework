@@ -149,6 +149,7 @@ class DefinitionProivder implements DefinitionProviderInterface
         $this->definitionProivders[] = $proivder;
     }
     
+    
     /**
      *
      * {@inheritdoc}
@@ -225,7 +226,7 @@ class DefinitionProivder implements DefinitionProviderInterface
             }
         }
     }
-
+    
     /**
      * 增加一个定义实例集合
      *

@@ -25,7 +25,6 @@ use Tiny\MVC\Router\IRouter;
 use Tiny\MVC\Controller\Controller;
 use Tiny\MVC\View\View;
 use Tiny\MVC\Plugin\Iplugin;
-use Tiny\MVC\Bootstrap\Base as BootstrapBase;
 use Tiny\MVC\Router\Router;
 use Tiny\MVC\Controller\Base;
 use Tiny\Runtime\Runtime;
@@ -44,6 +43,7 @@ use Tiny\DI\ContainerInterface;
 use Tiny\MVC\Bootstrap\Bootstrap;
 use Tiny\MVC\Request\Request;
 use Tiny\MVC\Response\Response;
+use Tiny\MVC\Controller\Dispatcher;
 
 // MVC下存放资源的文件夹
 const TINY_MVC_RESOURCES = TINY_FRAMEWORK_RESOURCE . 'mvc' . DIRECTORY_SEPARATOR;
@@ -141,7 +141,7 @@ abstract class ApplicationBase implements IExceptionHandler
     /**
      * 当前请求实例
      *
-     * @var string WebRequest
+     * @var Request
      *
      */
     public $request;
@@ -164,17 +164,13 @@ abstract class ApplicationBase implements IExceptionHandler
     /**
      * 引导类
      *
-     * @var BootStrapBase
+     * @var Bootstrap
      *
      */
-    protected $_bootstrap;
+    protected $bootstrap;
     
-    /**
-     * 路由器实例
-     *
-     * @var Router
-     */
-    protected $_router;
+    
+    protected $dispatcher;
     
     /**
      * 配置实例
@@ -559,10 +555,12 @@ abstract class ApplicationBase implements IExceptionHandler
         $this->onRouterStartup();
         
         $this->route();
-        return;
+        
         $this->onRouterShutdown();
         $this->onPreDispatch();
+        
         $this->dispatch();
+        return;
         $this->onPostDispatch();
         $this->response->output();
     }
@@ -585,8 +583,14 @@ abstract class ApplicationBase implements IExceptionHandler
      * @param string $aname 动作名称
      * @return mixed
      */
-    public function dispatch(string $cname = NULL, string $aname = NULL, array $args = [])
+    public function dispatch(string $cname = null, string $aname = null)
     {
+        $cname = $cname ?: $this->request->getController();
+        $aname = $aname ?: $this->request->getAction();
+        
+        $dispatcher = $this->get(Dispatcher::class);
+        $dispatcher->dispatch($cname, $aname);
+        return;
         
         // 获取控制器实例
         $controller = $this->getController($cname);
@@ -766,25 +770,13 @@ abstract class ApplicationBase implements IExceptionHandler
      */
     protected function route()
     {
-       
-        $routeString = $this->request->getUri(); 
-        if (!$routeString || $routeString === '/')
-        {
-            //return;
-        }
-        
         $routerInstance = $this->get(Router::class);
         if (!$routerInstance)
         {
             return;
         }
         
-        $ret = $routerInstance->route($routeString);
-        if(!$ret)
-        {
-            throw new ApplicationException(sprintf('The RouterString[%s] does not match a router!', $routeString), E_NOFOUND);
-        }
-        echo "aaa";
+        return $routerInstance->route();
     }
     
     /**
