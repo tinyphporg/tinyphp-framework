@@ -23,13 +23,13 @@ namespace Tiny\Config\Parser;
  * @final 2020年2月28日下午12:11:43
  *        King 2020年2月29日12:43 stable 1.0 审定
  */
-class JSONParser implements IParser
+class JSONParser implements ParserInterface
 {
 
     /**
      * 解析JSON文件
      *
-     * @see \Tiny\Config\Parser\IParser::parse()
+     * @see \Tiny\Config\Parser\ParserInterface::parse()
      */
     public function parse($fpath)
     {

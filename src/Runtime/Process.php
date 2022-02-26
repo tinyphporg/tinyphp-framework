@@ -24,43 +24,40 @@ namespace Tiny\Runtime;
  */
 class Process
 {
-
+    
     /**
      * 返回所有编译并加载模块名的 array
      *
-     * @param
-     *        void
+     * @param void
      * @return array
      */
     public static function getLoadedExtensions(): array
     {
         return get_loaded_extensions();
     }
-
+    
     /**
      * 判断是否有加载某个扩展
      *
-     * @param string $ext
-     *        扩展名称
+     * @param string $ext 扩展名称
      * @return bool
      */
     public static function extensionLoaded(string $name): bool
     {
         return extension_loaded($name);
     }
-
+    
     /**
      * 返回某个扩展里的所有函数
      *
-     * @param string $ext
-     *        扩展名称
+     * @param string $ext 扩展名称
      * @return array
      */
     public static function getExtensionFuncs(string $moduleName): array
     {
         return get_extension_funcs($moduleName);
     }
-
+    
     /**
      * 返回已定义的所有变量数组 包括全局变量和用户自定义变量
      *
@@ -70,7 +67,7 @@ class Process
     {
         return get_defined_vars();
     }
-
+    
     /**
      * 获取运行当前进程的用户UID
      *
@@ -80,7 +77,7 @@ class Process
     {
         return getmyuid();
     }
-
+    
     /**
      * 获取执行当前PHP进程用户GroupID
      *
@@ -90,7 +87,7 @@ class Process
     {
         return getmygid();
     }
-
+    
     /**
      * 获取当前进程ID
      *
@@ -100,7 +97,7 @@ class Process
     {
         return getmypid();
     }
-
+    
     /**
      * 获取当前进程的include搜索文件的路径
      *
@@ -110,19 +107,18 @@ class Process
     {
         return get_include_path();
     }
-
+    
     /**
      * 设置包含路径
      *
-     * @param string $path
-     *        添加新的路径并返回完整路径
+     * @param string $path 添加新的路径并返回完整路径
      * @return bool
      */
     public static function setPath($newPath): string
     {
         return set_include_path($newPath);
     }
-
+    
     /**
      * 获取当前进程已经包含的脚本文件数组
      *
@@ -132,7 +128,7 @@ class Process
     {
         return get_included_files();
     }
-
+    
     /**
      * 获取当前进程使用的峰值内存
      *
@@ -142,19 +138,18 @@ class Process
     {
         return memory_get_peak_usage();
     }
-
+    
     /**
      * 设置进程的生命周期
      *
-     * @param int $num
-     *        为0 则不限制
+     * @param int $num 为0 则不限制
      * @return bool
      */
     public static function setTimeLimit($num = 0): bool
     {
         return set_time_limit($num);
     }
-
+    
     /**
      * 获取当前进程使用的内存
      *
@@ -164,7 +159,7 @@ class Process
     {
         return memory_get_usage();
     }
-
+    
     /**
      * 调用系统数据的信息数组
      *
@@ -174,12 +169,11 @@ class Process
     {
         return getrusage();
     }
-
+    
     /**
      * 退出进程
      *
-     * @param int $status
-     *        退出状态码
+     * @param int $status 退出状态码
      */
     public static function exit(int $status)
     {

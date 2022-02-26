@@ -14,8 +14,11 @@
  */
 namespace Tiny\MVC\Request;
 
-use Tiny\MVC\Request\Param\Readonly;
-use Tiny\MVC\ApplicationBase;
+use Tiny\MVC\Request\Param\Get;
+use Tiny\MVC\Request\Param\Post;
+use Tiny\Runtime\Param\Readonly;
+use Tiny\MVC\Web\HttpCookie;
+use Tiny\MVC\Web\HttpSession;
 
 /**
  * Web请求
@@ -28,177 +31,199 @@ class WebRequest extends Request
 {
 
     /**
-     * 请求参数
-     *
-     * @var array
+     * $_GET 只读
+     * @var Get
      */
-    protected $_data;
-
-    /**
-     * 服务器参数
-     *
-     * @var array
-     */
-    protected $_server;
-
-    /**
-     * 获取路径字符串
-     *
-     * @return string
-     */
-    public function getUri()
-    {
-        return $this->uri;
-    }
-
-    /**
-     * 设置路由参数
-     *
-     * @param array $param
-     *        路由参数
-     * @return void
-     */
-    public function setParam(array $param)
-    {
-        $this->_data['get'] = array_merge($this->_data['get'], $param);
-        $this->_data['request'] = array_merge($this->_data['request'], $param);
-    }
-
-    /**
-     * 设置当前应用实例
-     *
-     * @param ApplicationBase $app
-     * @return void
-     */
-    public function setApplication(ApplicationBase $app)
-    {
-        parent::setApplication($app);
-    }
+    public $get;
     
     /**
-     * 获取request的初始化数值
+     * $_POST 只读
      * 
-     * @return array|[]
+     * @var POST
      */
-    public function getRequestData()
+    public $post;
+    
+    /**
+     * 
+     * @var 
+     */
+    public $file;
+    
+    /**
+     * 完整资源描述
+     * 
+     * @var string
+     */
+    public $url;
+    
+    /**
+     * 脚本名
+     * 
+     * @var string
+     */
+    public $scriptName;
+    
+    /**
+     * 服务端域名
+     * @var string
+     */
+    public $host;
+    
+    /**
+     * 服务端口
+     * @var int
+     */
+    public $port;
+    
+    /**
+     * 相对资源定位
+     * 
+     * @var string
+     */
+    public $uri;
+    
+    /**
+     * 客户端IP
+     * 
+     * @var string
+     */
+    public $ip;
+    
+    /**
+     * 是否为加密HTTP连接
+     * 
+     * @var bool
+     */
+    public $isHttps;
+    
+    /**
+     * 请求方式 POST GET PUT DELETE
+     * 
+     * @var string
+     */
+    public $method;
+    
+    /**
+     * 是否为POST
+     * 
+     * @var bool
+     */
+    public $isPost;
+    
+    /**
+     * 用户请求标识
+     * 
+     * @var string
+     */
+    public $userAgent;
+    
+    /**
+     * 脚本根目录
+     * 
+     * @var string
+     */
+    public $rootDir;
+    
+    /**
+     * 来源链接
+     * 
+     * @var string
+     */
+    public $referer;
+    
+    /**
+     * URL的pathinfo信息
+     * 
+     * @var string
+     */
+    public $pathinfo;
+    
+    /**
+     * 请求参数字符串
+     * 
+     * @var string
+     */
+    public $queryString;
+    
+    /**
+     * cookie操作类
+     * 
+     * @var HttpCookie
+     */
+   // public $cookie;
+    
+    /**
+     * Session操作类
+     * 
+     * @var HttpSession
+     */
+   // public $session;
+    
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\Request\Request::setRouteParam()
+     */
+    public function setRouteParam(array $params)
     {
-        return $this->_data;
+        parent::setRouteParam($params);
+        $this->get->merge($params);
     }
     
     /**
-     * 魔术函数获取变量的值
-     *
+     *  
      * @param string $key
-     *        成员变量名
-     * @return mixed
+     * @return mixed|\Tiny\DI\Container|\Tiny\DI\ContainerInterface
      */
-    protected function _magicGet($key)
+    public function __get($key)
     {
-        switch (strtolower($key))
-        {
-            case 'get':
-                return new Readonly($this->_data['get']);
-            case 'post':
-                return new Readonly($this->_data['post']);
-            case 'param':
-                return new Readonly($this->_data['request']);
-            case 'server':
-                return new Readonly($this->_server);
+        switch ($key) {
             case 'cookie':
-                return $this->_app->getCookie();
+                return $this->application->get(HttpCookie::class);
             case 'session':
-                return $this->_app->getSession();
-            // case 'file':
-            // return $this->_app->getFile();
-            case 'files':
-                return $this->_data['files'];
-            case 'scriptname':
-                return $this->_server['SCRIPT_NAME'];
-            case 'ip':
-                return $this->_getIp($this->_server);
-            case 'url':
-                return $this->_getUrl($this->_server);
-            case 'uri':
-                return $this->_server['REQUEST_URI'];
-            case 'ishttps':
-                return (443 == $this->_server['SERVER_PORT']);
-            case 'port':
-                return $this->_server['SERVER_PORT'];
-            case 'pathinfo':
-                return $this->_server['PATH_INFO'];
-            case 'ispost':
-                return 'POST' == $this->_server['REQUEST_METHOD'];
-            case 'useragent':
-                return $this->_server['HTTP_USER_AGENT'];
-            case 'root':
-                return $this->_server['DOCUMENT_ROOT'];
-            case 'referer':
-                return $this->_server['HTTP_REFERER'];
-            case 'host':
-                return $this->_server['HTTP_HOST'];
-            default:
-                return NULL;
+                return $this->application->get(HttpSession::class);
         }
     }
-
+    
     /**
-     * 构造函数,初始化
-     *
-     * @return void
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\Request\Request::initData()
      */
-    public function __construct()
+    protected function initData()
     {
-        $this->_data = [
-            'cookie' => $_COOKIE,
-            'request' => $_REQUEST,
-            'post' => $_POST,
-            'get' => $_GET,
-            'files' => $_FILES,
-            'server' => $_SERVER,
-            'session'=> $_SESSION
-        ];
-        $this->_server = $_SERVER;
-        $sessionName = ini_get('session.name');
-        $sessionId = $_COOKIE[$sessionName];
-        unset($_SERVER, $_REQUEST, $_COOKIE, $_POST, $_GET, $_FILES);
-        if (isset($sessionId))
-        {
-            $_COOKIE[$sessionName] = $sessionId;
-        }
-    }
+        $this->param->merge($_REQUEST);
+        $this->get = new Get($_GET);
+        $this->post = new Post($_POST);
+        unset($_REQUEST, $_GET,$_POST);
+        
+        
+        // SCRIPT
+        $server = $this->server;
+        $this->host = $server['HTTP_HOST'];
+        $this->port = $server['SERVER_PORT'];
+        $this->method = $server['REQUEST_METHOD'];
+        $this->scriptName = $server['SCRIPT_NAME'];
+        $this->uri = $server['REQUEST_URI'];
+        $this->isHttps = (443 === $this->port);
+        $this->isPost = ('POST' === $this->method);
+        $this->userAgent = $server['HTTP_USER_AGENT'];
+        $this->referer = $server['HTTP_REFERER'];
+        $this->rootDir = $server['DOCUMENT_ROOT'];
+        $this->pathinfo = $server['PATH_INFO'];
+        $this->queryString = $server['QUERY_STRING'];
+        
+        // url
+        $http = 443 == $this->port ? 'https://' : 'http://';
+        $port = in_array($this->port, [80, 443]) ? '' : ':' . $this->port;
+        $this->url =  $http . $this->host . $port . $this->uri;
+        
+        // ip
+        $this->ip =  ($server['HTTP_X_FORWARDED_FOR']) ? $server['HTTP_X_FORWARDED_FOR'] : ($server['HTTP_CLIENT_IP'] ?? $server['REMOTE_ADDR']);
 
-    /**
-     * 获取客户端IP
-     *
-     * @param array $server
-     *        服务端变量
-     * @return string $clientIp
-     */
-    protected function _getIp(array $server)
-    {
-        if ($server['HTTP_X_FORWARDED_FOR'])
-        {
-            return $server['HTTP_X_FORWARDED_FOR'];
-        }
-        if (isset($server['HTTP_CLIENT_IP']))
-        {
-            return $server['HTTP_CLIENT_IP'];
-        }
-        return $server['REMOTE_ADDR'];
-    }
-
-    /**
-     * 获取完整URL
-     *
-     * @param array $server
-     *        服务端变量
-     * @return string
-     */
-    protected function _getUrl(array $server)
-    {
-        $http = 443 == $server['SERVER_PORT'] ? 'https://' : 'http://';
-        $port = (443 == $server['SERVER_PORT'] || 80 == $server['SERVER_PORT']) ? '' : ':' . $server['SERVER_PORT'];
-        return $http . $server['HTTP_HOST'] . $port . $server["REQUEST_URI"];
+        //route
+        $this->routeContext = $this->queryString ? substr($this->uri, 0, strpos($this->uri, '?')) : $this->uri;
     }
 }
 ?>

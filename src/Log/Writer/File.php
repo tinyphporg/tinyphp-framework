@@ -4,24 +4,14 @@
  * @copyright (C), 2013-, King.
  * @name File.php
  * @author King
- * @version 1.0
- * @Date: 2013-12-10上午06:17:00
- * @Description
- * @Class List
- * @Function
- * @History <author> <time> <version > <desc>
- *          king 2013-12-10上午06:17:00 1.0 第一次建立该文件
- *          King 2020年6月1日14:21 stable 1.0 审定
+ * @version stable 2.0
+ * @Date 2022年2月11日下午3:47:21
+ * @Class List class
+ * @Function List function_container
+ * @History King 2022年2月11日下午3:47:21 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
 namespace Tiny\Log\Writer;
 
-/**
- * 本地文件日志写入器
- *
- * @package Tiny.Log.Writer
- * @since 2013-12-10上午06:17:26
- * @final 2013-12-10上午06:17:26
- */
 use Tiny\Log\LogException;
 
 /**
@@ -31,49 +21,44 @@ use Tiny\Log\LogException;
  * @since 2013-12-10上午06:26:00
  * @final 2013-12-10上午06:26:00
  */
-class File implements IWriter
+class File implements LogWriterInterface
 {
-
+    
     /**
-     * 默认的策略数组
+     * 日志文件路径
      *
-     * @var array
+     * @var string
      */
-    protected $_policy = [
-        'path' => NULL
-    ];
-
+    protected $path;
+    
     /**
      * 构造函数
      *
-     * @param array $policy
-     *        策略配置
+     * @param array $policy 策略配置
      * @return void
      */
-    public function __construct(array $policy = [])
+    public function __construct(array $config = [])
     {
-        $this->_policy = array_merge($this->_policy, $policy);
-        if (!is_dir($this->_policy['path']))
-        {
-            throw new LogException(sprintf('实例化Tiny\Log\Writer\File失败，路径%s没有设置为有效目录', $this->_policy['path']));
+        $path = (string)$config['path'];
+        if (!$path || !is_dir($path)) {
+            throw new LogException(sprintf('Failed to instantiate FileLogwriter: the path %s is not a valid directory!', $path));
         }
-        $this->_policy['path'] = rtrim($this->_policy['path'], '\\/') . DIRECTORY_SEPARATOR;
+        $this->path = rtrim($path, '\\/') . DIRECTORY_SEPARATOR;
     }
-
+    
     /**
      * 执行日志写入
      *
-     * @param string $id
-     *        日志ID
-     * @param string $message
-     *        日志内容
+     * @param string $id 日志ID
+     * @param string $message 日志内容
      * @return void
      */
-    public function doWrite($id, $message, $priority)
+    public function write($logId, $message, $priority)
     {
-        $message = $id . ' ' . $message;
-        $path = $this->_policy['path'] . $id . '.log';
-        return file_put_contents($path, $message, FILE_APPEND|LOCK_EX);
+        $message = $logId . ' ' . $message;
+        $logfile = $this->path . $logId . '.log';
+        return file_put_contents($logfile, $message, FILE_APPEND | LOCK_EX);
     }
 }
+
 ?>

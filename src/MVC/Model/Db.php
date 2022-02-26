@@ -18,8 +18,8 @@
  */
 namespace Tiny\MVC\Model;
 
-use Tiny\Data\Db\Db as DbSchema;
-
+use Tiny\Data\Db\DbAdapterInterface;
+use Tiny\Data\Db\Db as DbAdapter;
 /**
  * 数据库操作模型
  *
@@ -28,7 +28,7 @@ use Tiny\Data\Db\Db as DbSchema;
  * @since 2013-3-31下午02:10:22
  * @final 2013-3-31下午02:10:22}
  */
-abstract class Db extends Base
+abstract class Db extends Model
 {
 
     /**
@@ -36,38 +36,37 @@ abstract class Db extends Base
      *
      * @var string
      */
-    protected $_readId = NULL;
+    protected $readDataId;
 
     /**
      * Data写实例
      *
      * @var Db
      */
-    protected $_writeSchema;
+    protected $writeDb;
 
     /**
      * Data读实例
      *
-     * @var DbSchema
+     * @var Db
      */
-    protected $_readSchema;
+    protected $readDb;
 
     /**
-     * 构造函数 初始化获取的数据库连接实例id
-     *
-     * @param string $key
-     *        数据库连接的实例Id
-     * @return void
+     * 构造函数  定义初始化的读写dataid
+     * 
+     * @param string $writeId
+     * @param string $readId
      */
-    public function __construct(string $writeId = NULL, $readId = NULL)
+    public function __construct(string $writeId = null, string $readId = null)
     {
-        if (NULL != $writeId)
+        if ($writeId)
         {
-            $this->_dataId = (string)$writeId;
+            $this->dataId = (string)$writeId;
         }
-        $this->_readId = $readId;
+        $this->readDataId = $readId;
     }
-
+    
     /**
      * 执行SQL语句 主要为写操作 主从模式下，只会执行主库
      *
@@ -79,7 +78,7 @@ abstract class Db extends Base
      */
     public function exec($sql, ...$param)
     {
-        return $this->getWriteSchema()->exec($sql, ...$param);
+        return $this->getWriteDb()->exec($sql, ...$param);
     }
 
     /**
@@ -91,7 +90,7 @@ abstract class Db extends Base
      */
     public function fetch($sql, ...$param)
     {
-        return $this->getReadSchema()->fetch($sql, ...$param);
+        return $this->getReadDb()->fetch($sql, ...$param);
     }
 
     /**
@@ -105,7 +104,7 @@ abstract class Db extends Base
      */
     public function fetchAll($sql, ...$param)
     {
-        return $this->getReadSchema()->fetchAll($sql, ...$param);
+        return $this->getReadDb()->fetchAll($sql, ...$param);
     }
 
     /**
@@ -120,9 +119,9 @@ abstract class Db extends Base
      *        可变参数数组
      * @return array
      */
-    public function fetchAssoc($sql, $columnName = NULL, ...$param)
+    public function fetchAssoc($sql, $columnName = null, ...$param)
     {
-        return $this->getReadSchema()->fetchAssoc($sql, $columnName, ...$param);
+        return $this->getReadDb()->fetchAssoc($sql, $columnName, ...$param);
     }
 
     /**
@@ -134,9 +133,9 @@ abstract class Db extends Base
      *        可变参数数组
      * @return array
      */
-    public function fetchColumn($sql, $columnName = NULL, ...$param)
+    public function fetchColumn($sql, $columnName = null, ...$param)
     {
-        return $this->getReadSchema()->fetchColumn($sql, $columnName, ...$param);
+        return $this->getReadDb()->fetchColumn($sql, $columnName, ...$param);
     }
 
     /**
@@ -152,9 +151,9 @@ abstract class Db extends Base
      *        可变参数数组
      * @return array
      */
-    public function fetchCeil($sql, $columnName = NULL, $index = 0, ...$param)
+    public function fetchCeil($sql, $columnName = null, $index = 0, ...$param)
     {
-        return $this->getReadSchema()->fetchCeil($sql, $columnName, $index, ...$param);
+        return $this->getReadDb()->fetchCeil($sql, $columnName, $index, ...$param);
     }
 
     /**
@@ -168,7 +167,7 @@ abstract class Db extends Base
      */
     public function fetchFirstCeil($sql, ...$param)
     {
-        return $this->getReadSchema()->fetchFirstCeil($sql, ...$param);
+        return $this->getReadDb()->fetchFirstCeil($sql, ...$param);
     }
 
     /**
@@ -178,7 +177,7 @@ abstract class Db extends Base
      */
     public function lastInsertId()
     {
-        return $this->getWriteSchema()->lastInsertId();
+        return $this->getWriteDb()->lastInsertId();
     }
 
     /**
@@ -188,7 +187,7 @@ abstract class Db extends Base
      */
     public function getAffectedRows()
     {
-        return $this->getWriteSchema()->rowsCount();
+        return $this->getWriteDb()->rowsCount();
     }
 
     /**
@@ -198,7 +197,7 @@ abstract class Db extends Base
      */
     public function getRowCount()
     {
-        return $this->getReadSchema()->rowsCount();
+        return $this->getReadDb()->rowsCount();
     }
 
     /**
@@ -208,7 +207,7 @@ abstract class Db extends Base
      */
     public function beginTransaction()
     {
-        return $this->getWriteSchema()->beginTransaction();
+        return $this->getWriteDb()->beginTransaction();
     }
 
     /**
@@ -218,7 +217,7 @@ abstract class Db extends Base
      */
     public function commit()
     {
-        return $this->getWriteSchema()->commit();
+        return $this->getWriteDb()->commit();
     }
 
     /**
@@ -228,7 +227,7 @@ abstract class Db extends Base
      */
     public function rollBack()
     {
-        return $this->getWriteSchema()->rollBack();
+        return $this->getWriteDb()->rollBack();
     }
 
     /**
@@ -238,7 +237,7 @@ abstract class Db extends Base
      */
     public function getDbs()
     {
-        return $this->getReadSchema()->getDbs();
+        return $this->getReadDb()->getDbs();
     }
 
     /**
@@ -248,9 +247,9 @@ abstract class Db extends Base
      *        数据库名
      * @return array
      */
-    public function getTables($dbName = NULL)
+    public function getTables($dbName = null)
     {
-        return $this->getReadSchema()->getTables($dbName);
+        return $this->getReadDb()->getTables($dbName);
     }
 
     /**
@@ -262,66 +261,68 @@ abstract class Db extends Base
      */
     public function getTableColumns($tableName)
     {
-        return $this->getReadSchema()->getTableColumns($tableName);
+        return $this->getReadDb()->getTableColumns($tableName);
     }
 
     /**
      * 获取读的DB实例
      *
-     * @return DbSchema
+     * @return Db
      */
-    public function getReadSchema()
+    public function getReadDb()
     {
-        if ($this->_readSchema)
+        if ($this->readDb)
         {
-            return $this->_readSchema;
+            return $this->readDb;
         }
 
         // read如果没有设置 直接返回写入的writekey
-        if (!$this->_readId)
+        if (!$this->readDataId)
         {
-            $this->_readSchema = $this->getWriteSchema();
+            $this->readDb = $this->getWriteDb();
+            return $this->readDb;
         }
-        elseif (is_array($this->_readId))
+        
+        // 多个readid 则随机选择一个
+        if (is_array($this->readDataId))
         {
-            $readIndex = rand(0, count($this->_readId) - 1);
-            $this->_readSchema = $this->_getSchema($this->_readId[$readIndex]);
+            $readIndex = rand(0, count($this->readDataId) - 1);
+            $this->readDb = $this->getDbSchema($this->readDataId[$readIndex]);
+            return $this->readDb;
         }
-        else
-        {
-            $this->_readSchema = $this->_getSchema($this->_readId);
-        }
-        return $this->_readSchema;
+        
+        $this->readDb = $this->getDbSchema($this->readDataId);
+        return $this->readDb;
     }
 
     /**
      * 获取读的Db Schema实例
      *
-     * @return DbSchema
+     * @return Db
      */
-    public function getWriteSchema()
+    protected function getWriteDb()
     {
-        if (!$this->_writeSchema)
+        if (!$this->writeDb)
         {
-            $this->_writeSchema = $this->_getSchema($this->_dataId);
+            $this->writeDb = $this->getDb($this->dataId);
         }
-        return $this->_writeSchema;
+        return $this->writeDb;
     }
 
     /**
      * 获取数据库操作实例
      *
      * @param string $dataid
-     * @return DbSchema
+     * @return DbAdapterInterface
      */
-    protected function _getSchema($dataid)
+    private function getDb($dataid)
     {
-        $schema = $this->data->getData($dataid);
-        if (!$schema instanceof DbSchema)
+        $db = $this->data->getDataSource($dataid);
+        if (!$db instanceof DbAdapter)
         {
             throw new ModelException(sprintf("Model.Db获取失败:DATA ID:%s并非Tiny\Data\Db\Schema实例!", $dataid));
         }
-        return $schema;
+        return $db;
     }
 }
 ?>

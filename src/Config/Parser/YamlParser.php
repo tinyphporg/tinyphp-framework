@@ -23,14 +23,14 @@ namespace Tiny\Config\Parser;
  * @final 2020年2月27日下午5:38:36
  *        King 2020年2月29日12:43 stable 1.0 审定
  */
-class YamlParser implements IParser
+class YamlParser implements ParserInterface
 {
 
     /**
      * 解析INI配置文件，解析异常会抛出异常并终止
      *
      * {@inheritdoc}
-     * @see \Tiny\Config\Parser\IParser::parse()
+     * @see \Tiny\Config\Parser\ParserInterface::parse()
      */
     public function parse($fpath)
     {

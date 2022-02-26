@@ -4,16 +4,11 @@
  * @copyright (C), 2013-, King.
  * @name Rsyslog.php
  * @author King
- * @version 1.0
- * @Date: 2014-2-4下午06:15:06
- * @Description
- * @Class List
- *        1.
- * @Function List
- *           1.
- * @History <author> <time> <version > <desc>
- *          King 2014-2-4下午06:15:06 第一次建立该文件
- *          King 2020年6月1日14:21 stable 1.0 审定
+ * @version stable 2.0
+ * @Date 2022年2月11日下午3:47:21
+ * @Class List class
+ * @Function List function_container
+ * @History King 2022年2月11日下午3:47:21 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
 namespace Tiny\Log\Writer;
 
@@ -61,125 +56,130 @@ namespace Tiny\Log\Writer;
  *
  *
  */
-class Rsyslog implements IWriter
+class Rsyslog implements LogWriterInterface
 {
-
+    
     /**
      * 日志所属的设备名称
      *
      * @var int 数值在0-23之间
      */
-    protected $_facility = 23;
-
+    protected $facility = 23;
+    
     /**
      * 日志的严重程度 数值在0-7区间
      *
      * @var int
      */
-    protected $_severity = 6;
-
+    protected $severity = 6;
+    
     /**
      * 服务器名称
      *
      * @var string a-zA-Z0-9
      */
-    protected $_hostname = 'ZEROAI-PHP-SERVER';
-
+    protected $hostname;
+    
     /**
      * 服务名称
      *
      * @var string
      */
-    protected $_fqdn;
-
+    protected $fqdn;
+    
     /**
      * IP地址
      *
      * @var string
      */
-    protected $_ipFrom;
-
+    protected $ipFrom;
+    
     /**
      * 进程名称
      *
      * @var string
      */
-    protected $_process;
-
+    protected $process;
+    
     /**
      * 日志服务器地址
      *
      * @var string
      */
-    protected $_host;
-
+    protected $host = '127.0.0.1';
+    
     /**
      * 日志服务器UDP端口
      *
      * @var int
      *
      */
-    protected $_port;
-
+    protected $port = 514;
+    
     /**
      * UDP链接超时时间
      *
      * @var int
      *
      */
-    protected $_timeout = 1;
-
+    protected $timeout = 1;
+    
     /**
      * 构造函数 可输入策略数组，定义内容
      *
      *
-     * @param array $policy 配置数组
+     * @param array $config 配置数组
      * @return void
      */
-    public function __construct(array $policy = [])
+    public function __construct(array $config = [])
     {
-        $this->_fqdn = $_SERVER['SERVER_ADDR'];
-        $this->_ipFrom = $_SERVER['SERVER_ADDR'];
-        $this->_process = 'PHP' . getmypid();
-        $this->_host = $policy['host'] ?: '127.0.0.1';
-        $this->_port = (int)$policy['port'] ?: 514;
+        $this->fqdn = $_SERVER['SERVER_ADDR'];
+        $this->ipFrom = $_SERVER['SERVER_ADDR'];
+        $this->process = 'TINYPHP' . getmypid();
+        $this->hostname = gethostname();
+        $host = (string)$config['host'];
+        if ($host) {
+            $this->host = $host;
+        }
+        
+        $port = (int)$config['port'];
+        if ($port > 0) {
+            $this->port = $port;
+        }
     }
-
+    
     /**
      * 执行日志写入
      *
-     * @param $id mixed
-     *        日志ID
+     * @param $id mixed 日志ID
      * @return bool
      *
      */
-    public function doWrite($id, $message, $severity)
+    public function write($id, $message, $severity)
     {
-        if ($severity < 0)
-        {
+        if ($severity < 0) {
             $severity = 0;
         }
-        if ($severity > 7)
-        {
+        if ($severity > 7) {
             $severity = 7;
         }
+        
         $actualtime = time();
         $month = date("M", $actualtime);
         $day = substr("  " . date("j", $actualtime), -2);
         $hhmmss = date("H:i:s", $actualtime);
         $timestamp = $month . " " . $day . " " . $hhmmss;
-        $pri = "<" . ($this->_facility * 8 + $this->_severity) . ">";
-        $header = $timestamp . " " . $this->_hostname;
-        $message = $this->_process . ": " . $this->_fqdn . " " . $this->_ipFrom . " " . $message;
+        $pri = "<" . ($this->facility * 8 + $this->severity) . ">";
+        $header = $timestamp . " " . $this->hostname;
+        $message = $this->process . ": " . $this->fqdn . " " . $this->ipFrom . " " . $message;
         $message = substr($pri . $header . " " . $message, 0, 1024);
-        $fp = fsockopen("udp://" . $this->_host, $this->_port, $severity, $message);
-        if ($fp)
-        {
+        $fp = fsockopen("udp://" . $this->host, $this->port, $severity, $message);
+        if ($fp) {
             fwrite($fp, $message);
             fclose($fp);
-            return TRUE;
+            return true;
         }
-        return FALSE;
+        return false;
     }
 }
 ?>

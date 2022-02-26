@@ -16,7 +16,7 @@
  */
 namespace Tiny\MVC\Web\Session;
 
-use Tiny\Data\Memcached\Memcached as MemcachedSchema;
+use Tiny\Data\Memcached\Memcached as MemcachedHandler;
 use Tiny\Tiny;
 
 /**
@@ -26,47 +26,59 @@ use Tiny\Tiny;
  * @since : 2013-4-13上午02:27:53
  * @final : 2013-4-13上午02:27:53
  */
-class Memcached implements ISession
+class Memcached implements SessionAdapterInterface
 {
-
+    
     /**
      * Redis的data操作实例
      *
-     * @var MemcachedSchema
+     * @var MemcachedHandler
      */
-    protected $_schema;
-
+    protected $memcached;
+    
     /**
-     * 默认的服务器缓存策略
+     * 过期时间
      *
-     * @var array
+     * @var integer
      */
-    protected $_policy = [
-        'lifetime' => 3600
-    ];
-
+    protected $expires = 3600;
+    
+    /**
+     * data 资源池ID
+     *
+     * @var string
+     */
+    protected $dataId;
+    
     /**
      * 初始化构造函数
      *
-     * @param array $policy
-     *        配置
+     * @param array $policy 配置
      * @return void
      */
-    function __construct(array $policy = [])
+    function __construct(array $config = [])
     {
-        $this->_policy = array_merge($this->_policy, $policy);
+        $expires = (int)$config['expires'];
+        if ($expires > 0) {
+            $this->expires = $expires;
+        }
+        $dataId = (string)$config['dataid'];
+        if (!$dataId) {
+            throw new SessionException(sprintf("Initialization %s failed, profile.session.dataid is required!", __CLASS__));
+        }
+        $this->dataId = $dataId;
     }
-
+    
     /**
      * 打开Session
      *
-     * @return TRUE
+     * @return true
      */
-    public function open()
+    public function open($savePath, $sessionName)
     {
-        return TRUE;
+        return true;
     }
-
+    
     /**
      * 关闭Session
      *
@@ -74,77 +86,68 @@ class Memcached implements ISession
      */
     public function close()
     {
-        return TRUE;
+        return true;
     }
-
+    
     /**
      * 读Session
      *
-     * @param string $sessionId
-     *        Session身份标示
+     * @param string $sessionId Session身份标示
      * @return string
      */
     public function read($sessionId)
     {
-        return $this->_getSchema()->get($sessionId);
+        return $this->getMemcached()->get($sessionId);
     }
-
+    
     /**
      * 写Session
      *
-     * @param string $sessionId
-     *        SessionID标示
-     * @param string $sessionValue
-     *        Session值
+     * @param string $sessionId SessionID标示
+     * @param string $sessionValue Session值
      * @return bool
      */
     public function write($sessionId, $sessionValue)
     {
-        return $this->_getSchema()->set($sessionId, $sessionValue, $this->_policy['lifetime']);
+        return $this->getMemcached()->set($sessionId, $sessionValue, $this->expires);
     }
-
+    
     /**
      * 注销某个变量
      *
-     * @param string $sessionId
-     *        Session身份标示
+     * @param string $sessionId Session身份标示
      * @return bool
      */
     public function destroy($sessionId)
     {
-        return $this->_getSchema()->delete($sessionId);
+        return $this->getMemcached()->delete($sessionId);
     }
-
+    
     /**
      * 自动回收过期变量
      *
      * @return bool
      */
-    public function gc()
+    public function gc($maxlifetime)
     {
-        return TRUE;
+        return true;
     }
-
+    
     /**
      * 获取redis操作实例
      *
-     * @return MemcachedSchema
+     * @return MemcachedHandler
      */
-    protected function _getSchema()
+    protected function getMemcached()
     {
-        if ($this->_schema)
-        {
-            return $this->_schema;
+        if (!$this->memcached) {
+            $dataPool = Tiny::getApplication()->getData();
+            $this->memcached = $dataPool[$this->dataId];
+            if (!$this->memcached instanceof MemcachedHandler) {
+                throw new SessionException(sprintf("Class %s is not an instance of %s!", get_class($this->memcached), MemcachedHandler::class));
+            }
         }
-        $data = Tiny::getApplication()->getData();
-        $dataId = $this->_policy['dataid'];
-        $schema = $data[$dataId];
-        if (!$schema instanceof MemcachedSchema)
-        {
-            throw new SessionException(sprintf("dataid:%s不是Tiny\Data\Memcached\Memcached的实例", $dataId));
-        }
-        $this->_schema = $schema;
-        return $schema;
+        return $this->memcached;
     }
 }
 ?>

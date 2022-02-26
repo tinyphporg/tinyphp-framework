@@ -14,8 +14,8 @@
  */
 namespace Tiny\Filter;
 
-use Tiny\MVC\Request\Base as Request;
-use Tiny\MVC\Response\Base as Response;
+use Tiny\MVC\Request\Request;
+use Tiny\MVC\Response\Response;
 
 /**
  * Web过滤器
@@ -24,20 +24,18 @@ use Tiny\MVC\Response\Base as Response;
  * @since 2017年3月9日下午9:21:05
  * @final 2017年3月9日下午9:21:05
  */
-class WebFilter implements IFilter
+class WebFilter implements FilterInterface
 {
-
+    
     /**
-     * 执行过滤
      *
      * {@inheritdoc}
-     * @see \Tiny\Filter\IFilter::doFilter()
+     * @see \Tiny\Filter\FilterInterface::filter()
      */
-    public function doFilter(Request $req, Response $res)
+    public function filter(Request $request, Response $response)
     {
-
     }
-
+    
     /**
      * 去除XSS注入
      *

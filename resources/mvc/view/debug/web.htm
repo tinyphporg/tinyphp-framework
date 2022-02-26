@@ -84,7 +84,7 @@
 {if $debugRouterName}
 <p><span class="font_green">Router: </span>{$debugRouterName}</p>
 <p><span class="font_green">Router Matched URL: </span>{$debugRouterUrl}</p>
-<p><span class="font_green">Router Matched Router Params: </span>{eval echo var_export($debugRouterParams, TRUE)}</p>
+<p><span class="font_green">Router Matched Router Params: </span>{eval echo var_export($debugRouterParams, true)}</p>
 {/if}
 <p><span class="font_green">Controller: </span>{$debugControllerList} </p>
 <p><span class="font_green">Action: </span>{$actionName}({$controllerName}->{$actionName}Action)</p>
@@ -138,7 +138,7 @@
             {loop $debugConstants['user'] $key $const}
             <p>
             {$key} =  {if is_bool($const)}
-            <span class="font_blue">&nbsp;{eval echo $const ? 'TRUE' : 'FALSE'}&nbsp;</span>
+            <span class="font_blue">&nbsp;{eval echo $const ? 'true' : 'false'}&nbsp;</span>
             {elseif is_int($const)}
             <span class="font_blue">&nbsp;{$const}&nbsp;</span>
             {elseif is_string($const)}

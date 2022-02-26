@@ -14,9 +14,8 @@
  */
 namespace Tiny\Console;
 
-use Tiny\MVC\ConsoleApplication;
-use Tiny\Console\Worker\IWorkerHandler;
 use Tiny\Console\Worker\Base;
+use Tiny\Console\Worker\WorkerHandlerInterface;
 
 /**
  * 命令行守护进程类
@@ -27,7 +26,7 @@ use Tiny\Console\Worker\Base;
  */
 class Daemon
 {
-
+    
     /**
      * 默认配置参数
      *
@@ -36,7 +35,7 @@ class Daemon
     const DEFAULT_OPTIONS = [
         'ID' => 'tinyd',
         'UMASK' => 022,
-        'HOME_DIR' => FALSE,
+        'HOME_DIR' => false,
         'MAX_WORKERS' => 1024,
         'PID_DIR' => '/var/run',
         'LOG_DIR' => '/var/log',
@@ -47,14 +46,14 @@ class Daemon
             'reload'
         ]
     ];
-
+    
     /**
      * 默认的worker驱动类型
      *
      * @var string
      */
     const WORKER_DRIVER_DEFAULT = 'worker';
-
+    
     /**
      * worker驱动map
      *
@@ -63,154 +62,153 @@ class Daemon
     const WORKER_DRIVER_MAP = [
         'worker' => '\Tiny\Console\Worker\Worker'
     ];
-
+    
     /**
      * 默认的daemonID
      *
      * @var string
      */
-    protected $_id = 'tinyphp-daemon';
-
+    protected $id = 'tinyphp-daemon';
+    
     /**
      * 守护进程的配置选项
      *
      * @var array
      */
-    protected $_options;
-
+    protected $options;
+    
     /**
      * 调试模式 输出
      *
      * @var string
      */
-    protected $_debug = FALSE;
-
+    protected $debug = false;
+    
     /**
      *
      * @var bool
      */
-    protected $_isDaemon = TRUE;
-
+    protected $isDaemon = true;
+    
     /**
      * 进程ID
      *
      * @var int
      * @access protected
      */
-    protected $_pid = 0;
-
+    protected $pid = 0;
+    
     /**
      * 进程权限
      *
      * @var integer
      */
-    protected $_umask = 022;
-
+    protected $umask = 022;
+    
     /**
      * 工作目录
      *
      * @var string
      */
-    protected $_homedir = FALSE;
-
+    protected $homedir = false;
+    
     /**
      * PID FILE路径
      *
      * @var string
      */
-    protected $_pidFile;
-
+    protected $pidFile;
+    
     /**
      * worker日志ID
      *
      * @var string
      */
-    protected $_logStatusId;
-
+    protected $logStatusId;
+    
     /**
      * 错误日志ID
      *
      * @var string
      */
-    protected $_logErrId;
-
+    protected $logErrId;
+    
     /**
      * 日志ID
      *
      * @var string
      */
-    protected $_logId;
-
+    protected $logId;
+    
     /**
      * 日志输出handler
      *
-     * @var IDaemonHandler
+     * @var DaemonHandlerInterface
      */
-    protected $_daemonHandler;
-
+    protected $daemonHandler;
+    
     /**
      * 动作名
      *
      * @var string
      */
-    protected $_action;
-
+    protected $action;
+    
     /**
      * 进程名
      *
      * @var string
      */
-    protected $_processTitle;
-
+    protected $processTitle;
+    
     /**
      * master主进程管理的worker配置数组
      *
      * @var array
      * @access protected
      */
-    protected $_workers = [];
-
+    protected $workers = [];
+    
     /**
      * 配置的最大worker数目
      *
      * @var integer
      */
-    protected $_maxWorkers = 0;
-
+    protected $maxWorkers = 0;
+    
     /**
      * 守护进程能支持的最大worker数目
      *
      * @var integer
      */
-    protected $_maxDefaultWorkers = 0;
-
+    protected $maxDefaultWorkers = 0;
+    
     /**
      * master进程保存的worker实例
      *
      * @var array
      */
-    protected $_workerInstances = [];
-
+    protected $workerInstances = [];
+    
     /**
      * fork后当前子进程运行的worker实例
      *
      * @var Base
      */
-    protected $_currentWorkerInstance;
-
+    protected $currentWorkerInstance;
+    
     /**
      * 构造化
      *
-     * @param ConsoleApplication $app
      * @return void
      */
     public function __construct(string $id, array $options = [])
     {
-        $this->_id = $id ?: self::DAEMON_OPTIONS['id'];
-        $this->_checkEnv();
-        $this->_initOptions($options);
+        $this->id = $id ?: self::DAEMON_OPTIONS['id'];
+        $this->checkEnv();
+        $this->initOptions($options);
     }
-
+    
     /**
      * 添加worker实例和对应的进程数目
      *
@@ -220,42 +218,38 @@ class Daemon
     public function addWorker(\Tiny\Console\Worker\Base $worker)
     {
         $workerNum = $worker->getNum();
-        if (count($this->_workerInstances) + $workerNum > $this->_maxDefaultWorkers)
-        {
+        if (count($this->workerInstances) + $workerNum > $this->maxDefaultWorkers) {
             return;
         }
         $workerId = $worker->getId();
-        if (key_exists($workerId, $this->_workers))
-        {
+        if (key_exists($workerId, $this->workers)) {
             return;
         }
-
-        $this->_workers[$workerId] = [
+        
+        $this->workers[$workerId] = [
             'id' => $workerId,
             'instance' => $worker,
             'num' => $workerNum,
             'pids' => []
         ];
-        $this->_maxWorkers += $workerNum;
+        $this->maxWorkers += $workerNum;
     }
-
+    
     /**
      * 根据配置数组添加workers 自动实例化
      *
      * @param array $workerArray
      */
-    public function addWorkerByConfig(array $workers, IWorkerHandler $handler = NULL)
+    public function addWorkerByConfig(array $workers, WorkerHandlerInterface $handler = null)
     {
-        foreach ($workers as $worker)
-        {
+        foreach ($workers as $worker) {
             $driverName = key_exists($worker['type'], self::WORKER_DRIVER_MAP) ? $worker['type'] : self::WORKER_DRIVER_DEFAULT;
             $className = self::WORKER_DRIVER_MAP[$driverName];
-            $handler = ($worker['handler'] && $worker['handler'] instanceof IWorkerHandler) ? $worker['handler'] : $handler;
-            if (!$handler)
-            {
-                $handler = NULL;
+            $handler = ($worker['handler'] && $worker['handler'] instanceof WorkerHandlerInterface) ? $worker['handler'] : $handler;
+            if (!$handler) {
+                $handler = null;
             }
-
+            
             $args = isset($worker['args']) && is_array($worker['args']) ? $worker['args'] : [];
             $worker['args'] = $args;
             $worker['num'] = (int)$worker['num'] ?: 0;
@@ -264,27 +258,27 @@ class Daemon
             $this->addWorker($workerInstance);
         }
     }
-
+    
     /**
      * 设置日志handler
      *
-     * @param IDaemonHandler $handler
+     * @param DaemonHandlerInterface $handler
      */
-    public function setDaemonHandler(IDaemonHandler $handler)
+    public function setDaemonHandler(DaemonHandlerInterface $handler)
     {
-        $this->_daemonHandler = $handler;
+        $this->daemonHandler = $handler;
     }
-
+    
     /**
      * 获取日志handler
      *
-     * @return \Tiny\Console\IDaemonHandler
+     * @return DaemonHandlerInterface
      */
-    public function getDaemonHandler()
+    public function getDaemonHandler(): DaemonHandlerInterface
     {
-        return $this->_daemonHandler;
+        return $this->daemonHandler;
     }
-
+    
     /**
      * 发生信号事件
      *
@@ -292,17 +286,16 @@ class Daemon
      */
     public function onsignal($signo)
     {
-        switch ($signo)
-        {
+        switch ($signo) {
             case SIGINT:
-                $this->_stop();
+                $this->end();
                 break;
             case SIGTERM:
-                $this->_stop(TRUE);
+                $this->end(true);
                 break;
         }
     }
-
+    
     /**
      * 守护运行应用程序实例
      *
@@ -310,8 +303,7 @@ class Daemon
      */
     public function run()
     {
-        switch ($this->_action)
-        {
+        switch ($this->action) {
             case 'start':
                 $this->start();
                 break;
@@ -326,51 +318,45 @@ class Daemon
                 break;
         }
     }
-
+    
     /**
      * 检测运行环境
      *
      * @throws DaemonException
      * @return void
      */
-    protected function _checkEnv()
+    protected function checkEnv()
     {
-        if (PHP_OS !== 'Linux')
-        {
-            throw new DaemonException('daemon模式 仅支持linux系统');
+        if (PHP_OS !== 'Linux') {
+            throw new DaemonException(sprintf('%s is only allowed to run on Linux systems', self::class));
         }
-        if (PHP_SAPI !== 'cli')
-        {
-            throw new DaemonException('daemon模式 仅支持在console模式下运行');
+        if (PHP_SAPI !== 'cli') {
+            throw new DaemonException(sprintf('%s is only allowed to run on the command line', self::class));
         }
-        if (!version_compare(PHP_VERSION, '7.0.0', 'ge'))
-        {
-            throw new DaemonException('daemon模式 仅支持在PHP 7.0.0或以上版本运行');
+        if (!version_compare(PHP_VERSION, '7.0.0', 'ge')) {
+            throw new DaemonException(sprintf('%s is only allowed to run in PHP 7.0 or later', self::class));
         }
-        if (strtolower(\php_uname('s')) === 'darwin')
-        {
-            throw new DaemonException('daemon模式 不支持在MAC OS下运行');
+        if (strtolower(\php_uname('s')) === 'darwin') {
+            throw new DaemonException('%s does not support running on MacOS', self::class);
         }
     }
-
+    
     /**
      * 停止守护进程并退出
      *
      * @return void
      */
-    public function stop($isGraceful = TRUE)
+    public function stop($isGraceful = true)
     {
-        if (!$this->_isRunning())
-        {
-            $errMsg = sprintf('pid file [%s] does not exist. Not running?\n', $this->_pidFile);
-            return $this->_exit(1, $errMsg);
+        if (!$this->isRunning()) {
+            $errMsg = sprintf('pid file [%s] does not exist. Not running?\n', $this->pidFile);
+            return $this->exit(1, $errMsg);
         }
-        $pid = $this->_getPidFromPidFile();
+        $pid = $this->getPidFromPidFile();
         $sig = $isGraceful ? SIGTERM : SIGINT;
         posix_kill($pid, $sig);
-        exit(0);
     }
-
+    
     /**
      * 开始
      *
@@ -378,542 +364,464 @@ class Daemon
      */
     public function start()
     {
-        if ($this->_isRunning())
-        {
-            echo sprintf("\npid file [%s] already exists, is it already running?\n", $this->_pidFile);
+        if ($this->isRunning()) {
+            echo sprintf("\npid file [%s] already exists, is it already running?\n", $this->pidFile);
             exit(0);
         }
-
+        
         // 进入后台守护模式
-        $this->_daemonize();
-
+        $this->daemonize();
+        
         // 初始化所有worker
-        $this->_initWorkers();
-
+        $this->initWorkers();
+        
         // 开始守护进程
-        while ($this->_isRunning())
-        {
-            $this->_keepWorkers();
-            $this->_monitorWorkers();
+        while ($this->isRunning()) {
+            $this->keepWorkers();
+            $this->monitorWorkers();
         }
     }
-
+    
     /**
      * 初始化守护进程参数
      *
      * @param array $options
      * @throws DaemonException
      */
-    protected function _initOptions(array $options)
+    protected function initOptions(array $options)
     {
         // piddir
         $piddir = $options['piddir'] ?: self::DEFAULT_OPTIONS['PID_DIR'];
-        if (!is_dir($piddir) || !is_writable($piddir))
-        {
+        if (!is_dir($piddir) || !is_writable($piddir)) {
             throw new DaemonException(sprintf('piddir:%s is not exists or is not writable!', $piddir));
         }
-
+        
         $options['piddir'] = realpath($piddir) . DIRECTORY_SEPARATOR;
-        $this->_pidFile = $options['piddir'] . $this->_id . '.pid';
-
+        $this->pidFile = $options['piddir'] . $this->id . '.pid';
+        
         // 最大工作进程数
         $maxWorkers = (int)$options['maxworkers'];
-        if ($maxWorkers <= 0)
-        {
+        if ($maxWorkers <= 0) {
             $maxWorkers = self::DEFAULT_OPTIONS['MAX_WORKERS'];
         }
-        $this->_maxDefaultWorkers = $maxWorkers;
-
+        $this->maxDefaultWorkers = $maxWorkers;
+        
         // homedir
-        if (isset($options['homedir']) && is_dir($options['homedir']))
-        {
-            $this->_homedir = $options['homedir'];
+        if (isset($options['homedir']) && is_dir($options['homedir'])) {
+            $this->homedir = $options['homedir'];
         }
-
+        
         // umask
-        if (isset($options['umask']))
-        {
-            $this->_umask = $options['umask'];
+        if (isset($options['umask'])) {
+            $this->umask = $options['umask'];
         }
-
+        
         // logID
-        $this->_logErrId = $this->_id . '.err';
-        $this->_logStatusId = $this->_id . '.status';
-        $this->_logId = $this->_id;
-
+        $this->logErrId = $this->id . '.err';
+        $this->logStatusId = $this->id . '.status';
+        $this->logId = $this->id;
+        
         // 守护运行后执行的动作
         $action = (string)$options['action'];
-        if (!in_array($action, self::DEFAULT_OPTIONS['ALLOW_ACTIONS']))
-        {
+        if (!in_array($action, self::DEFAULT_OPTIONS['ALLOW_ACTIONS'])) {
             $action = self::DEFAULT_OPTIONS['ACTION'];
         }
-
+        
         // debug输出
-        $this->_debug = (bool)$options['debug'];
-
+        $this->debug = (bool)$options['debug'];
+        
         // workers
-        $this->_action = $action;
-        $this->_options = $options;
+        $this->action = $action;
+        $this->options = $options;
     }
-
+    
     /**
      * 初始化所有worker
      */
-    protected function _initWorkers()
+    protected function initWorkers()
     {
-        foreach ($this->_workers as $worker)
-        {
-            $worker['instance']->setDaemonOptions($this->_pid, $this->_pidFile);
+        foreach ($this->workers as $worker) {
+            $worker['instance']->setDaemonOptions($this->pid, $this->pidFile);
             $worker['instance']->init();
         }
     }
-
+    
     /**
      * 保持workers
      *
      * @return void
      */
-    protected function _keepWorkers()
+    protected function keepWorkers()
     {
-        if (count($this->_workerInstances) >= $this->_maxWorkers)
-        {
+        if (count($this->workerInstances) >= $this->maxWorkers) {
             return;
         }
-        $worker = $this->_getFreeWorkerDetail();
-        if (!$worker)
-        {
+        $worker = $this->getFreeWorkerDetail();
+        if (!$worker) {
             return;
         }
         $pid = pcntl_fork();
-        if ($pid == -1)
-        {
-            return $this->_exit(1, 'worker create faild!');
+        if ($pid == -1) {
+            return $this->exit(1, 'worker create faild!');
         }
-        if ($pid)
-        {
+        if ($pid) {
             // master
-            return $this->_addWorkerToMaster($worker['id'], $pid);
+            return $this->addWorkerToMaster($worker['id'], $pid);
         }
-
+        
         // worker
-        $this->_dispathByWorker($worker);
+        $this->dispathByWorker($worker);
     }
-
+    
     /**
      * 获取appName
      *
      * @return mixed
      */
-    protected function _getFreeWorkerDetail()
+    protected function getFreeWorkerDetail()
     {
-        foreach ($this->_workers as $worker)
-        {
-            if (count($worker['pids']) < $worker['num'])
-            {
+        foreach ($this->workers as $worker) {
+            if (count($worker['pids']) < $worker['num']) {
                 return $worker;
             }
         }
     }
-
+    
     /**
      * 添加创建的worker进程到master主进程管理
      *
      * @param string $id
      * @param string $pid
      */
-    protected function _addWorkerToMaster($id, $pid)
+    protected function addWorkerToMaster($id, $pid)
     {
-        $this->_workers[$id]['pids'][$pid] = $pid;
-        $this->_workerInstances[$pid] = $this->_workers[$id]['instance'];
-        $this->_status(sprintf('Worker id[%s] process created successfully, PID %s', $id, $pid));
+        $this->workers[$id]['pids'][$pid] = $pid;
+        $this->workerInstances[$pid] = $this->workers[$id]['instance'];
+        $this->status(sprintf('Worker id[%s] process created successfully, PID %s', $id, $pid));
     }
-
+    
     /**
      * 根据PID删除主进程管理的worker信息
      *
      * @param int $pid
      */
-    protected function _deleteExitedWorkerByPid($pid)
+    protected function deleteExitedWorkerByPid($pid)
     {
-        $id = $this->_workerInstances[$pid]->getId();
-        unset($this->_workerInstances[$pid]);
-        unset($this->_workers[$id]['pids'][$pid]);
-        $this->_status(sprintf('Worker id[%s] process deleted successfully, PID %s', $id, $pid));
+        $id = $this->workerInstances[$pid]->getId();
+        unset($this->workerInstances[$pid]);
+        unset($this->workers[$id]['pids'][$pid]);
+        $this->status(sprintf('Worker id[%s] process deleted successfully, PID %s', $id, $pid));
     }
-
+    
     /**
      * 检测运行的worker信息 有子进程退出则执行清理和补充动作
      *
      * @return void
      */
-    protected function _monitorWorkers()
+    protected function monitorWorkers()
     {
-        if (count($this->_workerInstances) < $this->_maxWorkers)
-        {
+        if (count($this->workerInstances) < $this->maxWorkers) {
             return;
         }
         $status = 0;
         $pid = pcntl_wait($status, WUNTRACED);
-        if ($pid == -1)
-        {
-            $this->_delPidFile();
-            $this->_exit(1, 'pcntl_wait status error');
+        if ($pid == -1) {
+            $this->delPidFile();
+            $this->exit(1, 'pcntl_wait status error');
         }
-        $this->_deleteExitedWorkerByPid($pid);
+        $this->deleteExitedWorkerByPid($pid);
     }
-
+    
     /**
      * 初始化主进程
      *
      * @throws DaemonException
      */
-    protected function _daemonize()
+    protected function daemonize()
     {
         $pid = pcntl_fork();
-        if ($pid > 0)
-        {
+        if ($pid > 0) {
             exit(0);
         }
-        if (-1 === $pid)
-        {
-            return $this->_exit(1, 'daemonize failed!');
+        if (-1 === $pid) {
+            return $this->exit(1, 'daemonize failed!');
         }
-
+        
         posix_setsid();
-
+        
         $pid = pcntl_fork();
-        if ($pid > 0)
-        {
+        if ($pid > 0) {
             exit(0);
         }
-        if (-1 === $pid)
-        {
-            return $this->_exit(1, 'daemonize failed!');
+        if (-1 === $pid) {
+            return $this->exit(1, 'daemonize failed!');
         }
-
+        
         // 写入PID文件
-        $this->_pid = posix_getpid();
-        if (!file_put_contents($this->_pidFile, $this->_pid, LOCK_EX))
-        {
-            return $this->_exit(1, 'daemonize failed, pid file %s write faild');
+        $this->pid = posix_getpid();
+        if (!file_put_contents($this->pidFile, $this->pid, LOCK_EX)) {
+            return $this->exit(1, sprintf('daemonize failed, pid file %s write faild', $this->pidFile));
         }
-
+        
         // 进程重命名
-        $this->_processTitle = sprintf('%s %s -d --daemon-id=%s ', $_SERVER['_'], realpath($_SERVER['PHP_SELF']), $this->_id);
-
+        $this->processTitle = sprintf('%s %s -d --daemon-id=%s ', $_SERVER['_'], realpath($_SERVER['PHP_SELF']),
+            $this->id);
+        
         // 变更工作目录
-        if ($this->_homedir && is_dir($this->_homedir))
-        {
-            chdir($this->_homedir);
+        if ($this->homedir && is_dir($this->homedir)) {
+            chdir($this->homedir);
         }
-
+        
         // 进程权限
-        if ($this->_umask)
-        {
-            umask($this->_umask);
+        if ($this->umask) {
+            umask($this->umask);
         }
-
-        $this->_initSignal();
-
+        
+        $this->initSignal();
+        
         // 重命名主进程
-        $this->_setProcessTitle($this->_processTitle . ' process master');
-        $this->_status(sprintf('Master process %s is inited, PID %d ', $this->_policy['id'], $this->_pid));
+        $this->setProcessTitle($this->processTitle . ' process master');
+        $this->status(sprintf('Master process %s is inited, PID %d ', $this->policy['id'], $this->pid));
     }
-
+    
     /**
      * 设置进程名称
      *
      * @param string $title
      * @return boolean
      */
-    protected function _setProcessTitle($title)
+    protected function setProcessTitle($title)
     {
         return cli_set_process_title($title);
     }
-
+    
     /**
      * 主进程初始化信号处理
      *
      * @return void
      */
-    protected function _initSignal()
+    protected function initSignal()
     {
         // 守护进程异步处理
-        pcntl_async_signals(TRUE);
-
+        pcntl_async_signals(true);
+        
         // stop
         pcntl_signal(SIGINT, [
             $this,
             "onsignal"
-        ], FALSE);
-
+        ], false);
+        
         // stop
         pcntl_signal(SIGTERM, [
             $this,
             "onsignal"
-        ], FALSE);
-
+        ], false);
+        
         // stop
         pcntl_signal(SIGTSTP, [
             $this,
             "onsignal"
-        ], FALSE);
-
+        ], false);
+        
         // 关闭管道事件
-        pcntl_signal(SIGPIPE, SIG_IGN, FALSE);
+        pcntl_signal(SIGPIPE, SIG_IGN, false);
     }
-
+    
     /**
      * 执行子进程的APP实例
      *
      * @access protected
-     * @param string $appName
-     *            app名称
-     * @param string $profile
-     *            配置文件路径
+     * @param string $appName app名称
+     * @param string $profile 配置文件路径
      * @return void
      */
-    protected function _dispathByWorker($worker)
+    protected function dispathByWorker($worker)
     {
         // worker
-        $this->_isDaemon = FALSE;
-
+        $this->isDaemon = false;
+        
         // rename process name for ps -ef
-        $this->_setProcessTitle($this->_processTitle . ' process worker ' . $worker['id']);
-
+        $this->setProcessTitle($this->processTitle . ' process worker ' . $worker['id']);
+        
         // 统一收集worker运行过程中的log
-        ob_start([
-            $this,
-            'onWorkerOutput'
-        ], 1);
-
-        // worker
-        $this->_currentWorkerInstance = $worker['instance'];
-
-        // exit事件
-        register_shutdown_function([
-            $this,
-            'onWorkerExit'
-        ]);
-
-        try
-        {
-            // onstart事件
-            $startResult = $this->_currentWorkerInstance->start();
-
-            // start事件失败即终止运行
-            if (FALSE === $startResult)
-            {
-                $this->_log(1, sprintf('Worker PID %d onstart faild', $this->_pid));
-                exit(1);
+        ob_start(function($output){
+            if ($output){
+                $this->log($output);
             }
-            // r运行事件
-            $this->_currentWorkerInstance->run();
-        }
-        catch (DaemonException $e)
-        {
-            $this->_log(sprintf("Worker Exception:  %s Line:%d File:%s", $e->getMessage(), $e->getLine(), $e->getFile()));
+        }, 1);
+        
+        // worker
+        $this->currentWorkerInstance = $worker['instance'];
+        
+        // exit事件
+        register_shutdown_function(function(){
+            if ($this->isRunning()) {
+                return;
+            }
+            // worker stop事件
+            $this->onWorkerStop();
+        });
+        
+        try {
+            // start事件失败即终止运行
+            if (false === $this->currentWorkerInstance->start()) {
+                $this->log(sprintf('Worker PID %d onstart faild', $this->pid), 1);
+                return $this->stop(true);
+            }
+            
+            // 运行事件
+            $this->currentWorkerInstance->run();
+        } catch (DaemonException $e) {
+            $this->log(sprintf("Worker Exception:  %s Line:%d File:%s", $e->getMessage(), $e->getLine(), $e->getFile()));
             exit(1);
         }
         exit(0);
     }
-
-    /**
-     *
-     * @param string $output
-     */
-    public function onWorkerOutput($output)
-    {
-        if (!$output)
-        {
-            return FALSE;
-        }
-        $this->_log($output);
-        return NULL;
-    }
-
-    /**
-     */
-    public function onWorkerExit()
-    {
-        if ($this->_isRunning())
-        {
-            return;
-        }
-        // worker stop事件
-        $this->_onWorkerStop();
-    }
-
+    
     /**
      * worker进程停止工作
      */
-    protected function _onWorkerStop($isGraceful = TRUE)
+    protected function onWorkerStop($isGraceful = true)
     {
         // 优雅关闭 则执行stop事件
-        if ($isGraceful && $this->_currentWorkerInstance)
-        {
-            $this->_currentWorkerInstance->stop();
+        if ($isGraceful && $this->currentWorkerInstance) {
+            $this->currentWorkerInstance->stop();
         }
     }
-
+    
     /**
      * 通过输入参数初始化守护进程
-     *
-     * @return void
      */
-    protected function _getPidFromPidFile()
+    protected function getPidFromPidFile()
     {
-        if (!file_exists($this->_pidFile))
-        {
-            return FALSE;
+        if (!file_exists($this->pidFile)) {
+            return false;
         }
-        $pid = (int)file_get_contents($this->_pidFile);
+        $pid = (int)file_get_contents($this->pidFile);
         return $pid;
     }
-
+    
     /**
      * 检测主进程ID是否正在运行中
      */
-    protected function _isRunning()
+    protected function isRunning()
     {
-        $pid = $this->_getPidFromPidFile();
-        if (!$pid)
-        {
-            return FALSE;
+        $pid = $this->getPidFromPidFile();
+        if (!$pid) {
+            return false;
         }
-        if ($this->_pid > 0 && $pid != $this->_pid)
-        {
-            return FALSE;
+        if ($this->pid > 0 && $pid != $this->pid) {
+            return false;
         }
         $pidIsExists = file_exists('/proc/' . $pid);
-        return $pidIsExists ? $pid : FALSE;
+        return $pidIsExists ? $pid : false;
     }
-
+    
     /**
      * 停止
      *
      * @param bool $isGraceful
      */
-    protected function _stop(bool $isGraceful = TRUE)
+    protected function end(bool $isGraceful = true)
     {
-        // worker进程接受
-        if (!$this->_isDaemon)
-        {
-            $this->_onWorkerStop($isGraceful);
+        // worker进程
+        if (!$this->isDaemon) {
+            $this->onWorkerStop($isGraceful);
             exit(0);
         }
-
-        // daemon接受
+        
+        // daemon进程
         $sig = $isGraceful ? SIGTERM : SIGINT;
-        foreach ($this->_workerInstances as $pid => $worker)
-        {
+        foreach ($this->workerInstances as $pid => $worker) {
             posix_kill($pid, $sig);
         }
-        if ($isGraceful)
-        {
+        if ($isGraceful) {
             sleep(2);
-            foreach ($this->_workerInstances as $pid => $worker)
-            {
+            foreach ($this->workerInstances as $pid => $worker) {
                 posix_kill($pid, SIGINT);
             }
         }
-        $this->_delPidFile();
+        $this->delPidFile();
         exit(0);
     }
-
+    
     /**
      * 删除PID文件 如果有
-     *
-     * @return void
      */
-    protected function _delPidFile()
+    protected function delPidFile()
     {
-        if (file_exists($this->_pidFile))
-        {
-            unlink($this->_pidFile);
+        if (file_exists($this->pidFile)) {
+            unlink($this->pidFile);
         }
     }
-
+    
     /**
      * 结束主进程
      *
-     * @param int $status
-     *            状态码
-     * @param string $log
-     *            退出时的日志
+     * @param int $status 状态码
+     * @param string $log 退出时的日志
      * @return void
      */
-    protected function _exit($status = 0, $msg = NULL, $priority = 3)
+    protected function exit($status = 0, $msg = null, $priority = 3)
     {
-        if ($msg && $status == 0)
-        {
-            $this->_status($msg, $priority);
+        if ($msg && $status == 0) {
+            $this->status($msg, $priority);
         }
-        if ($msg && $status != 0)
-        {
-            $this->_err($msg, $priority);
+        if ($msg && $status != 0) {
+            $this->err($msg, $priority);
         }
-        $this->_stop();
+        $this->end();
         exit($status);
     }
-
+    
     /**
      * 记录错误
      *
      * @param string $msg
      * @param
      */
-    protected function _err($msg, $priority = 3)
+    protected function err($msg, $priority = 3)
     {
-        return $this->_outlog($this->_logErrId, $msg, $priority);
+        return $this->outlog($this->logErrId, $msg, $priority);
     }
-
+    
     /**
      * 状态日志
      *
      * @param string $msg
-     * @param int $priority
-     *            日志优先级
+     * @param int $priority 日志优先级
      */
-    protected function _status($msg, $priority = 6)
+    protected function status($msg, $priority = 6)
     {
-        return $this->_outlog($this->_logStatusId, $msg, $priority);
+        return $this->outlog($this->logStatusId, $msg, $priority);
     }
-
+    
     /**
      * 进程日志
      *
      * @param string $msg
-     * @param int $priority
-     *            优先级
+     * @param int $priority 优先级
      */
-    protected function _log($msg, $priority = 6)
+    protected function log($msg, $priority = 6)
     {
-        return $this->_outlog($this->_logId, $msg, $priority);
+        return $this->outlog($this->logId, $msg, $priority);
     }
-
+    
     /**
      * 写入日志文件
      *
-     * @param string $id
-     *            日志ID
-     * @param string $msg
-     *            日志内容
-     * @param int $priority
-     *            日志优先级
-     *            参数数组
-     * @return void
+     * @param string $id 日志ID
+     * @param string $msg 日志内容
+     * @param int $priority 日志优先级
      */
-    protected function _outlog($id, $msg, $priority = 6)
+    protected function outlog($id, $msg, $priority = 6)
     {
         $msg .= "\n";
-        if (true || $this->_debug)
-        {
+        if (true || $this->debug) {
             echo $msg;
         }
-        if ($this->_daemonHandler)
-        {
-            $this->_daemonHandler->onOutLog($id, $msg, $priority);
+        if ($this->daemonHandler) {
+            @$this->daemonHandler->onOutLog($id, $msg, $priority);
         }
     }
 }

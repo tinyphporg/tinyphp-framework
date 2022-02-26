@@ -15,7 +15,12 @@
  */
 namespace Tiny\MVC\Model;
 
-use Tiny\Data\Redis\Redis as RedisSchema;
+use Tiny\Data\Redis\Redis as RedisAdapter;
+use Tiny\Data\Redis\Schema\Counter;
+use Tiny\Data\Redis\Schema\Queue;
+use Tiny\Data\Redis\SortSet;
+use Tiny\Data\Redis\Set;
+use Tiny\Data\Redis\HashTable;
 
 /**
  * Redis的模型类
@@ -24,22 +29,22 @@ use Tiny\Data\Redis\Redis as RedisSchema;
  * @since 2013-11-29下午05:07:17
  * @final 2013-11-29下午05:07:17
  */
-class Redis extends Base
+class Redis extends Model
 {
 
     /**
      * 数据操作实例
      *
-     * @var RedisSchema
+     * @var RedisAdapter
      */
-    protected $_schema;
+    protected $redis;
 
     /**
      * 数据池操作ID
      *
      * @var string
      */
-    protected $_dataId = NULL;
+    protected $dataId;
 
     /**
      * 构造函数
@@ -51,9 +56,9 @@ class Redis extends Base
      */
     public function __construct($id = 'default')
     {
-        if (NULL == $this->_dataId)
+        if (!$this->dataId)
         {
-            $this->_dataId = $id;
+            $this->dataId = $id;
         }
     }
 
@@ -64,7 +69,7 @@ class Redis extends Base
      */
     public function getConnector()
     {
-        return $this->_getSchema()->getConnector();
+        return $this->getRedis()->getConnector();
     }
 
     /**
@@ -74,71 +79,59 @@ class Redis extends Base
      */
     public function close()
     {
-        return $this->_getSchema()->close();
+        return $this->getRedis()->close();
     }
-
-    /**
-     * 获取字符串实例
-     *
-     * @param string $key
-     *        键
-     * @return string
-     */
-    public function createString($key)
-    {
-        return $this->_getSchema()->createString($key);
-    }
-
+    
     /**
      * 获取计数器实例
      *
      * @param string $key
      *        键
-     * @return \Tiny\Data\Redis\Counter
+     * @return Counter
      */
     public function createCounter($key)
     {
-        return $this->_getSchema()->createCounter($key);
+        return $this->getRedis()->createCounter($key);
     }
 
     /**
      * 创建一个队列对象
      *
-     * @return \Tiny\Data\Redis\Queue
+     * @return Queue
      */
     public function createQueue($key)
     {
-        return $this->_getSchema()->createQueue($key);
+        return $this->getRedis()->createQueue($key);
     }
 
     /**
      * 创建一个哈希表对象
      *
-     * @return \Tiny\Data\Redis\HashTable
+     * @return HashTable
      */
     public function createHashTable($key)
     {
-        return $this->_getSchema()->createHashTable($key);
+        return $this->getRedis()->createHashTable($key);
     }
 
     /**
      * 创建一个集合对象
      *
-     * @return \Tiny\Data\Redis\Set
+     * @return Set
      */
     public function createSet($key)
     {
-        return $this->_getSchema()->createSet($key);
+        return $this->getRedis()->createSet($key);
     }
 
     /**
      * 创建一个有序集合对象
      *
-     * @return \Tiny\Data\Redis\Set
+     * @return SortSet
      */
     public function createSortSet($key)
     {
-        return $this->_getSchema()->createSortSet($key);
+        return $this->getRedis()->createSortSet($key);
     }
 
     /**
@@ -151,10 +144,10 @@ class Redis extends Base
      * @return
      *
      */
-    public function __call($method, $params)
+    public function __call(string $method, array $params)
     {
         return call_user_func_array([
-            $this->_getSchema(),
+            $this->getRedis(),
             $method
         ], $params);
     }
@@ -162,20 +155,19 @@ class Redis extends Base
     /**
      * 获取数据操作实例
      *
-     * @return RedisSchema
+     * @return RedisAdapter
      */
-    protected function _getSchema()
+    protected function getRedis()
     {
-        if ($this->_schema)
+        if (!$this->redis)
         {
-            return $this->_schema;
-        }
-        $this->_schema = $this->data->getData($this->_dataId);
-        if (!$this->_schema instanceof RedisSchema)
+        $this->redis = $this->data->getDataSource($this->dataId);
+        if (!$this->redis instanceof RedisAdapter)
         {
             throw new ModelException('Data.Redis.Schema实例加载失败，ID' . $this->_dataId . '不是Tiny\Data\Redis\Schema实例');
         }
-        return $this->_schema;
+        }
+        return $this->redis;
     }
 }
 ?>

@@ -30,146 +30,115 @@ use Tiny\MVC\Request\WebRequest;
  */
 class HttpCookie implements \ArrayAccess, \Iterator, \Countable
 {
-
-    /**
-     * 单例模式
-     *
-     * @var HttpCookie
-     */
-    protected static $_instance;
-
+    
     /**
      * cookie
      *
      * @var array
      */
-    protected $_cookies = FALSE;
-
+    protected $cookies;
+    
     /**
      * cookie域名
      *
      * @var string
      */
-    protected $_domain = '';
-
+    protected $domain;
+    
     /**
      * 过期时间
      *
      * @var int
      */
-    protected $_expires = 360000;
-
+    protected $expires = 360000;
+    
     /**
      * cookie前缀
      *
      * @var string
      */
-    protected $_prefix = '';
-
+    protected $prefix;
+    
     /**
      * cookie作用路径
      *
      * @var string
      */
-    protected $_path = '/';
-
+    protected $path;
+    
     /**
      * 是否编码
      *
      * @var bool
      */
-    protected $_isEncode = FALSE;
-
-    /**
-     * 获取单一实例
-     *
-     * @param array $cookies 预设的cookies数据
-     * @return self
-     */
-    public static function getInstance($policy =  [])
-    {
-        if (!self::$_instance)
-        {
-            self::$_instance = new self($policy);
-        }
-        return self::$_instance;
-    }
-
+    protected $isEncode;
+    
     /**
      * 构造函数
      *
      * @param array $policy 策略配置数组
      * @return void
      */
-    protected function __construct(array $policy)
+    public function __construct(array $config)
     {
-        $this->_cookies = $policy['data'];
-        $this->_domain = $policy['domain'];
-        $this->_expires = (int)$policy['expires'];
-        $this->_prefix = (string)$policy['prefix'];
-        $this->_path = $policy['path'];
-        $this->_isEncode = (bool)$policy['encode'];
+        $this->cookies = (array)$config['data'] ?: [];
+        $this->domain = (string)$config['domain'] ?: '';
+        $this->expires = (int)$config['expires'] ?: 36000;
+        $this->prefix = (string)$config['prefix'] ?: '';
+        $this->path = $config['path'] ?: '/';
+        $this->isEncode = (bool)$config['encode'] ?: false;
     }
-
+    
     /**
      * 获取 COOKIE 数据
      *
-     * @param string $name
-     *        域名称,如果为空则返回整个 $COOKIE 数组
-     * @param boolean $decode
-     *        是否自动解密,如果 set() 时加密了则这里必需要解密,并且解密只能针对单个值
+     * @param string $name 域名称,如果为空则返回整个 $COOKIE 数组
+     * @param boolean $decode 是否自动解密,如果 set() 时加密了则这里必需要解密,并且解密只能针对单个值
      * @return mixed
      */
-    public function get($name = NULL)
+    public function get($name = null)
     {
-        $name = $this->_prefix . $name;
-        $value = $name ? $this->_cookies[$name] : $this->_cookies;
-        if ($this->_isEncode)
-        {
-            $value = $this->_decode($value);
+        $name = $this->prefix . $name;
+        $value = $name ? $this->cookies[$name] : $this->cookies;
+        if ($this->isEncode) {
+            $value = $this->decode($value);
         }
         return $value;
     }
-
+    
     /**
      * 设置COOKIE
      *
-     * @param string $name
-     *        COOKIE名称
-     * @param string $value
-     *        值
-     * @param int $time
-     *        有效时间,以秒为单位 0 表示会话期间内
-     * @param string $domain
-     *        域名
+     * @param string $name COOKIE名称
+     * @param string $value 值
+     * @param int $time 有效时间,以秒为单位 0 表示会话期间内
+     * @param string $domain 域名
      * @return bool
      */
-    public function set($name, $value, $time = NULL, $path = NULL, $domain = NULL)
+    public function set($name, $value, $time = null, $path = null, $domain = null)
     {
-        $name = $this->_prefix . $name;
-        $path = $path ?: $this->_path;
-        $domain = $domain ?: $this->_domain;
-        $time = (int)$time ?: $this->_expires;
+        $name = $this->prefix . $name;
+        $path = $path ?: $this->path;
+        $domain = $domain ?: $this->domain;
+        $time = (int)$time ?: $this->expires;
         $time = $time + time();
-        if ($this->_isEncode)
-        {
-            $value = $this->_encode($value);
+        if ($this->isEncode) {
+            $value = $this->encode($value);
         }
         return setcookie($name, $value, $time, $path, $domain);
     }
-
+    
     /**
      * 删除 COOKIE
      *
-     * @param string $name
-     *        COOKIE名称
+     * @param string $name COOKIE名称
      * @return void
      */
     public function remove($name)
     {
-        $this->set($name, NULL, -86400 * 365);
+        $this->set($name, null, -86400 * 365);
     }
-
+    
     /**
      * 清除 COOKIE
      *
@@ -177,12 +146,11 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function clean()
     {
-        foreach ($this->_cookies as $key => $val)
-        {
+        foreach ($this->cookies as $key => $val) {
             $this->remove($key);
         }
     }
-
+    
     /**
      * 实现接口之获取
      *
@@ -193,14 +161,12 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
     {
         return $this->get($key);
     }
-
+    
     /**
      * 实现接口之设置
      *
-     * @param string $key
-     *        键
-     * @param string $value
-     *        值 其他值均为默认值
+     * @param string $key 键
+     * @param string $value 值 其他值均为默认值
      * @return
      *
      */
@@ -208,32 +174,30 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
     {
         $this->set($key, $value);
     }
-
+    
     /**
      * 实现接口之是否存在
      *
      *
-     * @param string $key
-     *        键
+     * @param string $key 键
      * @return bool
      */
     public function offsetExists($key)
     {
-        return isset($this->_cookies[$key]);
+        return isset($this->cookies[$key]);
     }
-
+    
     /**
      * 实现接口之移除cookie
      *
-     * @param string $key
-     *        cookie的键
+     * @param string $key cookie的键
      * @return bool
      */
     public function offsetUnset($key)
     {
         return $this->remove($key);
     }
-
+    
     /**
      * Iterator rewind
      *
@@ -241,9 +205,9 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function rewind()
     {
-        return reset($this->_cookies);
+        return reset($this->cookies);
     }
-
+    
     /**
      * Iterator current
      *
@@ -251,14 +215,13 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function current()
     {
-        $current = current($this->_cookies);
-        if ($this->_isEncode)
-        {
-            $current = $this->_decode($current);
+        $current = current($this->cookies);
+        if ($this->isEncode) {
+            $current = $this->decode($current);
         }
         return $current;
     }
-
+    
     /**
      * Iterator next
      *
@@ -266,9 +229,9 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function next()
     {
-        return next($this->_cookies);
+        return next($this->cookies);
     }
-
+    
     /**
      * Iterator key
      *
@@ -276,9 +239,9 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function key()
     {
-        return key($this->_cookies);
+        return key($this->cookies);
     }
-
+    
     /**
      * Iterator valid
      *
@@ -287,9 +250,9 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function valid()
     {
-        return NULL !== key($this->_cookies);
+        return null !== key($this->cookies);
     }
-
+    
     /**
      * 输出字符
      *
@@ -297,9 +260,9 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function __toString()
     {
-        return var_export($this->_cookies, TRUE);
+        return var_export($this->cookies, true);
     }
-
+    
     /**
      * 获取总计
      *
@@ -307,68 +270,60 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function count()
     {
-        return count($this->_cookies);
+        return count($this->cookies);
     }
-
+    
     /**
      * 私有方法：加密 COOKIE 数据
      *
      * @param string $value 值
      * @return string
      */
-    protected function _encode($value)
+    protected function encode($value)
     {
-        if (!is_array($value))
-        {
+        if (!is_array($value)) {
             $value = base64_encode($value);
-            $search = [
+            return str_replace([
                 '=',
                 '+',
                 '/'
-            ];
-            $replace = [
+            ], [
                 '_',
                 '-',
                 '|'
-            ];
-            return str_replace($search, $replace, $value);
+            ], $value);
         }
-
+        
         $data = [];
-        foreach ($value as $key => $val)
-        {
-            $data[$key] = $this->_encode($val);
+        foreach ($value as $key => $val) {
+            $data[$key] = $this->encode($val);
         }
         return $data;
     }
-
+    
     /**
      * 私有方法：解密 COOKIE 数据
      *
      * @param string $value 值
      * @return string
      */
-    protected function _decode($value)
+    protected function decode($value)
     {
-        if (!is_array($value))
-        {
-            $replace = [
-                '=',
-                '+',
-                '/'
-            ];
-            $search = [
+        if (!is_array($value)) {
+            $str = str_replace([
                 '_',
                 '-',
                 '|'
-            ];
-            $str = str_replace($search, $replace, $value);
+            ], [
+                '=',
+                '+',
+                '/'
+            ], $value);
             return base64_decode($str);
         }
         $data = [];
-        foreach ($value as $key => $val)
-        {
-            $data[$key] = $this->_decode($val);
+        foreach ($value as $key => $val) {
+            $data[$key] = $this->decode($val);
         }
         return $data;
     }

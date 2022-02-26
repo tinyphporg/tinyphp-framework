@@ -22,68 +22,57 @@ namespace Tiny\Config\Parser;
  * @since 2020年2月27日下午5:38:36
  * @final 2020年2月27日下午5:38:36
  */
-class IniParser implements IParser
+class IniParser implements ParserInterface
 {
-
+    
     /**
-     * 解析INI配置文件，解析异常会抛出异常并终止
-     *
+     * 
      * {@inheritdoc}
-     * @see \Tiny\Config\Parser\IParser::parse()
+     * @see \Tiny\Config\Parser\ParserInterface:parse()
      */
     public function parse($fpath)
     {
-        $data = NULL;
-        try
-        {
-            $data = parse_ini_file($fpath, TRUE);
-        }
-        catch (\Exception $e)
-        {
+        $data = null;
+        try {
+            $data = parse_ini_file($fpath, true);
+        } catch (\Exception $e) {
             throw new ParserException(sprintf('Failed to parse %s', $fpath), E_ERROR);
         }
-        $this->_parseNode($data);
+        $this->parseNode($data);
         return $data;
     }
-
+    
     /**
      * 处理键名里包含.分隔符的情况
      *
-     * @param array $data
-     * @return void
+     * @param array $data 解析数据
+     * @return mixed
      */
-    protected function _parseNode(& $data)
+    protected function parseNode(&$data)
     {
-        foreach ($data as $node => & $d)
-        {
-            if (is_array($d))
-            {
-                $this->_parseNode($d);
+        foreach ($data as $node => &$d) {
+            if (is_array($d)) {
+                $this->parseNode($d);
             }
-
-            if (strpos($node, '.') === FALSE)
-            {
+            
+            if (strpos($node, '.') === false) {
                 continue;
             }
-
             // 处理键名里包含.分隔符的情况
             $ns = explode('.', $node);
             $adata = $d;
             unset($data[$node]);
-            for ($i = count($ns) - 1; $i > 0; $i--)
-            {
+            for ($i = count($ns) - 1; $i > 0; $i--) {
                 $adata = [
                     $ns[$i] => $adata
                 ];
             }
-            if (is_array($data[$ns[0]]) && is_array($adata))
-            {
+            if (is_array($data[$ns[0]]) && is_array($adata)) {
                 $data[$ns[0]] = array_merge_recursive($data[$ns[0]], $adata);
                 continue;
             }
             $data[$ns[0]] = $adata;
         }
-
         return $data;
     }
 }

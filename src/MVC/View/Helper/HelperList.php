@@ -14,9 +14,9 @@
  */
 namespace Tiny\MVC\View\Helper;
 
-use Tiny\MVC\View\IHelper;
 use Tiny\MVC\View\View;
 use Tiny\MVC\View\ViewException;
+use Tiny\MVC\View\ViewHelperInterface;
 
 /**
  * 视图助手的工具类 根据属性名检索视图层的所有助手并返回实例
@@ -27,7 +27,7 @@ use Tiny\MVC\View\ViewException;
  *       
  *       
  */
-class HelperList implements IHelper, \ArrayAccess
+class HelperList implements ViewHelperInterface, \ArrayAccess
 {
 
     /**
@@ -42,14 +42,14 @@ class HelperList implements IHelper, \ArrayAccess
      *
      * @var View
      */
-    protected $_view;
+    protected $view;
 
     /**
      * 配置
      *
      * @var array
      */
-    protected $_config;
+    protected $config;
 
     /**
      * 设置View实例
@@ -58,8 +58,8 @@ class HelperList implements IHelper, \ArrayAccess
      */
     public function setViewHelperConfig(View $view, array $config)
     {
-        $this->_view = $view;
-        $this->_config = $config;
+        $this->view = $view;
+        $this->config = $config;
     }
 
     /**
@@ -80,7 +80,7 @@ class HelperList implements IHelper, \ArrayAccess
      */
     public function offsetExists($hname)
     {
-        return $this->_view->{$hname} ? true : false;
+        return $this->view->{$hname} ? true : false;
     }
 
     /**
@@ -91,7 +91,7 @@ class HelperList implements IHelper, \ArrayAccess
      */
     public function offsetGet($hname)
     {
-        return $this->_view->{$hname};
+        return $this->view->{$hname};
     }
 
     /**

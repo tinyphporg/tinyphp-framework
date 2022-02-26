@@ -15,42 +15,13 @@
 namespace Tiny\MVC\Router;
 
 use Tiny\MVC\Request\Request;
-use Tiny\MVC\Request\Param\Readonly;
 use Tiny\MVC\Request\WebRequest;
-use Tiny\DI\ContainerInterface;
+use Tiny\MVC\Router\Route\HttpRoute;
+use Tiny\MVC\Router\Route\RouteInterface;
+use Tiny\MVC\Router\Route\PathInfo;
+use Tiny\MVC\Router\Route\RewriteUriInterface;
+use Tiny\MVC\Router\Route\RegEx;
 
-/**
- * 路由器接口
- *
- * @package Tiny.MVC.Router
- * @since 2017年3月12日下午5:57:08
- * @final 2017年3月12日下午5:57:08
- */
-interface RouteInterface
-{
-    
-    /**
-     * 检查规则是否符合当前path
-     *
-     * @param array $regRule 注册规则
-     * @param string $routerString 路由规则
-     * @return bool
-     */
-    public function match(Request $request, string $routeString, array $rule = []);
-    
-    /**
-     * 获取解析后的参数，如果该路由不正确，则不返回任何数据
-     *
-     * @return array|NULL
-     */
-    public function getParams(): array;
-    
-    /**
-     *
-     * @param array $params
-     */
-    public function rewriteUri(Request $request, array $params, $isRewrited = true);
-}
 
 /**
  * 路由器主体类
@@ -70,10 +41,9 @@ class Router
      * @var array
      */
     protected $routeFactoryConfig = [
-        'regex' => RegEx::class, 
+       'regex' => RegEx::class, 
         'pathinfo' => PathInfo::class,
     ];
-    // @formatter:on
     
     /**
      * 路由器实例集合
@@ -134,12 +104,12 @@ class Router
      * @param string $routerName 实现了IRouter接口的路由器类名
      * @return bool
      */
-    public function addRoute(string $name, $className)
+    public function addRoute(string $routeName, $routeClass)
     {
-        if (!key_exists($name, $this->routeFactoryConfig)) {
+        if (!key_exists($routeName, $this->routeFactoryConfig)) {
             return false;
         }
-        $this->routeFactoryConfig[] = $className;
+        $this->routeFactoryConfig[$routeName] = $routeClass;
     }
     
     /**
@@ -153,22 +123,15 @@ class Router
      */
     public function addRouteRule(array $rule)
     {
-        $name = (string)$rule['route'];
-        if (!key_exists($name, $this->routeFactoryConfig)) {
-            if (!$rule['class']) {
-                return false;
-            }
-            $this->addRoute($name, $rule['class']);
+        $routeNname = (string)$rule['route'];
+        if (!key_exists($routeNname, $this->routeFactoryConfig)) {
+            return false;
         }
         
-        $ruleConfig = [];
-        if (key_exists('rule', $rule) && is_array($rule['rule'])) {
-            $ruleConfig = $rule['rule'];
-        }
-        
+        $ruleConfig = (key_exists('rule', $rule) && is_array($rule['rule'])) ? $rule['rule'] : [];
         $routeRule = [];
-        $routeRule['name'] = $name;
-        $routeRule['class'] = $this->routeFactoryConfig[$name];
+        $routeRule['name'] = $routeNname;
+        $routeRule['class'] = $this->routeFactoryConfig[$routeNname];
         $routeRule['rule'] = $ruleConfig;
         $this->routeChain[] = $routeRule;
         return true;
@@ -181,20 +144,16 @@ class Router
      */
     public function route()
     {
-        $routeString = $this->request->getUri();
+        $routeString = $this->request->getRouteContext();
         if (!$routeString || $routeString === '/') {
             return false;
         }
         
-        if ($this->request instanceof WebRequest) {
-            $httpRoute = $this->factory(HttpRoute::class);
-            if (!$httpRoute->match($this->request,$routeString)) {
-                return false;
-            }
-            $this->params += $httpRoute->getParams();
-        }
-        
+        $httpRoute = ($this->request instanceof WebRequest) ? $this->factory(HttpRoute::class) : null;
         foreach ($this->routeChain as $routeConfig) {
+            if ($httpRoute && !$httpRoute->match($this->request, $routeString, $routeConfig['rule'])) {
+                continue;
+            }
             $route = $this->factory($routeConfig['class']);
             if ($route->match($this->request, $routeString, $routeConfig['rule'])) {
                 $this->resolveMatchedRoute($route);
@@ -207,7 +166,7 @@ class Router
     /**
      * 获取匹配的router实例
      *
-     * @return \Tiny\MVC\Router\IRouter | NULL
+     * @return RouteInterface
      */
     public function getMatchedRoute()
     {
@@ -233,35 +192,34 @@ class Router
      */
     public function rewriteUrl(array $params, $isRewrited = true)
     {
+        
         $request = $this->request;
         if (!$request instanceof WebRequest) {
             return;
         }
+
+        $host = ($request->ishttps ? 'https://' : 'http://') . $request->host;        
+        $cp = $request->getControllerParamName();
+        $ap = $request->getActionParamName();
+        $controllerName = (isset($params[$cp])) ? $params[$cp] : $request->getControllerName();
+        $actionName = (isset($params[$ap])) ? $params[$ap] : $request->getActionName();
         
-        $host = ($request->ishttps ? 'https://' : 'http://') . $request->host;
-        
-        $cp = $request->getControllerParam();
-        $ap = $request->getActionParam();
-        
-        $controllerName = (isset($params[$cp])) ? $params[$cp] : $request->getController();
-        $actionName = (isset($params[$ap])) ? $params[$ap] : $request->getAction();
-        
-        if ($isRewrited && $this->matchedRoute) {
+        // rewrite uri
+       
+        if ($isRewrited && $this->matchedRoute && $this->matchedRoute instanceof RewriteUriInterface) {
             
             $rparams = $params;
             unset($rparams[$cp], $rparams[$ap]);
-            $uri = $this->_matchedRouter->rewriteUri($controllerName, $actionName, $rparams);
-            if ($uri) {
-                return $host . $uri;
-            }
+            $uri = $this->matchedRoute->rewriteUri($controllerName, $actionName, $params);
+            return $host . $uri;
         }
-        $url = $host . $this->_req->scriptName;
-        $u = array();
+        
+        $url = $host . $this->request->scriptName;
+        $urlParams = [];
         foreach ($params as $k => $v) {
-            $u[] = rawurlencode($k) . '=' . rawurlencode($v);
+            $urlParams[] = rawurlencode($k) . '=' . rawurlencode($v);
         }
-        $url .= '?' . join('&', $u);
-        return $url;
+        return $url . '?' . join('&', $urlParams);
     }
     
     /**
@@ -277,21 +235,23 @@ class Router
         
         if (key_exists('controller', $params))
         {
-            $cp = $this->request->getControllerParam();
+            $cp = $this->request->getControllerParamName();
             $params[$cp] = $params['controller'];
-            $this->request->setController($params['controller']);
+            $this->request->setControllerName($params['controller']);
+            unset($params['controller']);
         }
         
         if (key_exists('action', $params))
         {
-            $ap = $this->request->getActionParam();
+            $ap = $this->request->getActionParamName();
             $params[$ap] = $params['action'];
-            $this->request->setAction($params['action']);
+            $this->request->setActionName($params['action']);
+            unset($params['action']);
         }
         
-        $this->request->setParam($params);
+        $this->request->setRouteParam($params);
         $this->params = $params;
-        return $this->params;
+        return $params;
     }
     
     /**
@@ -317,74 +277,6 @@ class Router
         
         $this->routes[$routeName] = $routerInstance;
         return $routerInstance;
-    }
-}
-
-/**
- * Http环境下的参数验证
- *
- * @package namespace
- * @since 2022年1月9日上午8:30:59
- * @final 2022年1月9日上午8:30:59
- */
-class HttpRoute implements RouteInterface
-{
-    
-    /**
-     * 解析存放URL参数的数组
-     *
-     * @var array
-     */
-    protected $params = [];
-    
-    /**
-     *
-     * {@inheritdoc}
-     * @see \Tiny\MVC\Router\RouteInterface::match()
-     */
-    public function match(Request $request, string $routeString, array $routeRule = [])
-    {
-        return true;
-    }
-    
-    /**
-     *
-     * {@inheritdoc}
-     * @see \Tiny\MVC\Router\RouteInterface::getParams()
-     */
-    public function getParams(): array
-    {
-        return $this->params;
-    }
-    
-    /**
-     *
-     * {@inheritdoc}
-     * @see \Tiny\MVC\Router\RouteInterface::rewriteUri()
-     */
-    public function rewriteUri(Request $request, array $params = [], $isRewrited = true)
-    {
-    }
-    
-    /**
-     * 格式化域名 可支持通配符模糊匹配
-     *
-     * @param string $domain
-     * @return string
-     */
-    protected function _isMatchedDomain($routerDomain)
-    {
-        $domain = $this->_req->host;
-        if (!$routerDomain) {
-            return TRUE;
-        }
-        foreach ($routerDomain as $rd) {
-            $rd = preg_replace(['/\./', '/[\*]+/', '/\?/'], ['\.', '.*', '.{1}'], $rd);
-            if (preg_match('/^' . $rd . '$/i', $domain)) {
-                return TRUE;
-            }
-        }
-        return FALSE;
     }
 }
 ?>

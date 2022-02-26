@@ -18,24 +18,30 @@ namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
 
-class Markdown extends Base
+/**
+* 注解文件解析器
+* 
+* @package Tiny.MVC.View.Engine
+* @since 2022年2月15日下午3:29:24
+* @final 2022年2月15日下午3:29:24
+*/
+class Markdown extends ViewEngine
 {
     /**
      * Parsedown实例
      * 
      * @var \Parsedown
      */
-    protected $_parsedownInstance;
+    protected $parsedownInstance;
     
     /**
-     * 获取编译后的文件路径
-     *
+     * \
      * {@inheritDoc}
-     * @see \Tiny\MVC\View\Engine\Base::getCompileFile()
+     * @see \Tiny\MVC\View\Engine\ViewEngine::getCompiledFile()
      */
-    public function getCompiledFile($tpath, $isAbsolute = FALSE)
+    public function getCompiledFile($tpath, $isAbsolute = false)
     {
-        $tfile  = $this->_getTemplateRealPath($tpath, $isAbsolute);
+        $tfile  = $this->getTemplateRealPath($tpath, $isAbsolute);
         if (!$tfile)
         {
             throw new ViewException(sprintf("viewer error: file %s is not a file", $tfile));
@@ -50,14 +56,14 @@ class Markdown extends Base
      * @param mixed $assign
      * @return string
      */
-    protected function _fetchCompiledContent($compileFile, $assign = FALSE)
+    protected function fetchCompiledContent($compileFile, $assign = false)
     {
         $template  = file_get_contents($compileFile);
         if (!$template)
         {
             return '';
         }
-        return $this->_parseMarkdown($template);
+        return $this->parseMarkdown($template);
     }
     
     /**
@@ -66,9 +72,9 @@ class Markdown extends Base
      * @param string $template 模板字符串
      * @return string
      */
-    protected function _parseMarkdown($template)
+    protected function parseMarkdown($template)
     {
-        $parsedownInstance = $this->_getParsedownInstance();
+        $parsedownInstance = $this->getParsedownInstance();
         return $parsedownInstance->parse($template);
     }
     
@@ -77,16 +83,16 @@ class Markdown extends Base
      * 
      * @return \Parsedown
      */
-    protected function _getParsedownInstance()
+    protected function getParsedownInstance()
     {
-        if (!$this->_parsedownInstance)
+        if (!$this->parsedownInstance)
         {
             $parsedownInstance = new \Parsedown();
-            $parsedownInstance->setSafeMode(TRUE);
-            $parsedownInstance->setMarkupEscaped(TRUE);
-            $this->_parsedownInstance = $parsedownInstance;
+            $parsedownInstance->setSafeMode(true);
+            $parsedownInstance->setMarkupEscaped(true);
+            $this->parsedownInstance = $parsedownInstance;
         }
-        return $this->_parsedownInstance;
+        return $this->parsedownInstance;
     }
 }
 ?>

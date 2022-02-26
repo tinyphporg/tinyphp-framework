@@ -25,21 +25,19 @@ namespace Tiny\Runtime;
  */
 class Random
 {
-
+    
     /**
      * 产生一个随机数
      *
-     * @param int $min
-     *        最小值 只有一个参数时，为最大随机值
-     * @param int $max
-     *        最大值 默认为0
+     * @param int $min 最小值 只有一个参数时，为最大随机值
+     * @param int $max 最大值 默认为0
      * @return int
      */
     public static function rand($min, $max = 0): int
     {
         return ($max > 0 ? mt_rand($min, $max) : mt_rand(0, $min));
     }
-
+    
     /**
      * 生成一个0-1之间的随机数
      *
@@ -49,14 +47,12 @@ class Random
     {
         return floatval(mt_rand(0, 10000000000) / 10000000000);
     }
-
+    
     /**
      * 产生指定长度和类型的随机字符串
      *
-     * @param int $length
-     *        字符串长度
-     * @param int $type
-     *        default 0
+     * @param int $length 字符串长度
+     * @param int $type default 0
      *        0 包含字符串和数字
      *        1 只包含数字
      *        2 只包含字母
@@ -73,22 +69,20 @@ class Random
             3 => 'abcdefghijklmnopqrstvwuxyz',
             4 => 'ABCDEFGHIJKLMNOPQRSTVWUXYZ'
         ];
-
+        
         $ret = '';
         $str = (isset($strs[$type])) ? $strs[$type] : $strs[0];
         $strlen = strlen($str);
-        for ($i = 0; $i < $length; $i++)
-        {
+        for ($i = 0; $i < $length; $i++) {
             $ret .= $str[mt_rand(0, $strlen)];
         }
         return $ret;
     }
-
+    
     /**
      * 产生唯一性的UUID
      *
-     * @param string $prefix
-     *        前缀
+     * @param string $prefix 前缀
      * @return string
      */
     public static function uuid($prefix = ''): string

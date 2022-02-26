@@ -21,16 +21,28 @@
  */
 namespace Tiny\Runtime;
 
-use Tiny\MVC\ApplicationBase;
+use Tiny\MVC\Application\ApplicationBase;
 use Tiny\DI\Container;
 use Tiny\DI\ContainerInterface;
-use Tiny\DI\Definition\DefinitionProivder;
+use Tiny\Event\EventManager;
+use Tiny\MVC\Application\ConsoleApplication;
+use Tiny\MVC\Application\WebApplication;
+use Tiny\DI\Definition\Provider\DefinitionProvider;
 
 // 定义框架所在路径
 define('TINY_FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
 
 // 定义框架资源路径
-define('TINY_FRAMEWORK_RESOURCE', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR);
+define('TINY_FRAMEWORK_RESOURCE_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR);
+
+// WEB模式
+define('TINY_RUNTIME_MODE_WEB', 0);
+
+// 命令行模式
+define('TINY_RUNTIME_MODE_CONSOLE', 1);
+
+// 远程服务模式
+define('TINY_RUNTIME_MODE_RPC', 2);
 
 /**
  * 运行时主体类
@@ -41,21 +53,21 @@ define('TINY_FRAMEWORK_RESOURCE', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATO
  */
 class Runtime
 {
-
+    
     /**
-     * 框架名称
+     * 框架名名称
      *
      * @var string
      */
     const FRAMEWORK_NAME = 'Tiny Framework For PHP';
-
+    
     /**
      * 框架版本号
      *
      * @var string
      */
-    const FRAMEWORK_VERSION = '1.0.0 stable';
-
+    const FRAMEWORK_VERSION = '2.0.0';
+    
     /**
      * 框架所在目录
      *
@@ -64,1182 +76,189 @@ class Runtime
     const FRAMEWORK_PATH = TINY_FRAMEWORK_PATH;
     
     /**
-     * 开始的时间戳
-     */
-    public $startTimestamp;
-    
-    /**
-     * 环境参数类
+     * 环境参数实例
      *
-     * @var Environment 环境参数类
+     * @var Environment
      */
     public $env;
     
     /**
-     * app策略集合
+     * application与runtime mode的映射表
      *
-     * @var array 运行时模式对应创建的application具体对象
-     *      WEB模式 | CONSOLE模式 | RPC模式
+     * @var array 不同运行时模式对应的application类
+     *      WEB模式
+     *      CONSOLE模式
+     *      RPC模式
      */
-    protected static $appMap = [
-        Environment::ENV_DEFAULT['RUNTIME_MODE_CONSOLE'] => '\Tiny\MVC\ConsoleApplication',
-        Environment::ENV_DEFAULT['RUNTIME_MODE_WEB'] => '\Tiny\MVC\WebApplication',
+    protected static $applicationMap = [
+        TINY_RUNTIME_MODE_CONSOLE => ConsoleApplication::class,
+        TINY_RUNTIME_MODE_WEB => WebApplication::class,
     ];
-
+    
     /**
-     * 运行时创建的应用程序实例
+     * Runtime创建的应用程序实例 必须集成ApplicationBase
      *
      * @var ApplicationBase
      */
-    protected $app;
-
+    protected $application;
+    
     /**
-     * 运行时创建的自动加载对象实例
+     * Runtime创建的自动加载对象实例
      *
      * @var Autoloader
      */
     public $autoloader;
-
+    
     /**
-     * 运行时创建的异常处理实例
+     * Runtime创建的异常处理实例
      *
      * @var ExceptionHandler
      */
     public $exceptionHandler;
     
     /**
-     * 容器实例
-     * 
+     * Runtime创建的容器实例
+     *
      * @var ContainerInterface
      */
     public $container;
     
     /**
-     * 运行时缓存实例集合
-     * @var array
-     */
-    protected $runtimeCaches = [];
-
-    /**
-     * runtime唯一实例
+     * 开始时间戳
      *
-     * @var Runtime
+     * @var float
      */
-    protected $instance;
+    protected $startTimeline;
     
     /**
-     * 注册或者替换已有的Application
-     *
-     * @param int $mode
-     * @param string $className
-     * @return bool TRUE success || TRUE falid
-     */
-    public static function regApplication($mode, $className): bool
-    {
-        if (!$className instanceof ApplicationBase)
-        {
-            return false;
-        }
-        if (!key_exists($mode, self::$appMap))
-        {
-            return false;
-        }
-        self::$appMap[$mode] = $className;
-        return true;
-    }
-
-    /**
-     * 设置当前运行时的应用实例
-     * 
-     * @param $app ApplicationBase
-     */
-    public function setApplication(ApplicationBase $app)
-    {
-        $this->app = $app;
-    }
-    
-    /**
-     * 获取当前运行时的应用实例
-     * @return \Tiny\MVC\ApplicationBase
-     */
-    public function getApplication()
-    {
-        return $this->app;
-    }
-    
-    /**
-     * 根据运行环境创建应用实例
-     *
-     * @param $apppath string
-     *        app目录所在路径
-     * @param $profile string
-     *        应用实例的配置路径
-     * @return ApplicationBase 当前应用实例
-     * @example \Zeroai\Tiny::createApplication($apppath, $profile);
-     *          Web \Tiny\Web\Application
-     *          Console \Tiny\Console\Application
-     *          RPC \Tiny\Rpc\Application
-     */
-    public function createApplication($appPath, $profile = NULL)
-    {
-        if (!$this->app)
-        {
-            $className = self::$appMap[$this->env['RUNTIME_MODE']];
-            $this->app = new $className($this->container, $appPath, $profile);
-        }
-        return $this->app;
-    }
-    
-    /**
-     * 导入自动加载的类库
-     *
-     * @param string $path
-     *        类库加载绝对路径
-     * @param string $namespace
-     *        命名空间
-     * @return false || true
-     */
-    public function import($path, $namespace = NULL)
-    {
-        return $this->autoloader->add($path, $namespace);
-    }
-
-    /**
-     * 获取所加载的库和路径
-     * @return array
-     */
-    public function getImports()
-    {
-        return $this->autoloader->getImports();
-    }
-
-    /**
-     * 注册运行时异常处理句柄
-     *
-     * @param
-     *        IExceptionHandler 错误处理句柄接口
-     * @return bool
-     */
-    public function regExceptionHandler(IExceptionHandler $handler)
-    {
-        return $this->exceptionHandler->regExceptionHandler($handler);
-    }
-    
-    /**
-     * 构建基本运行环境所需的各种类
-     *
-     * @return void
+     * 构建基本运行环境所需的各种实例
      */
     public function __construct()
     {
-        $this->startTimestamp = microtime(TRUE);
+        $this->startTimeline = $_SERVER['REQUEST_TIME_FLOAT'] ?: microtime(true);
         
         // default
         $this->env = new Environment();
-        $this->runtimeCachePool = new RuntimeCachePool($this);
-        $this->exceptionHandler = new ExceptionHandler();
         
-        // autoload
+        // autoloader
         $this->autoloader = new Autoloader();
-       // $acache = $this->getAutoloaderCache();
-        //if($acache)
-        //{
-        //    $this->autoloader->setRuntimeCache($acache);
-        //}
-        $this->autoloader->add(self::FRAMEWORK_PATH, 'Tiny');
+        $this->autoloader->addToNamespacePathMap('Tiny', self::FRAMEWORK_PATH);
         
-        //  build container
-        $proivder = new  DefinitionProivder([]);
+        // build container
+        $proivder = new DefinitionProvider([]);
         $this->container = new Container($proivder);
         
+        // eventmanager
+        $eventManager = new EventManager($this->container);
+        $this->container->set(EventManager::class, $eventManager);
+        
+        // exception handler
+        $this->exceptionHandler = new ExceptionHandler($eventManager);
+        
+        // init
         $this->container->set(self::class, $this);
         $this->container->set(Environment::class, $this->env);
         $this->container->set(Autoloader::class, $this->autoloader);
         $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
-        $this->container->set(RuntimeCachePool::class, $this->runtimeCachePool);
-        $this->container->set(DefinitionProivder::class, $proivder);
-    }
-    
-}
-
-/**
-* 运行时共享内存缓存
-* 
-* 
-* 设置缓存时间 Tiny::setENV[RUNTIME_CACHE_TTL] = INT
-* 是否开启运行时缓存 Tiny::setEnv[RUNTIME_CACHE_ENABLE] = TRUE|FALSE
-* 缓存内存大小设置 Tiny::setEnv[RUNTIME_CACHE_MEMORY] = TRUE|FALSE
-*  注意：当前版本需要shmop扩展支持，单独实例化使用时不支持>10MB存储
-* @package Tiny.Runtime
-* @since 2021年8月29日 下午12:28:43
-* @final 2021年8月29日下午12:28:43
-*/
-class RuntimeCacheItem
-{
-    /**
-     * 缓存句柄
-     * 
-     * @var RuntimeCacheHandler
-     */
-    protected $_handler;
-    
-    /**
-     * 唯一缓存ID
-     * 
-     * @var string
-     */
-    protected $_id;
-    
-    /**
-     * 创建缓存唯一句柄
-     * 
-     * @param string $id
-     */
-    public function __construct(RuntimeCachePool $rp, $id)
-    {
-        $this->_id = (string)$id;
-        $this->_handler = $rp;
+        $this->container->set(DefinitionProvider::class, $proivder);
     }
     
     /**
-     *  获取缓存内容
-     *  
-     * @param string $key
-     * @param mixed $value
-     * @return mixed
-     */
-    public function get($key)
-    {
-        return $this->_handler->get($this->_id, $key);
-    }
-    
-    /**
-     * 设置缓存内容
-     * @param string $key
-     * @param mixed $value
-     */
-    public function set($key, $value)
-    {
-       $this->_handler->set($this->_id, $key, $value);
-    }
-}
-
-/**
- * 运行时缓存
- * @author macbookpro
- *
- */
-class RuntimeCachePool
-{   
-    
-    /**
-     * 缓存数据头部字节长度
-     * @var integer
-     */
-    const HEADER_LENGTH = 20;
-    
-    /**
-     * 缓存数据时间戳长度 10
-     * @var integer
-     */
-    const HEADER_TIMESTAMP_LENGTH = 10;
-    
-    /**
-     * 单一实例
-     * @var \Tiny\Runtime\RuntimeCache
-     */
-    protected static $_instance;
-    
-    /**
-     * 共享内存的缓存ID
-     * @var string
-     */
-    protected $_memoryId = FALSE;
-  
-    /**
-     * 缓存过期时间
-     * @var integer
-     */
-    protected $_ttl = 60;
-    
-    /**
-     * 共享内存
-     * @var int
-     */
-    protected $_memorySize = 1048576;
-    
-    /**
-     * 缓存数据
-     * @var boolean
-     */
-    protected $_data = FALSE;
-    
-    /**
-     * 是否更新标识
-     * 
-     * @var boolean
-     */
-    protected $_isUpdated = FALSE;
-    
-    /**
-     * 构造函数
-     */
-    public function __construct(Runtime $runtime)
-    {
-        if (!extension_loaded('shmop'))
-        {
-            throw new RuntimeException('开启运行时内存需要shmop共享内存扩展支持');  
-        }
-        $env = $runtime->env;
-        $this->_memoryId = $env['RUNTIME_CACHE_ID'];
-        $this->_memorySize = $env['RUNTIME_CACHE_MEMORY'];
-        $this->ttl = $env['RUNTIME_CACHE_TTL'];
-    }
-    
-    /**
-     * 获取缓存数据
-     * @param string $id 缓存数据节点ID
-     * @param string $key 缓存节点的key
-     * @return boolean
-     */
-    public function get($id, $key)
-    {
-        if (FALSE  === $this->_data)
-        {
-            $this->_data = $this->_loadData();
-        }
-    
-        if (!isset($this->_data[$id]) || !is_array($this->_data[$id]))
-        {
-            $this->_isUpdated = TRUE;
-           $this->_data[$id]  = []; 
-        }
-        return $this->_data[$id][$key];
-    }
-    
-    /**
-     * 设置缓存数据节点的缓存kv对
-     * @param string $id 缓存数据节点ID
-     * @param string $key 缓存数据键
-     * @param mixed $value 值
-     */
-    public function set($id, $key, $value)
-    {
-        if (FALSE  === $this->_data)
-        {
-            $this->_data = $this->_loadData();
-        }
-        if (!isset($this->_data[$id]) || !is_array($this->_data[$id]))
-        {
-            $this->_data[$id]  = [];
-        }
-        if (!isset($this->_data[$id][$key]) || $this->_data[$id][$key] !== $value)
-        {
-            $this->_isUpdated = TRUE;
-            $this->_data[$id][$key] = $value;
-        }
-    }
-    
-    /**
-     * 检测更新 并保存到共享内存中
-     */
-    public function __destruct()
-    {
-        if (!$this->_isUpdated)
-        {
-            return;
-        }
-        $this->_wrtieData();
-    }
-    
-    /**
-     * 从共享内存缓存中加载数据
-     * 
-     * @return array|mixed
-     */
-    protected function _loadData()
-    {
-
-        @$shmId = shmop_open($this->_memoryId, 'c', 0644, $this->_memorySize);
-        if(!$shmId)
-        {
-            return [];
-        }
-        $timestamp = shmop_read($shmId, 0, self::HEADER_TIMESTAMP_LENGTH);
-        if (time() > $timestamp)
-        {
-            shmop_close($shmId);
-            return [];
-        }
-        $dataLength = (int)shmop_read($shmId, self::HEADER_TIMESTAMP_LENGTH, self::HEADER_LENGTH);
-        $cdata = (string)shmop_read($shmId, self::HEADER_LENGTH, $dataLength);
-        shmop_close($shmId);
-        $data = unserialize($cdata);
-        return $data ?:[];
-    }
-    
-    /**
-     * 写入共享缓存数据
-     * 
-     * @return void
-     */
-    protected function _wrtieData()
-    {
-        $data = serialize($this->_data);
-        $timestamp = time() + $this->_ttl;
-        $dataLength = str_pad(strlen($data), 10, 0, STR_PAD_LEFT);
-        $cdata =  (string)$timestamp . $dataLength . $data;
-        if (self::HEADER_LENGTH + $dataLength >= $this->_memorySize)
-        {
-            return FALSE;
-        }
-        $shmId = shmop_open($this->_memoryId, 'c', 0644, $this->_memorySize);
-        if(!$shmId)
-        {
-            return FALSE;
-        }
-        
-        $ret  = shmop_write($shmId, $cdata, 0);
-        shmop_close($shmId);
-        return $ret;
-    }
-}
-
-/**
- * 自动加载基类
- *
- * @package Tiny\Runtime
- * @since 2019年11月12日上午10:15:05
- * @final 2019年11月12日上午10:15:05
- */
-class Autoloader
-{   
-    /**
-     * 运行时缓存实例
-     * 
-     * @var RuntimeCache
-     */
-    protected $_runtimeCache = FALSE;
-    
-    /**
-     * 库的缓存数组
+     * 注册或者替换已有的Application类与runtime mode 的映射
      *
-     * @var array
+     * @param int $mode 运行模式 web|console|rpc
+     * @param string $applicationClass 继承了ApplicationBase的application类名
+     * @return bool
      */
-    protected $_libs = [];
-
+    public static function registerApplication($runtimeMode, $applicationClass): bool
+    {
+        if (!key_exists($runtimeMode, self::$applicationMap)) {
+            return false;
+        }
+        self::$applicationMap[$runtimeMode] = $applicationClass;
+        return true;
+    }
+    
     /**
-     * 加载路径的数组
+     * 获取当前运行时的应用实例
      *
-     * @var array
+     * @return ApplicationBase
      */
-    protected $_paths;
-
+    public function getApplication()
+    {
+        return $this->container->get(ApplicationBase::class);
+    }
+    
     /**
-     * 添加组件库
+     * 设置application实例
      *
+     * @param ApplicationBase $app
+     */
+    public function setApplication(ApplicationBase $application)
+    {
+        $this->container->set(ApplicationBase::class, $application);
+        return $this->container->set(get_class($application), $application);
+    }
+    
+    /**
+     * 创建application实例
+     *
+     * @param string $applicationPath 当前应用实例路径
+     * @param string|array $profile 配置文件路径
+     * @return \Tiny\MVC\Application\ApplicationBase
+     */
+    public function createApplication($applicationPath, $profile = null)
+    {
+        $runtimeMode = $this->env['RUNTIME_MODE'];
+        $applicationClass = self::$applicationMap[$runtimeMode];
+        $application = new $applicationClass($this->container, $applicationPath, $profile);
+        if (!$application instanceof ApplicationBase) {
+            throw new RuntimeException("Failed to create app instance, class %s must inherit %s", $applicationClass, ApplicationBase::class);
+        }
+        return $application;
+    }
+    
+    /**
+     * 导入自动加载的类命名空间与路径映射
+     *
+     * @param string $namespace 命名空间
+     * @param string|array $path 类库加载绝对路径 array为多个加载路径
+     * @return bool
+     */
+    public function addToNamespacePathMap(string $namespace, $path)
+    {
+        return $this->autoloader->addToNamespacePathMap($namespace, $path);
+    }
+    
+    /**
+     * 导入自定加载的类与路径映射
+     *
+     * @param string $className 类名
      * @param string $path
-     *        组件库路径 为*时，添加全局类
-     * @param string $prefix
-     *        命名空间名称
-     * @return void
      */
-    public function add($path, $namespace = NULL)
+    public function addToClassPathMap($className, $path)
     {
-        if (!$namespace)
-        {
-            $namespace = basename($path);
-        }
-        elseif ('*' == $namespace)
-        {
-            if($path[strlen($path) - 1] == "/")
-            {
-                $path = substr($path, 0, strlen($path) - 1);
-            }
-            set_include_path(get_include_path() . PATH_SEPARATOR . $path);
-            return;
-        }
-        if (!key_exists($namespace, $this->_libs))
-        {
-            $this->_libs[$namespace] = [];
-        }
-        if (in_array($path, $this->_libs[$namespace]))
-        {
-            return;
-        }
-
-        $this->_libs[$namespace][] = $path;
+        return $this->autoloader->addToClassPathMap($className, $path);
     }
-
+    
     /**
-     * 获取加载的库路径
-     * 
+     * 获取所加载的库映射路径集合
+     *
      * @return array
      */
-    public function getImports()
+    public function getNamespacePathMap()
     {
-        return $this->_libs;
-    }
-    /**
-     * 根据类名加载文件
-     *
-     * @param string $className
-     *        类名
-     * @return bool
-     */
-    public function load($cname)
-    {
-        $ipath = $this->_getPathFromRuntimeCache($cname);
-        if ($ipath)
-        {
-            return include_once($ipath);
-        }
-        if (FALSE === strpos($cname, "\\"))
-        {
-            $ipath =  $cname . '.php';
-            if (is_file($ipath))
-            {
-                $this->_saveToRuntimeCache($cname, $ipath);
-                include_once($ipath);
-            }
-            return;
-        }
-        $searchParams = [];
-        $params = explode("\\", $cname);
-        for ($i = count($params); $i >= 1; $i--)
-        {
-            $searchParams[] = [
-                join("\\", array_slice($params, 0, $i)),
-                join('/', array_slice($params, $i))
-            ];
-        }
-        foreach ($searchParams as $sp)
-        {
-            if ($this->_loadFromPath($sp[0], $sp[1], $cname))
-            {
-                break;
-            }
-        }
-    }
-
-    /**
-     * 设置加载器的运行时缓存实例 初始化时自动调用
-     * @param RuntimeCacheItem $runtimecache
-     */
-    public function setRuntimeCache(RuntimeCacheItem $runtimecache)
-    {
-        $this->_runtimeCache = $runtimecache;
+        return $this->autoloader->getNamepsacePathMap();
     }
     
     /**
-     * 保存class对应的路径到runtimecache实例中
-     * @param string $cname
-     * @param string $fpath
-     * @return boolean
+     * 获取运行时间计数
+     *
+     * @return number
      */
-    protected function _saveToRuntimeCache($cname, $fpath)
+    public function getRuntimeTotal()
     {
-        if (!$this->_runtimeCache)
-        {
-            return FALSE;
-        }
-        return $this->_runtimeCache->set($cname, $fpath);
-    }
-    
-    /**
-     * 从runtime中获取类名对应的fpath
-     * @param string $cname
-     * @return boolean|string
-     */
-    protected function _getPathFromRuntimeCache($cname)
-    {
-        if (!$this->_runtimeCache)
-        {
-            return FALSE;
-        }
-        return $this->_runtimeCache->get($cname);
-    }
-    
-    /**
-     * 寻找和加载类路径
-     *
-     * @param string $namespace
-     *        寻找的命名空间
-     * @param string $pathSuffix
-     *        路径尾缀
-     * @param string $cname
-     *        类名
-     * @return bool false加载失败 || true成功
-     */
-    protected function _loadFromPath($namespace, $pathSuffix, $cname)
-    {
-        if (!$this->_libs[$namespace])
-        {
-            return FALSE;
-        }
-        $paths = $this->_libs[$namespace];
-        foreach ($paths as $ipath)
-        {
-            $ipath = $ipath . $pathSuffix . '.php';
-            if (!is_file($ipath))
-            {
-                if (!$pathSuffix)
-                {
-                    return FALSE;
-                }
-                $parentDir = dirname($ipath);
-                $ipath = $parentDir . DIRECTORY_SEPARATOR . basename($parentDir) . '.php';
-                if (!is_file($ipath))
-                {
-                    return FALSE;
-                }
-            }
-            //$this->_saveToRuntimeCache($cname, $ipath);
-            include_once($ipath);
-        }
-        return FALSE;
-    }
-
-    /**
-     * 构造函数，主动自动加载类
-     *
-     * @param
-     *        void
-     * @return void
-     */
-    public function __construct()
-    {
-        spl_autoload_register([$this, 'load']);
-    }
-}
-
-/**
- * 当前运行时(Runtime)的环境和平台参数。此类不能被继承。Readonly
- *
- * @package Tiny.Runtime
- * @since 2013-3-30下午12:27:47
- * @final 2013-11-26下午
- */
-class Environment implements \ArrayAccess
-{
-    /**
-     * 被允许的自定义运行时环境参数
-     *
-     * @var array
-     */
-    const ENV_CUSTOM = [
-        'RUNTIME_CACHE_ENABLED',
-        'RUNTIME_CACHE_TTL',
-        'RUNTIME_CACHE_MEMORY_MIN',
-        'RUNTIME_CACHE_MEMORY_MAX',
-        'RUNTIME_CACHE_MEMORY',
-        'RUNTIME_DIR',
-    ];
-
-    /**
-     * 默认的环境配置函数数组
-     *
-     * @var array
-     */
-    const ENV_DEFAULT = [
-        'FRAMEWORK_NAME' => Runtime::FRAMEWORK_NAME,
-        'FRAMEWORK_PATH' => Runtime::FRAMEWORK_PATH,
-        'FRAMEWORK_VERSION' => Runtime::FRAMEWORK_VERSION,
-        'RUNTIME_DIR' => null,
-        'PHP_VERSION' => PHP_VERSION,
-        'PHP_VERSION_ID' => PHP_VERSION_ID,
-        'PHP_OS' => PHP_OS,
-        'OS_PID' => NULL,
-        'OS_GID' => NULL,
-        'OS_UID' => NULL,
-        'OS_SYSTEM_NAME' => NULL,
-        'OS_HOSTNAME' => NULL,
-        'OS_SYSTME_VERSION_NAME' => NULL,
-        'OS_SYSTEM_VERSION_INFO' => NULL,
-        'OS_MACHINE_TYPE' => NULL,
-        'SCRIRT_DIR' => NULL,
-        'RUNTIME_CACHE_ENABLED' => TRUE,
-        'RUNTIME_CACHE_TTL' => 60,
-        'RUNTIME_CACHE_MEMORY_MIN' => 1048576,
-        'RUNTIME_CACHE_MEMORY_MAX' => 104857600,
-        'RUNTIME_CACHE_MEMORY' => 10485760,
-        'RUNTIME_CACHE_ID' => NULL,
-        'RUNTIME_CACHE_ID_AUTOLOADER' => 'autoloader',
-        'RUNTIME_CACHE_ID_APPLICATION' => 'application',
-        'RUNTIME_PATH' => NULL,
-        'RUNTIME_CONF_PATH' => NULL,
-        'RUNTIME_TICK_LINE' => 10,
-        'RUNTIME_MEMORY_SIZE' => NULL,
-        'RUNTIME_DEBUG_BACKTRACE' => NULL,
-        'SCRIPT_FILENAME' => NULL,
-        'SCRIPT_FILENAME' => NULL,
-        'RUNTIME_MODE' => 0,
-        'RUNTIME_MODE_CONSOLE' => 1,
-        'RUNTIME_MODE_WEB' => 0,
-        'RUNTIME_MODE_RPC' => 2,
-    ];
-
-    /**
-     * 默认环境参数数组
-     * 
-     * @var array
-     */
-    protected static $_defENV = [];
-
-    /**
-     * 环境参数列表
-     *
-     * @var array
-     */
-    protected $_envdata = [];
-
-    /**
-     * 设置运行时的默认环境参数 仅运行时实例化有效
-     *
-     * @param array $env
-     *        环境参数数组
-     * @return array
-     */
-    public static function setEnv(array $env)
-    {
-        foreach ($env as $ename => $evar)
-        {
-            if (!in_array($ename, self::ENV_CUSTOM))
-            {
-                continue;
-            }
-            self::$_defENV[$ename] = $evar;
-        }
-        return self::$_defENV;
-    }
-    
-    /**
-     * 是否为命令行运行环境 
-     * 
-     * @return boolean
-     */
-    public function isConsole()
-    {
-        return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_CONSOLE'];
-    }
-
-    /**
-     * 是否为WEB运行环境
-     *
-     * @return boolean
-     */
-    public function isWeb()
-    {
-        return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_WEB'];
-    }
-    
-    /**
-     * 是否为RPC运行环境
-     *
-     * @return boolean
-     */
-    public function isRpc()
-    {
-        return $this->_envdata['RUNTIME_MODE'] == $this->_envdata['RUNTIME_MODE_RPC'];
-    }
-    
-    /**
-     * 获取环境参数
-     *
-     * @param string $varname
-     * @return mixed
-     */
-    public function offsetGet($name)
-    {
-        if (!key_exists($name, $this->_envdata))
-        {
-            return;
-        }
-        if (NULL === $this->_envdata[$name])
-        {
-            $this->_envdata[$name] = $this->_lazyGet($name);
-        }
-        return $this->_envdata[$name];
-    }
-
-    /**
-     * 设置环境参数 只读 设置报错
-     *
-     * @param
-     *        string
-     * @param string $value
-     */
-    public function offsetSet($offset, $value)
-    {
-        return;
-    }
-
-    /**
-     * 销毁 只读 调用报错
-     *
-     * @param string $offset
-     */
-    public function offsetUnset($offset)
-    {
-        return;
-    }
-
-    /**
-     * 是否有类似这个环境参数
-     *
-     * @param string $offset
-     */
-    public function offsetExists($offset)
-    {
-        return isset($this->_envdata);
-    }
-
-    /**
-     * 缓存单例初始化系统参数
-     * * 魔术方法获取 OS_PID
-     * OS_GID
-     * OS_UID
-     * OS_SYSTEM_NAME
-     * OS_HOSTNAME
-     * OS_SYSTME_VERSION_NAME
-     * OS_SYSTEM_VERSION_INFO
-     * OS_MACHINE_TYPE
-     * RUNTIME_SCRIRT_DIR
-     * RUNTIME_MEMORY_SIZE
-     * RUNTIME_DEBUG_BACKTRACE
-     * RUNTIME_SCRIPT_FILENAME
-     */
-    public function __construct()
-    {
-        $env = array_merge($_SERVER, $_ENV, self::ENV_DEFAULT, self::$_defENV);
-        if ('cli' == php_sapi_name())
-        {
-            $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_CONSOLE'];
-        }
-        if ('FRPC_POST' == $_POST['FRPC_METHOD'] || 'FRPC_POST' == $_SERVER['REQUEST_METHOD'])
-        {
-            $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
-        }
-
-        // runtime dir
-        if (!$env['RUNTIME_DIR'] || !is_dir($env['RUNTIME_DIR']))
-        {
-            $env['RUNTIME_DIR'] = dirname(dirname(get_included_files()[0]));
-        }
-        
-        // cli 或者没有shmop共享内存模块下，默认不进行运行时缓存
-        if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'] || !extension_loaded('shmop'))
-        {
-            $env['RUNTIME_CACHE_ENABLED'] = FALSE;
-        }
-        
-        // 缓存内存设置
-        if ($env['RUNTIME_CACHE_ENABLED'])
-        {
-            $cacheMemory = (int)$env['RUNTIME_CACHE_MEMORY'];
-            if ($cacheMemory < $env['RUNTIME_CACHE_MEMORY_MIN'])
-            {
-                $cacheMemory = $env['RUNTIME_CACHE_MEMORY_MIN'];
-            }
-            if ($cacheMemory > $env['RUNTIME_CACHE_MEMORY_MAX'])
-            {
-                $cacheMemory = $env['RUNTIME_CACHE_MEMORY_MAX'];
-            }
-            $env['RUNTIME_CACHE_MEMORY'] = $cacheMemory;
-            $env['RUNTIME_CACHE_ID'] = ftok(get_included_files()[0], 0);
-        }
-        //注入环境变量
-        $this->_envdata = $env;
-        $_ENV = $env;
-    }
-
-
-    /**
-     * 惰性获取
-     *
-     * @param string $varname
-     *        环境参数名
-     * @return mixed
-     */
-    protected function _lazyGet($varname)
-    {
-        switch ($varname)
-        {
-            case 'OS_PID':
-                return getmypid();
-            case 'OS_GID':
-                return getmygid();
-            case 'OS_UID':
-                return getmyuid();
-            case 'OS_SYSTEM_NAME':
-                return php_uname('s');
-            case 'OS_HOSTNAME':
-                return php_uname('n');
-            case 'OS_SYSTME_VERSION_NAME':
-                return php_uname('r');
-            case 'OS_SYSTEM_VERSION_INFO':
-                return php_uname('v');
-            case 'OS_MACHINE_TYPE':
-                return php_uname('m');
-            case 'SCRIRT_DIR':
-                return dirname(get_included_files()[0]);
-            case 'RUNTIME_MEMORY_SIZE':
-                return memory_get_usage();
-            case 'RUNTIME_DEBUG_BACKTRACE':
-                return debug_backtrace();
-            case 'SCRIPT_FILENAME':
-                return get_included_files()[0];
-        }
-    }
-
-}
-
-/**
- * 异常注册接口
- *
- * @package Tiny.Runtime
- * @since : 2013-3-22上午06:15:37
- * @final : 2017-3-22上午06:15:37
- */
-interface IExceptionHandler
-{
-
-    /**
-     * 异常发生事件触发
-     *
-     * @param
-     *        \Exception 异常实例
-     * @param $exceptions array
-     *        异常数组
-     * @return void
-     */
-    public function onException($exception, $exceptions);
-}
-
-/**
- * 页面无法找到错误定义
- * 
- * @var int
- */
-define('E_NOFOUND', 99);
-
-/**
- * MVC异常处理
- *
- * @package Tiny.Runtime
- * @since : 2013-3-22上午06:15:37
- * @final : 2017-3-22上午06:15:37
- */
-class ExceptionHandler
-{
-
-    /**
-     * 错误名集合
-     *
-     * @var array
-     *
-     */
-    const EXCEPTION_TYPES = array(
-        0 => 'Fatal error',
-        E_ERROR => 'ERROR',
-        E_WARNING => 'WARNING',
-        E_PARSE => 'PARSING ERROR',
-        E_NOTICE => 'NOTICE',
-        E_CORE_ERROR => 'CORE ERROR',
-        E_CORE_WARNING => 'CORE WARNING',
-        E_COMPILE_ERROR => 'COMPILE ERROR',
-        E_COMPILE_WARNING => 'COMPILE WARNING',
-        E_USER_ERROR => 'USER ERROR',
-        E_USER_WARNING => 'USER WARNING',
-        E_USER_NOTICE => 'USER NOTICE',
-        E_STRICT => 'STRICT NOTICE',
-        E_RECOVERABLE_ERROR => 'RECOVERABLE ERROR',
-        E_NOFOUND => 'NOT FOUND'
-    );
-
-    /**
-     * 需要抛出异常的错误级别数组
-     *
-     * @var array
-     *
-     */
-    protected $_throwErrorTypes = [
-        E_ERROR,
-        E_PARSE,
-        E_CORE_ERROR,
-        E_USER_ERROR,
-        E_RECOVERABLE_ERROR,
-        E_NOFOUND,
-        0
-    ];
-
-    /**
-     * 所有异常情况集合
-     *
-     * @var array
-     *
-     */
-    protected $_exceptions = [];
-
-    /**
-     * 注册的异常处理句柄
-     *
-     * @var array
-     *
-     */
-    protected $_exceptionHandlers = [];
-
-    /**
-     * 初始化异常捕获句柄
-     *
-     *
-     * @param void
-     * @return void
-     */
-    public function __construct()
-    {
-        set_exception_handler([$this, 'onException']);
-        set_error_handler([$this, 'onError']);
-    }
-
-    /**
-     * 注册异常处理触发事件
-     *
-     *
-     * @param $handler IExceptionHandler
-     *        完成异常处理接口的函数
-     * @return void
-     */
-    public function regExceptionHandler(IExceptionHandler $handler)
-    {
-        $this->_exceptionHandlers[] = $handler;
-    }
-
-    /**
-     * 错误触发时调用的函数
-     *
-     * @param
-     *        ……
-     * @return void
-     */
-    public function onError($errno, $errstr, $errfile, $errline)
-    {
-        if ($errno == E_NOTICE || $errno == 2048)
-        {
-            return;
-        }
-        $exception = [
-            'level' => $errno,
-            'type' => $this->getErrorType($errno),
-            'message' => $errstr,
-            'file' => $errfile,
-            'line' => $errline,
-            'handler' => 'Exception',
-            'isThrow' => $this->isThrowError($errno)
-        ];
-        $this->_exceptions[] = $exception;
-        if (!$this->_exceptionHandlers)
-        {
-
-            return $this->_throwException($exception);
-        }
-        foreach ($this->_exceptionHandlers as $handler)
-        {
-            $handler->onException($exception, $this->_exceptions);
-        }
-    }
-
-    /**
-     * 产生异常时调用的函数
-     *
-     *
-     * @param \Exception $exception
-     *        异常对象
-     * @return void
-     */
-    public function onException($e)
-    {
-        $level = $e->getCode();
-        if ($level == E_NOTICE || $level == 2048)
-        {
-            return;
-        }
-        $exception = [
-            'level' => $level,
-            'type' => $this->getErrorType($errno),
-            'message' => $e->getMessage(),
-            'handler' => get_class($e),
-            'line' => $e->getLine(),
-            'file' => $e->getFile(),
-            'traceString' => $e->getTraceAsString(),
-            'isThrow' => $this->isThrowError($level)
-        ];
-        $this->_exceptions[] = $exception;
-        if (!$this->_exceptionHandlers)
-        {
-            return $this->_throwException($exception);
-        }
-
-        foreach ($this->_exceptionHandlers as $handler)
-        {
-            $handler->onException($exception, $this->_exceptions);
-        }
-    }
-
-    /**
-     * 获取所有异常信息数组
-     *
-     * @param
-     *        void
-     * @return array
-     */
-    public function getExceptions()
-    {
-        return $this->_exceptions;
-    }
-
-    /**
-     * 获取错误类型名称
-     *
-     * @param int $level
-     *        错误级别
-     * @return string
-     */
-    public function getErrorType($level)
-    {
-        return self::EXCEPTION_TYPES[$level] ?: self::EXCEPTION_TYPES[0];
-    }
-
-    /**
-     * 是否是需要抛出异常的错误级别
-     *
-     * @param int $errno
-     *        错误级别
-     * @return bool
-     */
-    public function isThrowError($errno)
-    {
-        return in_array($errno, $this->_throwErrorTypes);
-    }
-
-    /**
-     * 默认的抛出异常和错误函数
-     *
-     * @param $exception string
-     *        最新一次异常
-     * @return void
-     */
-    protected function _throwException($exception)
-    {
-        if (!$exception['isThrow'])
-        {
-            return;
-        }
-        foreach ($this->_exceptions as $e)
-        {
-            var_dump($e);
-        }
-        exit($exception['level']);
+        return microtime(true) - $this->startTimeline;
     }
 }
 ?>

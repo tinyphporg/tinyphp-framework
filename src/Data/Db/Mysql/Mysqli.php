@@ -15,8 +15,8 @@
  */
 namespace Tiny\Data\Db\Mysql;
 
-use Tiny\Data\Db\IDb;
 use Tiny\Data\Db\Db;
+use Tiny\Data\Db\DbAdapterInterface;
 
 
 /**
@@ -27,7 +27,7 @@ use Tiny\Data\Db\Db;
  * @final 2013-11-28上午06:56:26
  *        King 2020年03月5日15:48:00 stable 1.0 审定稳定版本
  */
-class Mysqli implements IDb
+class Mysqli implements DbAdapterInterface
 {
 
     /**
@@ -52,28 +52,28 @@ class Mysqli implements IDb
      *
      * @var array
      */
-    protected $_policy;
+    protected $config;
 
     /**
      * 连接标示
      *
      * @var \Mysqli
      */
-    protected $_connection;
+    protected $connector;
 
     /**
      * 重连计数器
      *
      * @var int
      */
-    protected $_relinkCounter = 0;
+    protected $relinkCounter = 0;
 
     /**
      * 最后一次SQL返回的statement对象
      *
-     * @var string statement
+     * @var \mysqli
      */
-    protected $_lastStatement = FALSE;
+    protected $lastStatement = false;
 
     /**
      * 构造函数
@@ -83,9 +83,9 @@ class Mysqli implements IDb
      * @return void
      *
      */
-    public function __construct(array $policy = [])
+    public function __construct(array $config = [])
     {
-        $this->_policy = $policy;
+        $this->config = $config;
     }
 
     /**
@@ -96,9 +96,9 @@ class Mysqli implements IDb
      * @param float $time
      * @return void
      */
-    public function onQuery($sql, $time)
+    public function onQuery($sql, $interval)
     {
-        return Db::addQuery($sql, $time, __CLASS__);
+        return Db::addQuery($sql, $interval, __CLASS__);
     }
 
     /**
@@ -109,9 +109,9 @@ class Mysqli implements IDb
      */
     public function onError($errmsg)
     {
-        if ($this->_connection)
+        if ($this->connector)
         {
-            $errmsg = sprintf('%s %s:%s', $this->_connection->errno, $this->_connection->error, $errmsg);
+            $errmsg = sprintf('%s %s:%s', $this->connector->errno, $this->connector->error, $errmsg);
         }
         throw new MysqlException($errmsg);
     }
@@ -123,26 +123,25 @@ class Mysqli implements IDb
      */
     public function getConnector()
     {
-        if ($this->_connection)
+        if ($this->connector)
         {
-            return $this->_connection;
+            return $this->connector;
         }
 
         // 计时开始
-        $interval = microtime(TRUE);
-
-        $policy = $this->_policy;
-        $this->_connection = new \Mysqli($policy['host'], $policy['user'], $policy['password'], $policy['dbname'], $policy['port']);
-        if ($this->_connection->connect_error)
+        $startTimeline = microtime(true);
+        $config = $this->config;
+        $this->connector = new \Mysqli($config['host'], $config['user'], $config['password'], $config['dbname'], $config['port']);
+        if ($this->connector->connect_error)
         {
-            throw new MysqlException('Db connection failed:' . $this->_connection->connect_error);
+            throw new MysqlException('Db connection failed:' . $this->connector->connect_error);
         }
         // 设置编码
-        $this->_connection->set_charset($policy['charset']);
+        $this->connector->set_charset($config['charset']);
 
         // 连接计时
-        $this->onQuery(sprintf('db connection %s@%s:%d ...', $policy['user'], $policy['host'], $policy['port']), microtime(TRUE) - $interval);
-        return $this->_connection;
+        $this->onQuery(sprintf('db connection %s@%s:%d ...', $config['user'], $config['host'], $config['port']), microtime(true) - $startTimeline);
+        return $this->connector;
     }
 
     /**
@@ -172,11 +171,11 @@ class Mysqli implements IDb
      */
     public function close()
     {
-        if ($this->_connection)
+        if ($this->connector)
         {
-            $this->_connection->close();
+            $this->connector->close();
         }
-        $this->_connection = NULL;
+        $this->connector = null;
     }
 
     /**
@@ -187,23 +186,30 @@ class Mysqli implements IDb
      */
     public function query($sql)
     {
+        // SQL执行计时开始
+        $startTime = microtime(true);
+        
         $conn = $this->getConnector();
-        $this->_lastStatement = $conn->query($sql);
-        if (FALSE !== $this->_lastStatement)
+        $this->lastStatement = $conn->query($sql);
+        
+        // SQL执行统计
+        $this->onQuery($sql, microtime(true) - $startTime);
+        
+        if (false !== $this->lastStatement)
         {
-            $this->_relinkCounter = 0;
-            return $this->_lastStatement;
+            $this->relinkCounter = 0;
+            return $this->lastStatement;
         }
 
-        if (in_array($conn->errno, self::RELINK_ERRNO_LIST) && $this->_relinkCounter < self::RELINK_MAX)
+        if (in_array($conn->errno, self::RELINK_ERRNO_LIST) && $this->relinkCounter < self::RELINK_MAX)
         {
-            $this->_relinkCounter++;
+            $this->relinkCounter++;
             $this->close();
             $this->getConnector();
             return $this->query($sql);
         }
-        $this->onError(sprintf('QUERY FAILD:%s' . $sql));
-        return FALSE;
+        $this->onError(sprintf('QUERY FAILD:%s', $sql));
+        return false;
     }
 
     /**
@@ -215,7 +221,14 @@ class Mysqli implements IDb
      */
     public function exec($sql)
     {
+        // SQL执行计时开始
+        $startTime = microtime(true);
+        
         $mret = $this->query($sql);
+        
+        // SQL执行统计
+        $this->onQuery($sql, microtime(true) - $startTime);
+        
         if ($mret)
         {
             return $this->getConnector()->affected_rows;
@@ -240,15 +253,15 @@ class Mysqli implements IDb
      */
     public function rowsCount()
     {
-        if (!$this->_lastStatement)
+        if (!$this->lastStatement)
         {
             return 0;
         }
-        if ($this->_lastStatement)
+        if ($this->lastStatement)
         {
             return $this->getConnector()->affected_rows;
         }
-        return $this->_lastStatement->num_rows;
+        return $this->lastStatement->num_rows;
     }
 
     /**
@@ -261,12 +274,12 @@ class Mysqli implements IDb
     public function fetch($sql)
     {
         $statement = $this->query($sql);
-        if (TRUE === $statement)
+        if (true === $statement)
         {
             return [];
         }
         $row = $statement->fetch_array(MYSQLI_ASSOC);
-        if (NULL === $row)
+        if (null === $row)
         {
             return [];
         }
@@ -283,7 +296,7 @@ class Mysqli implements IDb
     public function fetchAll($sql)
     {
         $statement = $this->query($sql);
-        if (TRUE === $statement)
+        if (true === $statement)
         {
             return [];
         }
@@ -297,7 +310,7 @@ class Mysqli implements IDb
      */
     public function beginTransaction()
     {
-        return $this->getConnector()->begin_transaction(TRUE);
+        return $this->getConnector()->begin_transaction(true);
     }
 
     /**
@@ -318,16 +331,6 @@ class Mysqli implements IDb
     public function rollBack()
     {
         return $this->getConnector()->rollback();
-    }
-
-    /**
-     * 析构函数 关闭连接
-     *
-     * @return void
-     */
-    public function __destruct()
-    {
-        $this->close();
     }
 }
 ?>

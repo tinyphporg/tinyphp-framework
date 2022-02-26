@@ -24,38 +24,36 @@ namespace Tiny\Data\Memcached;
  */
 class Counter
 {
-
+    
     /**
-     * Memcached操作实例
+     * Memcached 数据源实例
      *
      * @var Memcached
      *
      */
-    protected $_schema;
-
+    protected $memcached;
+    
     /**
      * memcached的键
      *
      * @var string
      *
      */
-    protected $_key;
-
+    protected $key;
+    
     /**
      * 构造函数
      *
-     * @param
-     *        Memcached memcached操作实例
-     * @param string $key
-     *        键名
+     * @param Memcached memcached操作实例
+     * @param string $key 键名
      * @return void
      */
-    public function __construct(Memcached $schema, string $key)
+    public function __construct(Memcached $memcached, string $key)
     {
-        $this->_schema = $schema;
-        $this->_key = $key;
+        $this->memcached = $memcached;
+        $this->key = $key;
     }
-
+    
     /**
      * 获取key的值
      *
@@ -63,33 +61,31 @@ class Counter
      */
     public function get()
     {
-        return $this->_schema->get($this->_key);
+        return $this->memcached->get($this->key);
     }
-
+    
     /**
      * 自增
      *
-     * @param int $step
-     *        步进 默认为1
+     * @param int $step 步进 默认为1
      * @return bool
      */
     public function incr(int $step = 1)
     {
-        return $this->_schema->incr($this->_key, $step);
+        return $this->memcached->incr($this->key, $step);
     }
-
+    
     /**
      * 自减
      *
-     * @param int $step
-     *        步进 默认为1
+     * @param int $step 步进 默认为1
      * @return bool
      */
     public function decr(int $step = 1)
     {
-        return $this->_schema->decr($this->_key, $step);
+        return $this->memcached->decr($this->key, $step);
     }
-
+    
     /**
      * 重置计数器
      *
@@ -97,9 +93,9 @@ class Counter
      */
     public function reset()
     {
-        return $this->_schema->set($this->_key, 0);
+        return $this->memcached->set($this->key, 0);
     }
-
+    
     /**
      * 字符串化
      *
@@ -107,7 +103,7 @@ class Counter
      */
     public function __toString()
     {
-        return (string)$this->get($this->_key);
+        return (string)$this->get($this->key);
     }
 }
 ?>

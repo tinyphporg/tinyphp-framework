@@ -31,35 +31,35 @@ class Smtp
 	 * @var string
 	 * @access protected
 	 */
-	protected $_host = '';
+	protected $host = '';
 
 	/**
 	 * Smtp协议端口
 	 * @var int
 	 * @access protected
 	 */
-	protected $_port = 25;
+	protected $port = 25;
 
 	/**
 	 * 发送邮件的Socket连接超时时间
 	 * @var int
 	 * @access protected
 	 */
-	protected $_timeout = 3;
+	protected $timeout = 3;
 
 	/**
 	 * 发送域名
 	 * @var string
 	 * @access protected
 	 */
-	protected $_hostName = '';
+	protected $hostName = '';
 
 	/**
 	 * 是否开启调试模式
 	 * @var bool
 	 * @access protected
 	 */
-	protected $_isDebug = false;
+	protected $isDebug = false;
 
 	/**
 	 * 是否进行身份验证
@@ -67,42 +67,42 @@ class Smtp
 	 * @access protected
 	 *
 	 */
-	protected $_auth = false;
+	protected $auth = false;
 
 	/**
 	 * 验证的登录用户名
 	 * @var string
 	 * @access protected
 	 */
-	protected $_username;
+	protected $username;
 
 	/**
 	 * 验证时的登录密码
 	 * @var string
 	 * @access protected
 	 */
-	protected $_password;
+	protected $password;
 
 	/**
 	 * Socket连接句柄
 	 * @var #resource
 	 * @access protected
 	 */
-	protected $_sock;
+	protected $sock;
 
 	/**
     * 附件数组
     * @var array
     * @access protected
     */
-	protected $_attachments;
+	protected $attachments;
 
 	/**
 	* 是否采用html格式
 	* @var bool
 	* @access protected
 	*/
-	protected $_isBodyHtml = false;
+	protected $isBodyHtml = false;
 
 	/**
 	 * 构造函数
@@ -117,13 +117,13 @@ class Smtp
 	 */
 	public function __construct($host = '', $port = 25, $auth = true, $username = '', $password = '')
 	{
-		$this->_port = (int)$port;
-		$this->_host = $host;
-		$this->_auth = (bool)$auth;
-		$this->_username = $username;
-		$this->_password = $password;
-		$this->_hostname = "tiny-smtp-host"; // is used in HELO command
-		$this->_sock = false;
+		$this->port = (int)$port;
+		$this->host = $host;
+		$this->auth = (bool)$auth;
+		$this->username = $username;
+		$this->password = $password;
+		$this->hostname = "tinyphp-smtp-host"; // is used in HELO command
+		$this->sock = false;
 	}
 
 	/**
@@ -133,10 +133,10 @@ class Smtp
 	* @param int $port 端口
 	* @return Smtp
 	*/
-	public function setServer($host, $port)
+	public function setServer(string $host, int $port = 25)
 	{
-		$this->_host = $host;
-		$this->_port = (int)$port;
+		$this->host = $host;
+		$this->port = (int)$port;
 	}
 
 	/**
@@ -147,11 +147,11 @@ class Smtp
 	* @param bool $isAuth 是否验证
 	* @return Smtp
 	*/
-	public function setAuth($username, $password, $isAuth = true)
+	public function setAuth(string $username, string $password, $isAuth = true)
 	{
-		$this->_username = $username;
-		$this->_password = $password;
-		$this->_auth = $isAuth;
+		$this->username = $username;
+		$this->password = $password;
+		$this->auth = $isAuth;
 		return $this;
 	}
 
@@ -162,9 +162,9 @@ class Smtp
 	*                         false 否
 	* @return Smtp
 	*/
-	public function setBodyHtml($isBodyHtml)
+	public function setBodyHtml(string $isBodyHtml)
 	{
-		$this->_isBodyHtml = $isBodyHtml;
+		$this->isBodyHtml = $isBodyHtml;
 		return $this;
 	}
 
@@ -174,9 +174,9 @@ class Smtp
 	* @param bool $isDebug 是否开启调试模式
 	* @return Smtp
 	*/
-	public function setDebug($isDebug)
+	public function setDebug(bool $isDebug)
 	{
-		$this->_isDebug = $isDebug;
+		$this->isDebug = $isDebug;
 		return $this;
 	}
 
@@ -186,9 +186,9 @@ class Smtp
     * @param int $timeout 秒数
     * @return Smtp
     */
-	public function setTimeout($timeout)
+	public function setTimeout(int $timeout)
 	{
-		$this->_timeout = $timeout;
+		$this->timeout = $timeout;
 		return $this;
 	}
 
@@ -199,15 +199,15 @@ class Smtp
 	 * @param string $content 文件内容
 	 * @return Smtp
 	 */
-	public function addAttachment($filename, $content)
+	public function addAttachment($filename, string $content)
 	{
-		if (is_array($file))
+		if (is_array($filename))
 		{
-			$this->_attachments = array_merge($this->_attachments, $file);
+			$this->attachments = array_merge($this->attachments, $filename);
 		}
 		else
 		{
-			$this->_attachments[$filename] = $content;
+			$this->attachments[$filename] = $content;
 		}
 		return $this;
 	}
@@ -220,7 +220,7 @@ class Smtp
 	 */
 	public function clearAttachments()
 	{
-		$this->_attachments = array ();
+		$this->attachments = [];
 		return $this;
 	}
 
@@ -237,19 +237,20 @@ class Smtp
 	 * @param string 附送的Header头
 	 * @return bool
 	 */
-	public function sendMail($to, $subject = "", $body = "", $cc = "", $bcc = "", $from = '', $fromName = '')
+	public function sendMail($to, $subject = null, $body = null, $cc = null, $bcc = null, $from = null, $fromName = null,  $additionalHeaders = null)
 	{
 		if (! $from)
 		{
-			$from = $this->_username;
+			$from = $this->username;
 		}
-		$mailFrom = $this->_getAddress($this->_getStripComment($from));
+		$mailFrom = $this->getAddress($this->getStripComment($from));
 		$body = preg_replace("/(^|(\r\n))(\.)/", "$1.$3", $body);
+		
 		/* 邮件正文 */
 		$b = '';
 		/* 组装邮件头部 */
 		$header = "MIME-Version:1.0\r\n";
-		$bodyType = $this->_isBodyHtml ? "Content-Type:text/html;charset=utf-8;\r\n" : "Content-Type:text/plain;charset=utf-8;\r\n";
+		$bodyType = $this->isBodyHtml ? "Content-Type:text/html;charset=utf-8;\r\n" : "Content-Type:text/plain;charset=utf-8;\r\n";
 		$header .= "To: " . $to . "\r\n";
 		if ($cc != "")
 		{
@@ -266,7 +267,7 @@ class Smtp
 		$header .= "X-Mailer:By Redhat (PHP/" . PHP_VERSION . ")\r\n";
 		list($msec, $sec) = explode(" ", microtime());
 		$header .= "Message-ID: <" . date("YmdHis", $sec) . "." . ($msec * 1000000) . "." . $mailFrom . ">\r\n";
-		if (empty($this->_attachments))
+		if (empty($this->attachments))
 		{
 			$header .= $bodyType;
 			$b = $header . "\r\n" . $body;
@@ -277,12 +278,13 @@ class Smtp
 			$bnd = md5(uniqid("")) . rand(1000, 9999);
 			$header .= "Content-Type:multipart/mixed;boundary=" . $bndp . "\r\n\r\n";
 			$header .= "Content-Transfer-Encoding:8bit\r\n\r\n";
+			
 			/* 正文和附件 */
 			$b .= "--$bndp\r\n";
 			$b .= $bodyType;
 			$b .= "Content-Transfer-Encoding:printable\r\n\r\n";
 			$b .= $body . "\r\n";
-			foreach ($this->_attachments as $file => $att)
+			foreach ($this->attachments as $file => $att)
 			{
 				$b .= "--$bndp\r\n";
 				$b .= "Content-Type:text/plain;charset=utf-88\r\n";
@@ -293,29 +295,30 @@ class Smtp
 			$b = $header . $b;
 			$this->clearAttachments();
 		}
-		$to = explode(",", $this->_getStripComment($to));
+		$to = explode(",", $this->getStripComment($to));
 		if ($cc != "")
 		{
-			$to = array_merge($to, explode(",", $this->_getStripComment($cc)));
+			$to = array_merge($to, explode(",", $this->getStripComment($cc)));
 		}
 		if ($bcc != "")
 		{
-			$to = array_merge($to, explode(",", $this->_getStripComment($bcc)));
+			$to = array_merge($to, explode(",", $this->getStripComment($bcc)));
 		}
+		
 		$sent = true;
 		foreach ($to as $rcptTo)
 		{
-			$rcptTo = $this->_getAddress($rcptTo);
-			if (! $this->_open($rcptTo))
+			$rcptTo = $this->getAddress($rcptTo);
+			if (! $this->open($rcptTo))
 			{
 				$sent = false;
 				continue;
 			}
-			if (! $this->_send($this->_hostname, $mailFrom, $rcptTo, $b))
+			if (! $this->send($this->hostname, $mailFrom, $rcptTo, $b))
 			{
 				$sent = false;
 			}
-			fclose($this->_sock);
+			fclose($this->sock);
 		}
 		return $sent;
 	}
@@ -326,45 +329,45 @@ class Smtp
 	 * @param $helo string 握手语
 	 * @return bool
 	 */
-	private function _send($helo, $from, $to, $b)
+	private function send($helo, $from, $to, $b)
 	{
-		if (! $this->_putcmd("HELO", $helo))
+		if (! $this->putcmd("HELO", $helo))
 		{
 			return false;
 		}
 		/* 如果进行权限认证 */
-		if ($this->_auth)
+		if ($this->auth)
 		{
-			if (! $this->_putcmd("AUTH LOGIN", base64_encode($this->_username)))
+			if (! $this->putcmd("AUTH LOGIN", base64_encode($this->username)))
 			{
 				return false;
 			}
-			if (! $this->_putcmd("", base64_encode($this->_password)))
+			if (! $this->putcmd("", base64_encode($this->password)))
 			{
 				return false;
 			}
 		} /* end of if($this->_auth) */
-		if (! $this->_putcmd("MAIL", "FROM:<" . $from . ">"))
+		if (! $this->putcmd("MAIL", "FROM:<" . $from . ">"))
 		{
 			return false;
 		}
-		if (! $this->_putcmd("RCPT", "TO:<" . $to . ">"))
+		if (! $this->putcmd("RCPT", "TO:<" . $to . ">"))
 		{
 			return false;
 		}
-		if (! $this->_putcmd("DATA"))
+		if (! $this->putcmd("DATA"))
 		{
 			return false;
 		}
-		if (! $this->_putMessage($b))
+		if (! $this->putMessage($b))
 		{
 			return false;
 		}
-		if (! $this->_eom())
+		if (! $this->eom())
 		{
 			return false;
 		}
-		if (! $this->_putcmd("QUIT"))
+		if (! $this->putcmd("QUIT"))
 		{
 			return false;
 		}
@@ -377,9 +380,9 @@ class Smtp
 	 * @param string $address 邮件地址
 	 * @return bool
 	 */
-	private function _open($address)
+	private function open($address)
 	{
-		return ('' == $this->_host) ? $this->_mx($address) : $this->_relay();
+		return ('' == $this->host) ? $this->mx($address) : $this->relay();
 	}
 
 	/**
@@ -388,10 +391,10 @@ class Smtp
 	 * @param void
 	 * @return bool
 	 */
-	private function _relay()
+	private function relay()
 	{
-		$this->_sock = fsockopen($this->_host, $this->_port, $errorNo, $errorString, $this->_timeout);
-		if (! ($this->_sock && $this->_ok()))
+		$this->sock = fsockopen($this->host, $this->port, $errorNo, $errorString, $this->timeout);
+		if (! ($this->sock && $this->ok()))
 		{
 			return false;
 		}
@@ -404,17 +407,17 @@ class Smtp
 	 * @param string $address 邮件地址
 	 * @return bool
 	 */
-	private function _mx($address)
+	private function mx($address)
 	{
 		$domain = preg_replace("/^.+@([^@]+)$/", "$1", $address);
-		if (! getmxrr($domain, $mxHosts))
+		if (!getmxrr($domain, $mxHosts))
 		{
 			return false;
 		}
 		foreach ($mxHosts as $host)
 		{
-			$this->_sock = fsockopen($host, $this->_port, $errno, $errstr, $this->_timeout);
-			if (! ($this->_sock && $this->_ok()))
+			$this->sock = fsockopen($host, $this->port, $errno, $errstr, $this->timeout);
+			if (! ($this->sock && $this->ok()))
 			{
 				continue;
 			}
@@ -430,10 +433,10 @@ class Smtp
 	 * @param string $body 主体信息
 	 * @return bool
 	 */
-	private function _putMessage($header)
+	private function putMessage($messages)
 	{
-		fputs($this->_sock, $header);
-		$this->_debug("> " . str_replace("\r\n", "\n" . "> ", $header . "\n> " . $body . "\n> "));
+		fputs($this->sock, $messages);
+		$this->debug("> " . str_replace("\r\n", "\n" . "> ", $messages . "\n> "));
 		return true;
 	}
 
@@ -443,11 +446,11 @@ class Smtp
 	 * @param void
 	 * @return bool
 	 */
-	private function _eom()
+	private function eom()
 	{
-		fputs($this->_sock, "\r\n.\r\n");
-		$this->_debug(". [EOM]\n");
-		return $this->_ok();
+		fputs($this->sock, "\r\n.\r\n");
+		$this->debug(". [EOM]\n");
+		return $this->ok();
 	}
 
 	/**
@@ -456,14 +459,14 @@ class Smtp
 	 * @param void
 	 * @return bool
 	 */
-	private function _ok()
+	private function ok()
 	{
-		$response = str_replace("\r\n", "", fgets($this->_sock, 512));
-		$this->_debug($response . "\n");
+		$response = str_replace("\r\n", "", fgets($this->sock, 512));
+		$this->debug($response . "\n");
 		if (! preg_match("/^[23]/", $response))
 		{
-			fputs($this->_sock, "QUIT\r\n");
-			fgets($this->_sock, 512);
+			fputs($this->sock, "QUIT\r\n");
+			fgets($this->sock, 512);
 			return false;
 		}
 		return true;
@@ -475,15 +478,15 @@ class Smtp
 	 * @param string $cmd CMD内容
 	 * @return string $arg 参数
 	 */
-	private function _putcmd($cmd, $arg = '')
+	private function putcmd($cmd, $arg = '')
 	{
 		if ($arg != "")
 		{
 			$cmd = ($cmd == '') ? $arg : $cmd . ' ' . $arg;
 		}
-		fputs($this->_sock, $cmd . "\r\n");
-		$this->_debug('> ' . $cmd . "\n");
-		return $this->_ok();
+		fputs($this->sock, $cmd . "\r\n");
+		$this->debug('> ' . $cmd . "\n");
+		return $this->ok();
 	}
 
 	/**
@@ -492,7 +495,7 @@ class Smtp
 	 * @param string $address 地址
 	 * @return string
 	 */
-	private function _getStripComment($address)
+	private function getStripComment($address)
 	{
 		return preg_replace("/\([^()]*\)/", "", $address);
 	}
@@ -503,7 +506,7 @@ class Smtp
 	 * @param string $address 地址
 	 * @return string
 	 */
-	private function _getAddress($address)
+	private function getAddress($address)
 	{
 		return preg_replace("/^.*<(.+)>.*$/", "$1", preg_replace("/([\s\t\r\n])+/", "", $address));
 	}
@@ -514,9 +517,9 @@ class Smtp
 	 * @param $message
 	 * @return void
 	 */
-	private function _debug($message)
+	private function debug($message)
 	{
-		echo $this->_isDebug ? $message . '<br />' : null;
+		echo $this->isDebug ? $message . '<br />' : null;
 	}
 }
 ?>

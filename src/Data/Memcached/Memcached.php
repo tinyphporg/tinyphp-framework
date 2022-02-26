@@ -16,8 +16,8 @@
  */
 namespace Tiny\Data\Memcached;
 
-use Tiny\Data\IDataSchema;
 use Tiny\Data\Db\Memcached\MemcachedException;
+use Tiny\Data\DataSourceInterface;
 
 /**
  * memcached操作实例
@@ -27,69 +27,96 @@ use Tiny\Data\Db\Memcached\MemcachedException;
  * @final 2013-12-1上午05:33:08
  *        King 2020年03月5日15:48:00 stable 1.0 审定稳定版本
  */
-class Memcached implements IDataSchema
+class Memcached implements DataSourceInterface
 {
-
+    
     /**
-     * memcache连接句柄
+     * memcached的数据源连接器
      *
      * @var \Memcached
      */
-    protected $_connection;
-
+    protected $connector;
+    
     /**
-     * 默认的服务器缓存策略
+     * 过期时间
+     *
+     * @var integer
+     */
+    protected $ttl = 60;
+    
+    /**
+     * 共享的持久化连接ID
+     *
+     * @var string
+     */
+    protected $persistentId;
+    
+    /**
+     * 服务器池配置
      *
      * @var array
      */
-    protected $_policy = [
-        'servers' => [[
+    protected $servers = [
+        [
             'host' => '127.0.0.1',
             'port' => 11211
-        ]],                    /*缓存服务器设置*/
-        'compressed' => TRUE,   /*是否压缩缓存数据*/
-        'lifetime' => 0,       /*缓存生命周期*/
-   		'poolname' => NULL,
-        'pconnect' => TRUE,
-        'memcached' => TRUE
+        ]
     ];
-
+    
+    /**
+     * 选型配置数组
+     *
+     * @var array
+     */
+    protected $options = [];
+    
     /**
      * 初始化构造函数
      *
      *
-     * @param array $policy
-     *        配置
+     * @param array $policy 配置
      */
-    function __construct(array $policy = [])
+    function __construct(array $config = [])
     {
-        //检测服务组配置
-        if (!is_array($policy['servers']) && isset($policy['host']))
-        {
-            $port = $policy['prot'] ?: 11211;
-            $policy['servers'] = [['host' => $policy['host'], 'port' => $port]];
-        }
-        if (is_array($policy['servers']))
-        {
-            unset($this->_policy['servers']);
-        }
-
-        $policy = array_merge($this->_policy, $policy);
-        $policy['compressed'] = (bool)$policy['compressed'];
-
         // 检测是否有memcached扩展
-        $policy['memcached'] = (bool)$policy['memcached'];
-        if (!extension_loaded('memcached'))
-        {
-            $policy['memcached'] = FALSE;
+        if (!extension_loaded('memcached')) {
+            throw new MemcachedException("Initialization failure: the PHP extension named Memcache is not installed");
         }
-        if (!$policy['memcached'] && !extension_loaded('memcache'))
-        {
-            throw new MemcachedException("extension.memcache or extension.memcached is not loaded!");
+        
+        // servers
+        $servers = [];
+        if (isset($config['host'])) {
+            $port = $config['port'] ?: 11211;
+            $servers[] = [
+                'host' => $config['host'],
+                'port' => $port
+            ];
+            unset($config['host'], $config['port']);
+        } else 
+            if (is_array($config['servers'])) {
+                $servers = $config['servers'];
+                unset($config['servers']);
+            }
+        if ($servers) {
+            $this->servers = $servers;
         }
-        $this->_policy = $policy;
+        if (!is_array($this->servers)) {
+            throw new MemcachedException('Initialization failure:  config.servers is an invalid configuration');
+        }
+        //DataSource.Memcached connection failed:
+        // ttl
+        $ttl = (int)$config['ttl'];
+        if ($ttl) {
+            $this->ttl = $ttl;
+        }
+        
+        // options
+        $this->options = (array)$config['options'];
+        
+        // persistent id
+        $this->persistentId = (string)$config['persistent_id'];
     }
-
+    
     /**
      * 返回连接后的类
      *
@@ -97,31 +124,14 @@ class Memcached implements IDataSchema
      */
     public function getConnector()
     {
-        if ($this->_connection)
-        {
-            return $this->_connection;
+        if (!$this->connector) {
+            $this->connector = new \Memcached($this->persistentId);
+            $this->connector->addServers($this->servers);
+            $this->connector->setOptions($this->options);
         }
-
-        if (!is_array($this->_policy['servers']))
-        {
-            throw new MemcachedException('Data.Memcached connect failed: policy.servers 不是有效配置');
-        }
-
-        // 开始连接
-        $this->_connection = $this->_policy['memcached'] ? $this->_connectMemcached($this->_policy) : $this->_connectMemcache($this->_policy);
-        return $this->_connection;
+        return $this->connector;
     }
-
-    /**
-     * 关闭或者销毁实例和链接
-     *
-     * @return bool
-     */
-    public function close()
-    {
-        return $this->getConnector()->close();
-    }
-
+    
     /**
      * 写入缓存
      *
@@ -130,58 +140,61 @@ class Memcached implements IDataSchema
      * @param array $policy
      * @return boolean
      */
-    public function set($key, $value = NULL, $life = NULL)
+    public function set(string $key, $value, int $expiration = 0)
     {
-        if (is_array($key))
-        {
-            $life = $value;
+        if ($expiration == 0) {
+            $expiration = $this->ttl;
         }
-
-        $conn = $this->getConnector();
-        $life = is_null($life) ? $this->_policy['lifetime'] : $life;
-        if ($this->_policy['memcached'])
-        {
-            return is_array($key) ? $conn->setMulti($key, $life) : $conn->set($key, $value, $life);
+        if ($expiration < 0) {
+            return $this->delete($key);
         }
-
-        $compressed = $this->_policy['compressed'] ? \MEMCACHE_COMPRESSED : 0;
-        if (!is_array($key))
-        {
-            return $conn->set($key, $value, $compressed, $life);
-        }
-        foreach ($key as $k => $v)
-        {
-            $conn->set($k, $v, $compressed, $life);
-        }
-        return TRUE;
+        return $this->getConnector()->set($key, $value, $expiration);
     }
-
+    
     /**
-     * 读取缓存，失败或缓存撒失效时返回 false
+     *
+     * @param array $values
+     * @param int $expiration
+     * @return array|boolean
+     */
+    public function setMuliple(array $values, int $expiration = null)
+    {
+        if ($expiration === null) {
+            $expiration = $this->ttl;
+        }
+        if ($expiration < 0) {
+            return $this->getConnector()->deleteMulti(array_keys($values));
+        }
+        return $this->getConnector()->setMulti($values, $expiration);
+    }
+    
+    /**
+     * 获取值
      *
      * @param string $key
-     *        键
+     * @param mixed $default
+     * @return string|mixed
+     */
+    public function get(string $key, $default = null)
+    {
+        $value = $this->getConnector()->get($key);
+        if ($this->getConnector()->getResultCode() === \Memcached::RES_NOTFOUND) {
+            return $default;
+        }
+        return $value;
+    }
+    
+    /**
+     * 批量取值
+     *
+     * @param array $keys
      * @return mixed
      */
-    public function get($key)
+    public function getMulti(array $keys)
     {
-        $conn = $this->getConnector();
-        if ($this->_policy['memcached'])
-        {
-            return is_array($key) ? $conn->getMulti($key) : $conn->get($key);
-        }
-        if (!is_array($key))
-        {
-            $conn->get($key);
-        }
-        $rets = [];
-        foreach ($key as $k)
-        {
-            $rets[$k] = $conn->get($k);
-        }
-        return $rets;
+        return $this->getConnector()->getMulti($keys);
     }
-
+    
     /**
      * 删除指定的缓存
      *
@@ -193,7 +206,7 @@ class Memcached implements IDataSchema
     {
         return $this->getConnector()->delete($key, $time);
     }
-
+    
     /**
      * 刷新所有的缓存数据
      *
@@ -204,32 +217,30 @@ class Memcached implements IDataSchema
     {
         return $this->getConnector()->flush();
     }
-
+    
     /**
      * 自增
      *
      *
-     * @param $key string
-     *        其他需要求差集的键
+     * @param $key string 其他需要求差集的键
      * @return int
      */
-    public function incr($key, $step = 1)
+    public function incr(string $key, int $step = 1)
     {
         return $this->getConnector()->increment($key, $step);
     }
-
+    
     /**
      * 自减
      *
-     * @param $key string
-     *        其他需要求差集的键
+     * @param $key string 其他需要求差集的键
      * @return int
      */
-    public function decr($key, $step = 1)
+    public function decr(string $key, int $step = 1)
     {
         return $this->getConnector()->decrement($key, $step);
     }
-
+    
     /**
      * 创建一个计时器实例
      *
@@ -240,7 +251,7 @@ class Memcached implements IDataSchema
     {
         return new Counter($this, $key);
     }
-
+    
     /**
      * 获取服务端版本号
      *
@@ -250,7 +261,7 @@ class Memcached implements IDataSchema
     {
         return $this->getConnector()->getVersion();
     }
-
+    
     /**
      * 返回一个包含所有可用memcache服务器状态的数组
      *
@@ -260,57 +271,20 @@ class Memcached implements IDataSchema
     {
         return $this->getConnector()->getStats();
     }
-
+    
     /**
      * 调用连接实例的函数
      *
-     * @param string $method
-     *        函数名称
-     * @param array $params
-     *        参数组
+     * @param string $method 函数名称
+     * @param array $params 参数组
      * @return mixed
      */
-    public function __call($method, $params)
+    public function __call(string $method, array $params)
     {
-        $conn = $this->getConnector();
         return call_user_func_array([
-            $conn,
+            $this->getConnector(),
             $method
         ], $params);
-    }
-
-    /**
-     * 创建memcache连接
-     *
-     * @param array $policy
-     * @return \Memcached
-     */
-    protected function _connectMemcached(array $policy)
-    {
-        $connection = new \Memcached($policy['poolname']);
-        $connection->addServers($policy['servers']);
-        $connection->setOption(\Memcached::OPT_COMPRESSION, $policy['compressed']);
-        return $connection;
-    }
-
-    /**
-     * 创建memcache连接
-     *
-     * @param array $policy
-     * @return \Memcache
-     */
-    protected function _connectMemcache(array $policy)
-    {
-        $connection = new \Memcache();
-        foreach ($policy['servers'] as $serv)
-        {
-            if (!$serv['weight'])
-            {
-                $serv['weigh'] = NULL;
-            }
-            $connection->addServer($serv['host'], $serv['port'], $policy['pconnect'], $serv['werght']);
-        }
-        return $connection;
     }
 }
 ?>

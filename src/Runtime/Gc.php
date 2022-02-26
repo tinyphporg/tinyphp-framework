@@ -24,7 +24,7 @@ namespace Tiny\Runtime;
  */
 final class Gc
 {
-
+    
     /**
      * 强制收集所有现存的垃圾循环周期。
      *
@@ -32,22 +32,19 @@ final class Gc
      */
     public static function collect()
     {
-        if (gc_enabled())
-        {
+        if (gc_enabled()) {
             return gc_collect_cycles();
         }
     }
-
+    
     /**
      * 激活循环引用收集器
-     *
-     * @return void
      */
     public static function enable()
     {
         return gc_enable();
     }
-
+    
     /**
      * 是否有开启垃圾循环引用收集器
      *
@@ -57,17 +54,15 @@ final class Gc
     {
         return gc_enabled();
     }
-
+    
     /**
      * 停用循环引用收集器。
-     *
-     * @return void
      */
     public static function disable()
     {
         return gc_disable();
     }
-
+    
     /**
      * 清理zend内存管理的内存管理
      *

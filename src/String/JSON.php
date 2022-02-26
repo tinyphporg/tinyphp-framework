@@ -28,44 +28,41 @@ namespace Tiny\String;
  */
 class JSON
 {
-
+    
     /**
      * JSON编码 目前只接受UTF-8编码的数据
      *
      * @param $obj 接受UTF-8编码的任何数据类型,资源类型除外.
      * @return string
      */
-    public static function encode($value, $options = NULL, $depth = NULL): string
+    public static function encode($value, $options = null, $depth = null): string
     {
         $ret = json_encode($value, $options, $depth);
-        self::_checkException();
+        self::checkException();
         return $ret;
     }
-
+    
     /**
      * JSON解码
      *
-     * @param string $str
-     *        待解码的JSON字符串
-     * @param bool $assoc
-     *        返回为array或者是object 默认为true 返回数组.
+     * @param string $str 待解码的JSON字符串
+     * @param bool $assoc 返回为array或者是object 默认为true 返回数组.
      * @return array || object
      */
-    public static function decode($jsonStr, $assoc = TRUE, $options = NULL, $depth = NULL)
+    public static function decode($json, $assoc = true, $options = null, $depth = null)
     {
-        $ret = json_decode($jsonStr, $assoc, $depth, $options);
-        self::_checkException();
+        $ret = json_decode($json, $assoc, $depth, $options);
+        self::checkException();
         return $ret;
     }
-
+    
     /**
      * 检测返回JSON解析的最后一个错误 如果有的话
      */
-    protected static function _checkExcption()
+    protected static function checkExcption()
     {
         $errno = json_last_error();
-        if ($errno == JSON_ERROR_NONE)
-        {
+        if ($errno == JSON_ERROR_NONE) {
             return;
         }
         $errmsg = json_last_error_msg();

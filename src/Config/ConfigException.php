@@ -15,7 +15,7 @@
 namespace Tiny\Config;
 
 /**
- * 配置异常
+ * 配置异常类
  *
  * @package Tiny.Config
  * @since 2017年4月8日下午11:43:14

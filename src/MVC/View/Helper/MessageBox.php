@@ -19,11 +19,8 @@
  */
 namespace Tiny\MVC\View\Helper;
 
-use Tiny\MVC\Request\WebRequest;
 use Tiny\MVC\View\View;
-use Tiny\MVC\View\IHelper;
-use Tiny\MVC\Response\WebResponse;
-use const Tiny\MVC\TINY_MVC_RESOURCES;
+use Tiny\MVC\View\ViewHelperInterface;
 
 /**
  *信息提示框
@@ -32,7 +29,7 @@ use const Tiny\MVC\TINY_MVC_RESOURCES;
  *@final 2013-3-30下午01:03:02
  *
  */
-class MessageBox implements IHelper
+class MessageBox implements ViewHelperInterface
 {
     const HELPER_NAME_LIST = [        
         'messagebox'
@@ -69,7 +66,7 @@ class MessageBox implements IHelper
      * 
      * @var string
      */
-    protected $_templateFile = TINY_MVC_RESOURCES . 'view/helper/messagebox.htm';
+    protected $_templateFile = TINY_FRAMEWORK_RESOURCE_PATH . 'mvc/view/helper/messagebox.htm';
     
     /**
      * 设置View实例
@@ -111,7 +108,7 @@ class MessageBox implements IHelper
     * @param string $timeout 跳转延时/秒
     * @return string
     */
-	public function show($message, $toUrl = NULL, $subject = null, $timeout = null)
+	public function show($message, $toUrl = null, $subject = null, $timeout = null)
 	{
 		$subject = trim($subject) ?: $this->_subject;
 		$toUrl = trim($toUrl);
@@ -122,7 +119,7 @@ class MessageBox implements IHelper
 		    'tourl' => $toUrl,
 		    'timeout' => $timeout
 		];
-		$this->_view->display($this->_templateFile, $messageBox, TRUE);
+		$this->_view->display($this->_templateFile, $messageBox, true);
 	}
 }
 ?>

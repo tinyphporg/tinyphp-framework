@@ -25,86 +25,80 @@ namespace Tiny\Console\Worker;
  */
 abstract class Base
 {
-
+    
     /**
      * worker进程ID
      *
      * @var integer
      */
-    protected $_pid = 0;
-
+    protected $pid = 0;
+    
     /**
      * workerID
      *
      * @var integer
      */
-    protected $_id;
+    protected $id;
     
     /**
      * daemon pid
+     *
      * @var int
      */
-    protected $_daemonPid;
+    protected $daemonPid;
     
     /**
      * Daemon pid file
+     *
      * @var string
      */
-    protected $_daemonPidFile;
-
+    protected $daemonPidFile;
+    
     /**
      * 默认开启的工作进程
      *
      * @var integer
      */
-    protected $_num = 1;
-
+    protected $num = 1;
+    
     /**
      * 执行worker委托的代理实例
      *
-     * @var IWorkerHandler
+     * @var WorkerHandlerInterface
      */
-    protected $_handler;
-
+    protected $handler;
+    
     /**
      * 策略数组
      *
      * @var array
      */
-    protected $_options = [];
-
-    /**
-     * 参数
-     * @var array
-     */
-    protected $_args = [];
-
-    /**
-     * 执行worker委托的控制器名称
-     * @var string
-     */
-    protected $_controller;
+    protected $options = [];
     
     /**
-     * 执行worker委托的回调函数
+     * 派发器配置
      *
-     * @var callable
+     * @var array
      */
-    protected $_action;
+    protected $dispatcher = [
+        'controller' => 'main',
+        'action' => 'index',
+        'args' => [],
+    ];
     
     /**
      * 构造函数
      */
     public function __construct(array $config = [])
     {
-        $this->_pid = posix_getpid();
-        $ret = $this->_formatConfig($config);
-        if(!$ret)
-        {
-            throw new WorkerException(sprintf('Worker Excetion: options：%s is format faild!', var_export($config, TRUE)));
+        $this->pid = posix_getpid();
+        $ret = $this->formatConfig($config);
+        if (!$ret) {
+            throw new WorkerException(
+                sprintf('Worker Excetion: options：%s is format faild!', var_export($config, true)));
         }
     }
-
+    
     /**
      * 获取worker的ID 进程间通讯
      *
@@ -112,9 +106,9 @@ abstract class Base
      */
     public function getId()
     {
-        return $this->_id;
+        return $this->id;
     }
-
+    
     /**
      * 获取worker的进程数
      *
@@ -122,19 +116,19 @@ abstract class Base
      */
     public function getNum()
     {
-        return $this->_num;
+        return $this->num;
     }
-
+    
     /**
      * 设置worker回调的handler实例
      *
-     * @param IWorkerHandler $whandler
+     * @param WorkerHandlerInterface $whandler
      */
-    public function setWorkerHandler(IWorkerHandler $whandler)
+    public function setWorkerHandler(WorkerHandlerInterface $whandler)
     {
-        $this->_handler = $whandler;
+        $this->handler = $whandler;
     }
-
+    
     /**
      * 获取设置的worker回调的handler实例
      *
@@ -142,18 +136,19 @@ abstract class Base
      */
     public function getWorkerHandler()
     {
-        return $this->_handler;
+        return $this->handler;
     }
-
+    
     /**
      * 设置守护进程的选型
+     *
      * @param int $daemonPid
      * @param string $daemonPidFile
      */
     public function setDaemonOptions($daemonPid, $daemonPidFile)
     {
-        $this->_daemonPid = $daemonPid;
-        $this->_daemonPidFile = $daemonPidFile;
+        $this->daemonPid = $daemonPid;
+        $this->daemonPidFile = $daemonPidFile;
     }
     
     /**
@@ -163,9 +158,9 @@ abstract class Base
      */
     public function init()
     {
-        return TRUE;
+        return true;
     }
-
+    
     /**
      * 成为子进程后 开始
      *
@@ -174,10 +169,10 @@ abstract class Base
     public function start()
     {
         // init pid
-        $this->_pid = posix_getpid();
-        return $this->onstart();
+        $this->pid = posix_getpid();
+        return $this->dispatch('onstart');
     }
-
+    
     /**
      * exit 退出后
      *
@@ -185,124 +180,95 @@ abstract class Base
      */
     public function stop()
     {
-        return $this->onstop();
-    }
-    
-    /**
-     * 判断主进程是否仍在正常运行
-     */
-    public function  daemonIsRunning()
-    {
-        return file_exists($this->_pidfile);
-    }
-    
-    /**
-     * 调用handler的函数
-     *
-     * @param string $method
-     * @param array $args
-     * @return boolean|mixed
-     */
-    public function __call($method, $args)
-    {
-        if (!$this->_handler)
-        {
-            return NULL;
-        }
-        
-        $isEvent = FALSE;
-        if (substr($method, 0, 2) == 'on')
-        {
-            $isEvent = TRUE;
-        }
-        // 参数
-        $controller = $this->_controller;
-        $args = is_array($args) ? $args : [];
-
-        // callback
-        $callback = [
-            $this->_handler,
-            'onWorkerDispatch'
-        ];
-
-        // param array
-        $params = [
-            $controller,
-            $method,
-            $args,
-            $isEvent
-        ];
-
-        // call callback
-        $ret = call_user_func_array($callback, $params);
-        return $ret;
-    }
-
-    /**
-     * 守护进程是否正常运行
-     * 
-     * @return boolean|boolean|void
-     */
-    protected function _daemonIsRunning()
-    {
-        if (!file_exists($this->_daemonPidFile))
-        {
-            return FALSE;
-        }
-        $pid = (int)file_get_contents($this->_daemonPidFile);
-        if ($pid != $this->_daemonPid)
-        {
-            return FALSE;
-        }
-        $pidIsExists = file_exists('/proc/' . $pid);
-        return $pidIsExists;
+        return $this->dispatch('onstop');
     }
     
     /**
      * worker正式运行
      */
     abstract public function run();
-
+    
+    /**
+     * 派发
+     *
+     * @param string $action
+     */
+    protected function dispatch(string $method = null, array $args = [])
+    {
+        if (!$this->handler) {
+            return;
+        }
+        
+        $isMethod = true;
+        if (!$method) {
+            $method = $this->dispatcher['action'];
+            $args  = array_merge($args, (array)$this->dispatcher['args']);
+            $isMethod = false;
+        }
+        return call_user_func_array($this->dispatcher['callback'],
+            [
+                $this->dispatcher['controller'],
+                $method,
+                $args,
+                $isMethod
+            ]);
+    }
+    
     /**
      * 格式化选项数组
      *
      * @param array $options
      * @throws WorkerException
      */
-    protected function _formatConfig(array $config)
+    protected function formatConfig(array $config)
     {
-        if (!$config['id'])
-        {
-            return FALSE;
+        if (!$config['id']) {
+            return false;
         }
-        $this->_id = $config['id'];
-
-        // hanlder onworkerevent args
-        if (is_array($config['args']))
-        {
-            $this->_args = array_merge($this->_args, $config['args']);
-        }
-
-        //附带选型
-        if (is_array($config['options']))
-        {
-            $this->_options = array_merge($this->_options, $config['options']);
-        }
+        $this->id = $config['id'];
         
         // handler
-        if ($config['handler'] && $config['handler'] instanceof IWorkerHandler)
-        {
-            $this->_handler = $config['handler'];
+        if ($config['handler'] && $config['handler'] instanceof WorkerHandlerInterface) {
+            $this->handler = $config['handler'];
         }
-
+        
+        // hanlder onworkerevent args
+        if (is_array($config['dispatcher'])) {
+            $config['dispatcher']['args'] = (array)$config['dispatcher']['args'];
+            $this->dispatcher = array_merge($this->dispatcher, $config['dispatcher']);
+            $this->dispatcher['callback'] = [
+                $this->handler,
+                'onWorkerDispatch'
+            ];
+        }
+        
+        // 附带选项
+        if (is_array($config['options'])) {
+            $this->options = array_merge($this->options, $config['options']);
+        }
+        
         // worker num
-        if (isset($config['num']) && $config['num'] > 0)
-        {
-            $this->_num = (int)$config['num'];
+        if (isset($config['num']) && $config['num'] > 0) {
+            $this->num = (int)$config['num'];
         }
-        $this->_controller = $this->_args['controller'] ?: 'main';
-        $this->_action = $this->_args['action'] ?: 'index';
-        return TRUE;
+        return true;
+    }
+    
+    /**
+     * 守护进程是否正常运行
+     *
+     * @return boolean|boolean|void
+     */
+    protected function daemonIsRunning()
+    {
+        if (!file_exists($this->daemonPidFile)) {
+            return false;
+        }
+        $pid = (int)file_get_contents($this->daemonPidFile);
+        if ($pid != $this->daemonPid) {
+            return false;
+        }
+        return file_exists('/proc/' . $pid);
     }
 }
 ?>

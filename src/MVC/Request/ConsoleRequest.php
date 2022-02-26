@@ -14,7 +14,7 @@
  */
 namespace Tiny\MVC\Request;
 
-use Tiny\MVC\Request\Param\Readonly;
+use Tiny\Runtime\Environment;
 
 /**
  * 控制器请求类
@@ -25,104 +25,44 @@ use Tiny\MVC\Request\Param\Readonly;
  */
 class ConsoleRequest extends Request
 {
-
+    
     /**
-     * 命令行参数数组
+     * 参数数组名
      *
      * @var array
      */
-    protected $_argv;
-
+    public $argc;
+    
     /**
-     * 命令行参数数量
+     * 参数数组
      *
-     * @var int
+     * @var array
      */
-    protected $_argc;
-
+    public $argv;
+    
     /**
-     * 命令行参数实例
+     * 环境数组名
      *
-     * @var Readonly
+     * @var Environment
      */
-    public $param;
-
+    public $env;
+    
     /**
-     * 路由URI
      *
-     * @var string
+     * {@inheritdoc}
+     * @see \Tiny\MVC\Request\Request::initData()
      */
-    protected $uri;
-
-    /**
-     * 获取路由字符串
-     *
-     * @return string
-     */
-    public function getUri()
+    protected function initData()
     {
-        return $this->_uri;
-    }
-
-    /**
-     * 设置路由参数
-     *
-     * @param array $param
-     *        参数
-     * @return void
-     */
-    public function setParam(array $param)
-    {
+        $this->env = $this->application->get(Environment::class);
+        $this->argv = $this->server['argv'];
+        $this->argc = $this->server['argc'];
         
-        $this->param->merge($param);
+        $args = $this->parseParam($this->argv, $this->argc);
+        $this->argv = array_merge($this->argv, $args);
+        $this->param->merge($this->argv);
     }
-
-    /**
-     * 魔术函数获取变量的值
-     *
-     * @param string $key
-     *        变量名
-     * @return mixed
-     */
-    protected function _magicGet($key)
-    {
-        $key = strtolower($key);
-        switch ($key)
-        {
-            case 'server':
-                return new Readonly($this->_server, FALSE);
-            case 'env':
-                return new Readonly($_ENV, FALSE);
-            case 'path':
-                return $this->_server['PATH'];
-            case 'user':
-                return $this->_server['USER'];
-            case 'pwd':
-                return $this->_server['PWD'];
-            case 'lang':
-                return $this->_server['LANG'];
-            case 'php':
-                return $this->_server['_'];
-            case 'script':
-                return $this->_server['PHP_SELF'];
-        }
-    }
-
-    /**
-     * 构造函数,初始化
-     *
-     * @return void
-     */
-    protected function __construct()
-    {
-        $this->_server = $_SERVER;
-        $this->_argv = $this->_server['argv'];
-        $this->_argc = $this->_server['argc'];
-        $arguments = $this->_parseParam($this->_argv, $this->_argc);
-        $this->_argv = array_merge($this->_argv, $arguments);
-        $this->param = new Readonly($this->_argv);
-    }
-
+    
     /**
      * 解析命令行参数
      *
@@ -130,23 +70,19 @@ class ConsoleRequest extends Request
      * @param int $argc
      * @return array
      */
-    protected function _parseParam($argv, $argc)
+    protected function parseParam($argv, $argc)
     {
         $argument = [];
-        if ($argc <= 1)
-        {
+        if ($argc <= 1) {
             return $argument;
         }
-        for ($i = 1; $i < $argc; $i++)
-        {
+        for ($i = 1; $i < $argc; $i++) {
             $arg = $argv[$i];
-            if (!$this->_uri && preg_match("/^\/?[a-zA-Z][a-zA-Z0-9]+(\/[a-zA-Z][a-zA-Z0-9]+)+$/", $arg))
-            {
-                $this->_uri = $arg;
+            if (!$this->routeContext && preg_match("/^\/?[a-zA-Z][a-zA-Z0-9]+(\/[a-zA-Z][a-zA-Z0-9]+)+$/", $arg)) {
+                $this->routeContext = $arg;
             }
             $out = '';
-            if (preg_match("/^(\/?([a-zA-Z][a-zA-Z0-9]+\/)+)([a-zA-Z][a-zA-Z0-9]+)(=([0-9]+))?$/", $arg, $out))
-            {
+            if (preg_match("/^(\/?([a-zA-Z][a-zA-Z0-9]+\/)+)([a-zA-Z][a-zA-Z0-9]+)(=([0-9]+))?$/", $arg, $out)) {
                 $cname = substr($out[1], 0, -1);
                 $n = intval($out[5]) ?: 1;
                 $argument['daemons'][] = [
@@ -156,15 +92,13 @@ class ConsoleRequest extends Request
                 ];
                 continue;
             }
-            if (preg_match('/^-[a-zA-Z0-9]$/', $arg) && ($i < $argc - 1 && $argv[$i + 1][0] != '-'))
-            {
+            if (preg_match('/^-[a-zA-Z0-9]$/', $arg) && ($i < $argc - 1 && $argv[$i + 1][0] != '-')) {
                 $i++;
                 $argument[$arg[1]] = $argv[$i];
                 continue;
             }
-            if (preg_match('/^(--|-)([a-z][a-z0-9\-]*)(=(.*))?$/i', $arg, $out))
-            {
-                $argument[$out[2]] = $out[4] ?: TRUE;
+            if (preg_match('/^(--|-)([a-z][a-z0-9\-]*)(=(.*))?$/i', $arg, $out)) {
+                $argument[$out[2]] = $out[4] ?: true;
                 continue;
             }
         }

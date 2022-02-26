@@ -26,20 +26,21 @@ namespace Tiny\Console\Worker;
  */
 class Worker extends Base
 {
+    
     /**
      * 最大执行次数
      *
      * @var int
      */
-    protected $_runmax = 1024;
-
+    protected $runmax = 1024;
+    
     /**
      * 单次循环执行的停顿时间
      *
      * @var integer
      */
-    protected $_tick = 1000;
-
+    protected $tick = 1000;
+    
     /**
      * 构造函数
      *
@@ -48,9 +49,9 @@ class Worker extends Base
     public function __construct(array $config = [])
     {
         parent::__construct($config);
-        $this->_formatWorkerOptions($this->_options);
+        $this->formatWorkerOptions($this->options);
     }
-
+    
     /**
      * worker运行
      *
@@ -59,34 +60,30 @@ class Worker extends Base
      */
     public function run()
     {
-        if (!$this->_handler)
-        {
+        if (!$this->handler) {
             return;
         }
-        for ($i = $this->_runmax; $i > 0; $i--)
-        {
-            if(!$this->_daemonIsRunning())
-            {
+        for ($i = $this->runmax; $i > 0; $i--) {
+            if (!$this->daemonIsRunning()) {
                 break;
             }
-            $this->__call($this->_action, [$this->_controller, $this->_args]);
-            usleep($this->_tick * 1000);
+            $this->dispatch();
+            usleep($this->tick * 1000);
         }
     }
     
     /**
      * 格式化worker的options
+     *
      * @param array $options
      */
-    protected function _formatWorkerOptions(array $options)
+    protected function formatWorkerOptions(array $options)
     {
-        if (isset($options['runmax']) && intval($options['runmax']) > 0)
-        {
-            $this->_runmax = (int)$options['runmax'];
+        if (isset($options['runmax']) && intval($options['runmax']) > 0) {
+            $this->runmax = (int)$options['runmax'];
         }
-        if (isset($options['tick']) && floatval($options['tick']) > 0)
-        {
-            $this->_tick = intval($options['tick'] * 1000);
+        if (isset($options['tick']) && floatval($options['tick']) > 0) {
+            $this->tick = intval($options['tick'] * 1000);
         }
     }
 }

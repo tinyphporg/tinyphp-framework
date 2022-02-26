@@ -16,7 +16,7 @@
  */
 namespace Tiny\MVC\Web\Session;
 
-use Tiny\Data\Redis\Redis as RedisSchema;
+use Tiny\Data\Redis\Redis as RedisHandler;
 use Tiny\Tiny;
 
 /**
@@ -26,51 +26,61 @@ use Tiny\Tiny;
  * @since : 2013-4-13上午02:27:53
  * @final : 2013-4-13上午02:27:53
  */
-class Redis implements ISession
+class Redis implements SessionAdapterInterface
 {
-
+    
     /**
      * Redis的data操作实例
      *
-     * @var RedisSchema
+     * @var RedisHandler
      */
-    protected $_schema;
-
+    protected $redis;
+    
     /**
-     * 默认的服务器缓存策略
+     * 过期时间
      *
-     * @var array
+     * @var integer
      */
-    protected $_policy = [
-        'lifetime' => 3600
-    ];
-
+    protected $expires = 3600;
+    
+    /**
+     * data 资源池ID
+     *
+     * @var string
+     */
+    protected $dataId;
+    
     /**
      * 初始化构造函数
      *
-     * @param array $policy
-     *        配置
+     * @param array $config 配置
      * @return void
      */
-    function __construct(array $policy = [])
+    function __construct(array $config = [])
     {
-        $this->_policy = array_merge($this->_policy, $policy);
+        $expires = (int)$config['expires'];
+        if ($expires > 0) {
+            $this->expires = $expires;
+        }
+        $dataId = (string)$config['dataid'];
+        if (!$dataId) {
+            throw new SessionException(sprintf("Initialization %s failed, profile.session.dataid is required!", __CLASS__));
+        }
+        $this->dataId = $dataId;
     }
-
+    
     /**
      * 打开Session
      *
-     * @param string $savePath
-     *        保存路径
-     * @param string $sessionName
-     *        session名称
+     * @param string $savePath 保存路径
+     * @param string $sessionName session名称
      * @return void
      */
     public function open($savePath, $sessionName)
     {
-        return TRUE;
+        return true;
     }
-
+    
     /**
      * 关闭Session
      *
@@ -78,80 +88,69 @@ class Redis implements ISession
      */
     public function close()
     {
-        return TRUE;
+        return true;
     }
-
+    
     /**
      * 读Session
      *
-     * @param string $sessionId
-     *        Session身份标示
+     * @param string $sessionId Session身份标示
      * @return string
      */
     public function read($sessionId)
     {
-        return $this->_getSchema()->get($sessionId);
+        return $this->getRedis()->get($sessionId);
     }
-
+    
     /**
      * 写Session
      *
-     * @param string $sessionId
-     *        SessionID标示
-     * @param string $sessionValue
-     *        Session值
+     * @param string $sessionId SessionID标示
+     * @param string $sessionValue Session值
      * @return bool
      */
     public function write($sessionId, $sessionValue)
     {
-        return $this->_getSchema()->set($sessionId, $sessionValue, $this->_policy['lifetime']);
+        return $this->getRedis()->set($sessionId, $sessionValue, $this->expires);
     }
-
+    
     /**
      * 注销某个变量
      *
-     * @param string $sessionId
-     *        Session身份标示
+     * @param string $sessionId Session身份标示
      * @return bool
      */
     public function destroy($sessionId)
     {
-        return $this->_getSchema()->delete($sessionId);
+        return $this->getRedis()->delete($sessionId);
     }
-
+    
     /**
      * 自动回收过期变量
      *
-     * @param int $maxlifetime
-     *        最大生存时间
+     * @param int $maxlifetime 最大生存时间
      * @return bool
      */
     public function gc($maxlifetime)
     {
-        return TRUE;
+        return true;
     }
-
+    
     /**
      * 获取redis操作实例
      *
-     * @return RedisSchema
+     * @return RedisHandler
      */
-    protected function _getSchema()
+    protected function getRedis()
     {
-        if (!$this->_schema)
-        {
-            $this->_schema;
+        if (!$this->redis) {
+            $dataPool = Tiny::getApplication()->getData();
+            $this->redis = $dataPool[$this->dataId];
+            if (!$this->redis instanceof RedisHandler) {
+                throw new SessionException(sprintf("Class %s is not an instance of %s!", get_class($this->redis), RedisHandler::class));
+            }
         }
-        $data = Tiny::getApplication()->getData();
-        $dataId = $this->_policy['dataid'];
-        $schema = $data[$dataId];
-        if (!$schema instanceof RedisSchema)
-        {
-            throw new SessionException(sprintf('dataid:%s不是Tiny\Data\Redis\Schema的实例', $dataId));
-        }
-        $this->_schema = $schema;
-
-        return $schema;
+        return $this->redis;
     }
 }
 ?>

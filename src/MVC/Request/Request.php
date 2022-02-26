@@ -14,7 +14,8 @@
  */
 namespace Tiny\MVC\Request;
 
-use Tiny\MVC\ApplicationBase;
+use Tiny\MVC\Application\ApplicationBase;
+use Tiny\Runtime\Param\Readonly;
 
 /**
  * 请求体基类
@@ -26,211 +27,214 @@ use Tiny\MVC\ApplicationBase;
 abstract class Request
 {
     /**
+     * 服务器参数数组
+     * 
+     * @var Readonly
+     */
+    public $server;
+    
+    /**
+     * 通用参数数组
+     * 
+     * @var Readonly
+     */
+    public $param;
+    
+    /**
+     * 路由参数
+     * 
+     * @var Readonly
+     */
+    public $routeParam;
+    
+    /**
+     * 当前应用实例
+     *
+     * @var ApplicationBase
+     */
+    protected $application;
+    
+    /**
      * 控制器名称
      *
      * @var string
      */
-    protected $controllname = 'main';
-
+    protected $controllerName = 'main';
+    
     /**
      * 动作名
      *
      * @var string
      */
-    protected $_aname = 'index';
-
+    protected $actionName = 'index';
+    
     /**
      * 控制器参数名称
      *
      * @var string
      */
-    protected $_cpname = 'c';
-
+    protected $controllerParamName = 'c';
+    
     /**
      * 动作参数名
      *
      * @var string
      */
-    protected $_apname = 'a';
-
+    protected $actionParamName = 'a';
+    
     /**
-     * 供路由的参数
+     * 供路由的上下文
      *
      * @var string
      */
-    protected $_routeParamString;
-    /**
-     * 路由参数
-     *
-     * @var array
-     */
-    protected $_routeParams = [];
-
-
+    protected $routeContext;
+    
     /**
      * 设置当前应用实例
      *
      * @param ApplicationBase $app
-     * @return void
      */
-    public function setApplication(ApplicationBase $app)
+    public function __construct(ApplicationBase $app)
     {
-        $this->_app = $app;
+        $this->application = $app;
+        $this->server = new Readonly($_SERVER);
+        unset($_SERVER);
+        $this->param = new Readonly();
+        $this->routeParam = new Readonly();
+        $this->initData();
     }
-
-    /**
-     * 获取控制器名称
-     *
-     * @return $controller
-     */
-    public function getController()
-    {
-        $cname = $this->param[$this->_cpname];
-        if ($cname)
-        {
-            $this->_cname = $cname;
-        }
-        return $this->_cname;
-    }
-
-    /**
-     * 获取动作名称
-     *
-     * @return string 动作名称
-     */
-    public function getAction()
-    {
-        $aname = $this->param[$this->_apname];
-        if ($aname)
-        {
-            $this->_aname = $aname;
-        }
-        return strtolower($this->_aname);
-    }
-
+    
     /**
      * 设置控制器名称
      *
-     * @param string $cname
-     *        控制器名称
-     * @return void
+     * @param string $cname 控制器名称
      */
-    public function setController($cname)
+    public function setControllerName(string $cname)
     {
-        if ($cname)
-        {
-            $this->_cname = $cname;
+        if ($cname) {
+            $this->controllerName = $cname;
         }
     }
-
+    
+    /**
+     * 获取控制器名称
+     *
+     * @return string
+     */
+    public function getControllerName(): string
+    {
+        return $this->controllerName;
+    }
+    
     /**
      * 设置动作名称
      *
-     * @param string $aname
-     *        动作名称
-     * @return void
+     * @param string $aname 动作名称
      */
-    public function setAction($aname)
+    public function setActionName(string $aname)
     {
-        if ($aname)
-        {
-            $this->_aname = $aname;
+        if ($aname) {
+            $this->actionName = $aname;
         }
     }
-
+    
+    /**
+     * 获取动作名称
+     *
+     * @return string
+     */
+    public function getActionName(): string
+    {
+        return $this->actionName;
+    }
+    
     /**
      * 设置控制器输入的参数名称
      *
-     * @param string $pname
-     *        控制器参数名
-     *        名称
-     * @return void
+     * @param string $pname 控制器参数名
      */
-    public function setControllerParam($pname)
+    public function setControllerParamName(string $pname)
     {
-        if ($pname)
-        {
-            $this->_cpname = $pname;
+        if (!$pname) {
+            return;
+        }
+        
+        $this->controllerParamName = $pname;
+        if ($this->param[$pname]) {
+            $this->setControllerName($this->param[$pname]);
         }
     }
-
-    /**
-     * 设置动作输入的参数名称
-     *
-     * @param string $pname
-     *        动作参数名
-     *        动作名称
-     * @return void
-     */
-    public function setActionParam($pname)
-    {
-        if ($pname)
-        {
-            $this->_apname = $pname;
-        }
-    }
-
+    
     /**
      * 获取控制器输入的参数名
      *
      * @return string 控制器参数名称
      */
-    public function getControllerParam()
+    public function getControllerParamName(): string
     {
-        return $this->_cpname;
+        return $this->controllerParamName;
     }
-
+    
+    /**
+     * 设置动作输入的参数名称
+     *
+     * @param string $pname 动作参数名
+     */
+    public function setActionParamName(string $pname)
+    {
+        if (!$pname) {
+            return;
+        }
+        
+        $this->actionParamName = $pname;
+        if ($this->param[$pname]) {
+            $this->setActionName($this->param[$pname]);
+        }
+    }
+    
     /**
      * 获取动作输入的参数名称
      *
      * @return string 动作参数名
      */
-    public function getActionParam()
+    public function getActionParamName(): string
     {
-        return $this->_apname;
+        return $this->actionParamName;
     }
-
+    
     /**
-     * 魔术函数获取
+     * 设置路由参数
      *
-     * @param string $key
-     *        魔法函数获取参数值
-     * @return mixed
+     * @param array $params
      */
-    public function __get($key)
+    public function setRouteParam(array $params)
     {
-        $value = $this->_magicGet($key);
-        if ($value)
-        {
-            $this->$key = $value;
-        }
-        return $value;
+        $this->routeParam->merge($params);
+        $this->param->merge($params);
     }
-
+    
+    /**]
+     * 设置路由上下文字符串
+     * @param string $routeContext
+     */
+    public function setRouteContext(string $routeContext)
+    {
+        $this->routeContext =  $routeContext; 
+    }
+    
     /**
-     * 获取路由字符串
+     * 获取路由上下文字符串
      *
      * @return string
      */
-    abstract public function getUri();
-
-    /**
-     * 设置路由解析的参数
-     *
-     * @param array $param
-     *        参数
-     * @return void
-     */
-    abstract public function setParam(array $param);
-
-    /**
-     * 魔法函数
-     * 
-     * @param string $key
-     */
-    protected function _magicGet($key)
+    public function getRouteContext()
     {
-
+        return $this->routeContext;
     }
+    
+    /**
+     * 初始化数据数组
+     */
+    abstract protected function initData();
 }
 ?>

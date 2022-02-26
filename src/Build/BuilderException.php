@@ -15,10 +15,12 @@
 namespace Tiny\Build;
 
 /**
- * 打包异常类
- * @author king
- *
- */
+*  打包异常
+*  
+* @package Tiny.Build
+* @since 2022年2月6日下午12:34:57
+* @final 2022年2月6日下午12:34:57
+*/
 class BuilderException extends \Exception
 {
 }

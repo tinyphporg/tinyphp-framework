@@ -26,47 +26,44 @@ use Tiny\MVC\Web\HttpMimeMapping;
  */
 class WebResponse extends Response
 {
-
+    
     /**
      * JSON数组
      *
      * @var array
      */
-    protected $_json = [];
-
+    protected $json = [];
+    
     /**
      * 默认类型
      *
      * @var string
      */
-    protected $_contentType = 'html';
-
+    protected $contentType = 'html';
+    
     /**
      * 添加一个Header到标头中
      *
-     * @param string $header
-     *        header内容
-     * @param bool $replace
-     *        是否替换之前相同的标头
+     * @param string $header header内容
+     * @param bool $replace 是否替换之前相同的标头
      * @return void
      */
-    public function appendHeader($header, $replace = TRUE)
+    public function appendHeader($header, $replace = true)
     {
         return header($header, (bool)$replace);
     }
-
+    
     /**
      * 清理已经设置的header
      *
-     * @param string $name
-     *        header名称 默认为空，则清理全部header
+     * @param string $name header名称 默认为空，则清理全部header
      * @return void
      */
-    public function removeHeader($name = NULL)
+    public function removeHeader($name = null)
     {
         return header_remove($name);
     }
-
+    
     /**
      * 获取已经设置的header列表
      *
@@ -76,24 +73,22 @@ class WebResponse extends Response
     {
         return headers_list();
     }
-
+    
     /**
      * 设置响应类型
      *
-     * @param string $type
-     *        类型
-     * @param string $charset
-     *        编码
+     * @param string $type 类型
+     * @param string $charset 编码
      * @return void
      */
-    public function setContentType($type, $charset = NULL)
+    public function setContentType($type, $charset = null)
     {
-        $this->_contentType = $type;
-        $charset = $charset ?: $this->_charset;
+        $this->contentType = $type;
+        $charset = $charset ?: $this->charset;
         $type = ('html' == $type) ? 'text/html' : HttpMimeMapping::get($type);
         return header('Content-Type: ' . $type . '; charset=' . $charset);
     }
-
+    
     /**
      * 获取响应类型
      *
@@ -101,26 +96,24 @@ class WebResponse extends Response
      */
     public function getContentType()
     {
-        return $this->_contentType;
+        return $this->contentType;
     }
-
+    
     /**
      * 设置响应状态码
      *
-     * @param int $code
-     *        状态码
+     * @param int $code 状态码
      * @return int 代码
      */
     public function setStatusCode($code)
     {
         $status = HttpStatus::get((int)$code);
-        if ($status)
-        {
+        if ($status) {
             $this->appendHeader($status);
         }
         return $status;
     }
-
+    
     /**
      * 结束此次finish
      *
@@ -130,12 +123,11 @@ class WebResponse extends Response
     {
         return fastcgi_finish_request();
     }
-
+    
     /**
      * 重定向URL
      *
-     * @param string $url
-     *        URL链接
+     * @param string $url URL链接
      * @return bool
      */
     public function redirect($url)
@@ -143,13 +135,12 @@ class WebResponse extends Response
         $this->setStatusCode(302);
         return $this->appendHeader("Location: " . $url);
     }
-
+    
     /**
      * 永久重定向
      *
      *
-     * @param string $url
-     *        URL链接
+     * @param string $url URL链接
      * @return bool
      */
     public function finalRedirect($url)
@@ -157,37 +148,34 @@ class WebResponse extends Response
         $this->setStatusCode(301);
         return $this->appendHeader("Location: " . $url);
     }
-
+    
     /**
      * 以JS Callback方式返回数据
      *
-     * @param array $data
-     *        输出的数据
+     * @param array $data 输出的数据
      * @return void
      */
     public function outJsonp($data)
     {
-        $callback = $this->_app->request->get["jsonpCallback"];
+        $callback = $this->application->request->get["jsonpCallback"];
         $callback = trim($callback);
         $string = ($callback != '') ? "try{\n" . $callback . '(' . json_encode($data) . ");\n}catch(e){}\n" : json_encode($data);
         $this->write($string);
     }
-
+    
     /**
      * 设置编码
      *
-     * @param string $charset
-     *        编码名
+     * @param string $charset 编码名
      * @return void
      */
     public function setCharset($charset)
     {
-        if (!$charset)
-        {
+        if (!$charset) {
             return;
         }
         parent::setCharset($charset);
-        $this->setContentType($this->_contentType, $charset);
+        $this->setContentType($this->contentType, $charset);
     }
 }
 ?>

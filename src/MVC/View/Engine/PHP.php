@@ -23,17 +23,18 @@ use Tiny\MVC\View\ViewException;
  * @since 2013-5-25上午08:22:54
  * @final 2017-3-12上午08:22:54
  */
-class PHP extends Base
+class PHP extends ViewEngine
 {
     /**
-     * 获取编译后的文件路径
      * 
-     * {@inheritDoc}
-     * @see \Tiny\MVC\View\Engine\Base::getCompileFile()
+     * @param string $tpath
+     * @param boolean $isAbsolute
+     * @throws ViewException
+     * @return string
      */
-    public function getCompiledFile($tpath, $isAbsolute = FALSE)
+    public function getCompiledFile($tpath, $isAbsolute = false)
     {
-        $tfile  = $this->_getTemplateRealPath($tpath, $isAbsolute);
+        $tfile  = $this->getTemplateRealPath($tpath, $isAbsolute);
         if (!$tfile)
         {
             throw new ViewException(sprintf("viewer error: file %s is not a file", $tfile));

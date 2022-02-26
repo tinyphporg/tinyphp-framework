@@ -15,8 +15,10 @@
  */
 namespace Tiny\Build;
 
+use Tiny\MVC\Application\ApplicationBase;
+
 /**
- * 打包实例
+ * 打包器
  *
  * @package Tiny.Build
  * @since 2020年5月28日下午5:39:12
@@ -24,101 +26,53 @@ namespace Tiny\Build;
  */
 class Builder
 {
-
+    
     /**
      * 配置
      *
      * @var array
      */
-    protected $_config;
-
+    protected $config;
+    
     /**
      * 打包数据
      *
      * @var array
      */
-    protected $_data = [];
-
+    protected $data = [];
+    
     /**
      * pharhandler句柄
      *
      * @var \Phar
      */
-    protected $_pharHandler;
-
+    protected $pharHandler;
+    
     /**
      * 打包文件里面的properties配置数据
      *
      * @var array
      */
-    protected $_properties;
-
+    protected $properties;
+    
     /**
      * 运行打包后程序的初始化
-     * 
-     * @return void
      */
     public static function init()
     {
-        /*解压附件在应用实例当前目录*/
+        // 解压附件在应用实例当前目录
         $attachmentPath = TINY_PHAR_FILE . '/attachments/';
-        if (file_exists($attachmentPath))
-        {
-            self::_unpackage($attachmentPath, '', TINY_PHAR_DIR);
+        if (file_exists($attachmentPath)) {
+            self::unpackage($attachmentPath, '', TINY_PHAR_DIR);
         }
         
-        /*解压附件在用户工作目录*/
+        // 解压附件在用户工作目录
         $homeAttachmentPath = TINY_PHAR_FILE . '/home_attachments/';
-        if (file_exists($homeAttachmentPath))
-        {
-            self::_unpackage($homeAttachmentPath, '', TINY_HOME_DIR);
-        }   
-    }
-
-    /**
-     * 解压phar文件里面的文件到指定路径
-     *
-     * @param string $dpath
-     *        解压路径
-     * @param string $dname
-     *        本地相对路径
-     * @param string $rootPath
-     *        本地根路径
-     */
-    protected static function _unpackage($pharDir, $localDir = '', $rootDir = '')
-    {
-        if (!is_dir($pharDir))
-        {
-            return;
-        }
-
-        $pharNames = scandir($pharDir);
-        foreach ($pharNames as $pname)
-        {
-            if ($pname == '.' || $pname == '..')
-            {
-                continue;
-            }
-            $pharPath = $pharDir . $pname;
-            $localPath = $localDir . $pname;
-            $destPath = $rootDir . '/' . $localPath;
-            
-            // 创建文件夹
-            if (is_dir($pharPath))
-            {
-                if (!file_exists($destPath))
-                {
-                    mkdir($destPath, 0777, TRUE);
-                }
-                return self::_unpackage($pharPath . '/', $localPath . '/', $rootDir);
-            }
-            if (!file_exists($destPath) || filemtime($destPath) < filemtime($pharPath))
-            {
-                copy($pharPath, $destPath);
-            }
+        if (file_exists($homeAttachmentPath)) {
+            self::unpackage($homeAttachmentPath, '', TINY_HOME_DIR);
         }
     }
-
+    
     /**
      * 初始化构建器
      *
@@ -126,186 +80,216 @@ class Builder
      */
     public function __construct(array $config)
     {
-        if (ini_get('phar.readonly'))
-        {
-            throw new BuilderException('creating archive "tiny-demo.phar" disabled by the php.ini setting phar.readonly,This setting can only be unset in php.ini due to security reasons.');
+        if (ini_get('phar.readonly')) {
+            throw new BuilderException('Creating archive "tiny-demo.phar" disabled by the php.ini;phar.readonly must be off');
         }
-        $this->_config = $config;
+        $this->config = $config;
         
         // 应用实例的properties数组
-        $this->_properties = $this->_config['properties'];
+        $this->properties = $this->config['properties'];
         
-        //关闭phar应用程序打包phar
-        $this->_properties['build']['enabled'] = FALSE;
+        // 关闭phar应用程序打包phar
+        $this->properties['builder']['enabled'] = false;
     }
-
+    
     /**
      * 执行phar打包
-     *
-     * @return boolean
      */
     public function run()
     {
-        $name = $this->_config['name'] ?: 'tinyd';
-        $this->_createrPhar($name);
-        $this->_addHomeAttachments();
-        $this->_addAttachments();
-        $this->_addApplication();
-        $this->_addConfig();
-        $this->_addImprot();
-        $this->_addFrameWork();
-        $this->_createrPharFile();
-        return TRUE;
+        $name = $this->config['name'] ?: 'tinyphp-demo';
+        $this->createrPhar($name);
+        $this->addHomeAttachments();
+        $this->addAttachments();
+        $this->addApplication();
+        $this->addConfig();
+        $this->addLibarays();
+        $this->addFrameWork();
+        $this->createrPharFile();
+        return true;
     }
-
+    
+    /**
+     * 解压phar文件里面的文件到指定路径
+     *
+     * @param string $dpath 解压路径
+     * @param string $dname 本地相对路径
+     * @param string $rootPath 本地根路径
+     */
+    protected static function unpackage($pharDir, $localDir = '', $rootDir = '')
+    {
+        if (!is_dir($pharDir)) {
+            return;
+        }
+        
+        $pharNames = scandir($pharDir);
+        foreach ($pharNames as $pname) {
+            if ($pname == '.' || $pname == '..') {
+                continue;
+            }
+            $pharPath = $pharDir . $pname;
+            $localPath = $localDir . $pname;
+            $destPath = $rootDir . '/' . $localPath;
+            
+            // 创建文件夹
+            if (is_dir($pharPath)) {
+                if (!file_exists($destPath)) {
+                    mkdir($destPath, 0777, true);
+                }
+                self::unpackage($pharPath . '/', $localPath . '/', $rootDir);
+                continue;
+            }
+            if (!file_exists($destPath) || filemtime($destPath) < filemtime($pharPath)) {
+                copy($pharPath, $destPath);
+            }
+        }
+    }
+    
     /**
      * 添加 解压在用户目录的附件
      */
-    protected function _addHomeAttachments()
+    protected function addHomeAttachments()
     {
         printf("add home_attachments:\n");
         
         // runtime
-        $homefiles = $this->_config['home_attachments'] ?: [];
-        $this->_pharHandler->addEmptyDir('home_attachments/runtime');
-        $this->_properties['app']['runtime'] = 'TINY_HOME_DIR/runtime/';
+        $homefiles = $this->config['home_attachments'] ?: [];
         
-        // config 
-        if ($homefiles['config'])
-        {
-            $this->_pharHandler->addEmptyDir('home_attachments/config');
-            $this->_data['config_path'] = 'TINY_HOME_DIR/config/';
+        $this->pharHandler->addEmptyDir('home_attachments/runtime');
+        $this->properties['src']['runtime'] = 'TINY_HOME_DIR/runtime/';
+        
+        // config
+        if ($homefiles['config']) {
+            $this->pharHandler->addEmptyDir('home_attachments/config');
+            $this->data['config_path'] = 'TINY_HOME_DIR/config/';
         }
         
         // profile
-        if ($homefiles['profile'])
-        {
-            $this->_pharHandler->addEmptyDir('home_attachments/profile');
+        if ($homefiles['profile']) {
+            $this->pharHandler->addEmptyDir('home_attachments/profile');
             
             // 添加的配置路径
-            $this->_data['profile_path'] = 'TINY_HOME_DIR/profile/';
+            $this->data['profile_path'] = 'TINY_HOME_DIR/profile/';
         }
         
         // 循环添加附件
-        foreach ($homefiles as $atts)
-        {
+        foreach ($homefiles as $atts) {
             $name = $atts[0];
             $path = $atts[1];
             $isNoFile = (bool)$atts[2];
             $aname = 'home_attachments/' . $name;
-            $this->_addDir($path, $aname, $isNoFile);
-            printf("    %s => %s\n", $aname, $path);
+            printf("home_attachments:  %s => %s\n", $aname, $path);
+            $this->addDir($path, $aname, $isNoFile);
         }
     }
     
     /**
      * 添加解压在phar所在目录的附件
-     *
      */
-    protected function _addAttachments()
+    protected function addAttachments()
     {
         printf("add attachments:\n");
-        $attachments = $this->_config['attachments'] ?: [];
+        $attachments = $this->config['attachments'] ?: [];
         
         // 循环添加附件
-        foreach ($attachments as $atts)
-        {
+        foreach ($attachments as $atts) {
             $name = $atts[0];
             $path = $atts[1];
             $isNoFile = (bool)$atts[2];
             $aname = 'attachments/' . $name;
-            $this->_addDir($path, $aname, $isNoFile);
-            printf("    %s => %s\n", $aname, $path);
+            printf("attachments    %s => %s\n", $aname, $path);
+            $this->addDir($path, $aname, $isNoFile);
         }
     }
-
+    
     /**
      * 添加应用实例的文件夹
-     *
      */
-    protected function _addApplication()
+    protected function addApplication()
     {
-        $apppath = realpath($this->_config['application_path']);
+        $apppath = realpath($this->config['application_path']);
         printf("add application:\n  %s\n", $apppath);
-        $this->_addDir($apppath, 'application');
+        $this->addDir($apppath, 'application');
     }
-
+    
     /**
      * 缓存application的配置文件数据到打包程序中
      */
-    protected function _addConfig()
+    protected function addConfig()
     {
         printf("add config\n    application/.config.php\n");
-        $config = $this->_config['config'];
+        $config = $this->config['config'];
         $contents = "<?php\n return " . var_export($config, true) . ";\n?>";
-        $this->_pharHandler->addFromString('application/.config.php', $contents);
+        $this->pharHandler->addFromString('application/.config.php', $contents);
         
-        $this->_properties['config']['cache']['enabled'] = FALSE;
-        $this->_properties['config']['lang']['enabled'] = FALSE;
-        $this->_properties['config']['path'] = [];
-        $this->_properties['config']['path'][] = 'TINY_PHAR_FILE/application/.config.php';
-        if ($this->_data['config_path'])
-        {
-            $this->_properties['config']['path'][] = $this->_data['config_path'];
+        $this->properties['config']['cache']['enabled'] = false;
+        $this->properties['config']['lang']['enabled'] = false;
+        $this->properties['config']['path'] = [];
+        $this->properties['config']['path'][] = 'TINY_PHAR_FILE/application/.config.php';
+        if ($this->data['config_path']) {
+            $this->properties['config']['path'][] = $this->data['config_path'];
         }
-        $cindex = array_search('config.path', $this->_properties['path']);
-        if (FALSE !== $cindex)
-        {
-            unset($this->_properties['path'][$cindex]);
+        $cindex = array_search('config.path', $this->properties['path']);
+        if (false !== $cindex) {
+            unset($this->properties['path'][$cindex]);
         }
     }
-
+    
     /**
      * 添加引用库
-     *
      */
-    protected function _addImprot()
+    protected function addLibarays()
     {
-        printf("add imports library:\n");
-        $imports = $this->_config['imports'];
+        printf("add autoloader librarys:\n");
+        $namespaces = $this->config['namespaces'];
         $idata = [];
-        foreach ($imports as $ns => $path)
-        {
-            $name = 'application/.import/' . md5($ns);
-            if (file_exists($path))
-            {
-                $this->_addDir($path, $name);
-            }
-            else
-            {
-                $this->_pharHandler->addEmptyDir($name);
+        foreach ($namespaces as $ns => $path) {
+            $name = 'application/.namespaces/' . md5($ns);
+            if (file_exists($path)) {
+                $this->addDir($path, $name);
+            } else {
+                $this->pharHandler->addEmptyDir($name);
             }
             $idata[$ns] = 'TINY_PHAR_FILE' . '/' . $name . '/';
             printf("    %s => %s\n", $ns, $path);
         }
-        $this->_properties['autoloader']['librarys'] = $idata;
-        $this->_properties['autoloader']['no_realpath'] = TRUE;
+        
+        $classes = $this->config['classes'];
+        $this->pharHandler->addEmptyDir('application/.classes/');
+        $cdata = [];
+        foreach ($classes as $class => $path) {
+            $name = 'application/.classes/' . md5($class) . '.php';
+            $this->pharHandler->addFile($path, $name);
+            $cdata[$class] = 'TINY_PHAR_FILE' . '/' . $name;
+            printf("    %s => %s\n", $class, $path);
+        }
+        $this->properties['autoloader']['namespaces'] = $idata;
+        $this->properties['autoloader']['classes'] = $cdata;
+        $this->properties['autoloader']['is_realpath'] = true;
     }
-
+    
     /**
      * 处理并添加application配置文件
      */
-    protected function _addProperties()
+    protected function addProperties()
     {
-        if ($this->_config['controller'])
-        {
-            $this->_properties['controller']['default'] = trim($this->_config['controller']);
+        if ($this->config['controller']) {
+            $this->properties['controller']['default'] = trim($this->config['controller']);
         }
-        if ($this->_config['action'])
-        {
-            $this->_properties['action']['default'] = trim($this->_config['action']);
+        if ($this->config['action']) {
+            $this->properties['action']['default'] = trim($this->config['action']);
         }
-        $contents = "<?php\n return " . var_export($this->_properties, TRUE) . ";\n?>";
+        $contents = "<?php\n return " . var_export($this->properties, true) . ";\n?>";
         $contents = strtr($contents, [
             "'TINY_PHAR_FILE/application" => "TINY_PHAR_FILE . '/application",
             "'TINY_HOME_DIR/runtime/'" => "TINY_HOME_DIR . '/runtime/'",
             "'TINY_HOME_DIR/config/'" => "TINY_HOME_DIR . '/config/'",
             "'TINY_HOME_DIR/profile/'" => "TINY_HOME_DIR . '/profile/'"
         ]);
-        $this->_pharHandler->addFromString('application/.properties.php', $contents);
+        $this->pharHandler->addFromString('application/.properties.php', $contents);
         printf("add properties:\n   application/.properties.php\n");
     }
-
+    
     /**
      * 添加文件或者文件夹进入打包文件
      *
@@ -313,112 +297,97 @@ class Builder
      * @param string $name 打包名
      * @param boolean $noFile 是否不添加文件
      */
-    protected function _addDir($path, $name, $noFile = FALSE)
+    protected function addDir($path, $name, $noFile = false)
     {
-        if (is_dir($path))
-        {
+        // $path = realpath($path);
+        if (is_dir($path)) {
             $files = scandir($path);
-            $this->_pharHandler->addEmptyDir($name);
-            foreach ($files as $file)
-            {
-                if ($file == '.' || $file == '..' || $file[0] == '.')
-                {
+            $this->pharHandler->addEmptyDir($name);
+            foreach ($files as $file) {
+                if ($file == '.' || $file == '..' || $file[0] == '.') {
                     continue;
                 }
-
+                
                 $fpath = $path . '/' . $file;
-                if ($this->_isExclude($fpath))
-                {
+                if ($this->isExclude($fpath)) {
                     continue;
                 }
                 $fname = $name ? $name . '/' . $file : $file;
-                $this->_addDir($fpath, $fname, $noFile);
+                $this->addDir($fpath, $fname, $noFile);
             }
             return;
         }
-        if ($noFile)
-        {
+        if ($noFile) {
             return;
         }
-        $this->_pharHandler->addFile($path, $name);
+        $this->pharHandler->addFile($path, $name);
     }
-
+    
     /**
-     *  是否排除路径
-     *  
+     * 是否排除路径
+     *
      * @param string $fpath 文件名
      * @return boolean
      */
-    protected function _isExclude($fpath)
+    protected function isExclude($fpath)
     {
-        foreach ((array)$this->_config['exclude'] as $exclude)
-        {
-            if (preg_match($exclude, $fpath)) 
-            {
-                return TRUE;
+        foreach ((array)$this->config['exclude'] as $exclude) {
+            if (preg_match($exclude, $fpath)) {
+                return true;
             }
         }
-        return FALSE;   
+        return false;
     }
     
     /**
      * 添加框架到打包文件
-     * 
      */
-    protected function _addFrameWork()
+    protected function addFrameWork()
     {
-        $vendorPath = $this->_config['vendor_path'];
-        if (is_dir($vendorPath))
-        {
+        $vendorPath = $this->config['vendor_path'];
+        if (is_dir($vendorPath)) {
             printf("add vendor path:\n   %s\n", $vendorPath);
-            $this->_addDir($vendorPath, 'vendor');
+            $this->addDir($vendorPath, 'vendor');
             return;
         }
-        
-        $fwpath = realpath($this->_config['framework_path']);
-        printf("add framework path:\n   %s\n", $fwpath);
-        $this->_addDir($fwpath, 'tiny-framework');
     }
-
+    
     /**
      * 创建打包实例
      *
      * @param string $name 打包文件名
      * @return \Phar
      */
-    protected function _createrPhar($name)
+    protected function createrPhar($name)
     {
-        if (!$this->_pharHandler)
-        {
+        if (!$this->pharHandler) {
             $filename = $name . '.phar';
-            if (file_exists($filename))
-            {
+            if (file_exists($filename)) {
                 unlink($filename);
             }
-            $this->_pharHandler = new \Phar($filename);
+            $this->pharHandler = new \Phar($filename);
             printf("builder starting:  \n    phar file[%s]  creating\n\n", $filename);
         }
-        return $this->_pharHandler;
+        return $this->pharHandler;
     }
-
+    
     /**
      * 创建打包文件
      */
-    protected function _createrPharFile()
+    protected function createrPharFile()
     {
-        //properties
-        $this->_addProperties();
+        // properties
+        $this->addProperties();
         
-        //profile
+        // profile
         $profilestr = "APPLICATION_PATH . '.properties.php'";
         
-        if ($this->_data['profile_path'])
-        {
+        if ($this->data['profile_path']) {
             $profilestr = "[APPLICATION_PATH . '.properties.php',TINY_HOME_DIR . " . "'/profile/']";
         }
-
-        //index.php
-        $id = $this->_config['name'];
+        
+        // index.php
+        $id = $this->config['name'];
         $indexstring = <<<EOT
         <?php
         define('TINY_PHAR_ID', '$id');
@@ -427,29 +396,20 @@ class Builder
         define('TINY_PHAR_DIR', str_replace('phar://', '', dirname(dirname(__DIR__))));
         define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
         define('TINY_COMPOSER_FILE', TINY_PHAR_FILE . '/vendor/autoload.php');
-        if (is_file(TINY_COMPOSER_FILE))
-        {
-            require(TINY_COMPOSER_FILE);
-        }
-        else
-        {
-            require(TINY_PHAR_FILE . '/tiny-framework/Tiny.php');
-        }
-        // \Tiny\Runtime\Runtime::getInstance();
+        require_once(TINY_COMPOSER_FILE);
         \Tiny\Build\Builder::init([]);
         \Tiny\Tiny::createApplication(APPLICATION_PATH, $profilestr)->run();
         ?>
         EOT;
-
-        //index.php stup
+        
+        // index.php stup
         printf("add default stub file:\n    application/index.php\n");
-        $this->_pharHandler->addFromString('application/index.php', $indexstring);
-        $stub = $this->_pharHandler->createDefaultStub('application/index.php', 'application/index.php');
-        if ($_SERVER['_'])
-        {
-            $stub = "#!" . $_SERVER['_'] . "\n" . $stub;
+        $this->pharHandler->addFromString('application/index.php', $indexstring);
+        $stub = $this->pharHandler->createDefaultStub('application/index.php', 'application/index.php');
+        if ($this->config['php_path']) {
+            $stub = "#!" . $this->config['php_path'] . "\n" . $stub;
         }
-        $this->_pharHandler->setStub($stub);
+        $this->pharHandler->setStub($stub);
     }
 }
 ?>

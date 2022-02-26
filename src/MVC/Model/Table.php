@@ -28,169 +28,149 @@ use Tiny\Data\Db\Db;
  * @since 2013-3-31下午02:10:22
  * @final 2013-3-31下午02:10:22}
  */
-abstract class Table extends Base
+abstract class Table extends Model
 {
-
+    
     /**
      * 操作的表名
      *
      * @var string
      */
-    protected $_tableName = NULL;
-
+    protected $tableName;
+    
     /**
      * 默认的写数据库实例Id
      *
      * @var string
      */
-    protected $_writeId = 'default';
-
+    protected $writeId = 'default';
+    
     /**
      * 默认的读数据库实例ID
      *
      * @var string
      */
-    protected $_readId = NULL;
-
+    protected $readId;
+    
     /**
-     * Data写实例
+     * Db写实例
      *
      * @var Db
      */
-    protected $_writeSchema;
-
+    protected $writeDb;
+    
     /**
-     * Data读实例
+     * Db读实例
      *
      * @var Db
      */
-    protected $_readSchema;
-
+    protected $readDb;
+    
     /**
      * 构造函数 初始化获取的数据库连接实例id
      *
-     * @param string $tableName
-     *        操作的表名称
-     * @param string $writeId
-     *        写数据库的Data ID
-     * @param string|array $readId
-     *        读数据库的Data ID
+     * @param string $tableName 操作的表名称
+     * @param string $writeId 写数据库的Data ID
+     * @param string|array $readId 读数据库的Data ID
      * @return void
      */
-    public function __construct($tableName = NULL, $writeId = 'default', $readId = NULL)
+    public function __construct(string $tableName = null, string $writeId = 'default', $readId = null)
     {
-        $this->_writeId = $writeId;
-        $this->_readId = $readId;
-        if (!$tableName)
-        {
-            throw new ModelException('Model.Table实例化失败，必须设置tablename');
+        $this->writeId = $writeId;
+        $this->readId = $readId;
+        if (!$tableName) {
+            throw new ModelException('Model.Table实例化失败，必须设置tableName');
         }
-        $this->_tableName = (string)$tableName;
+        $this->tableName = (string)$tableName;
     }
-
+    
     /**
      * 执行SQL语句 主要为写操作 主从模式下，只会执行主库
      *
-     * @param string $sql
-     *        SQL执行语句
-     * @param array ...$param
-     *        绑定可变参数数组
+     * @param string $sql SQL执行语句
+     * @param array ...$param 绑定可变参数数组
      * @return bool
      */
     public function exec($sql, ...$param)
     {
-        return $this->getWriteSchema()->exec($sql, ...$param);
+        return $this->getWriteDb()->exec($sql, ...$param);
     }
-
+    
     /**
      * 执行SQL并返回结果集的第一行(一维数组)
      *
-     * @param string $sql
-     *        SQL查询语句
+     * @param string $sql SQL查询语句
      * @return array
      */
     public function fetch($sql, ...$param)
     {
-        return $this->getReadSchema()->fetch($sql, ...$param);
+        return $this->getReadDb()->fetch($sql, ...$param);
     }
-
+    
     /**
      * 执行SQL查询 并返回所有结果集
      *
-     * @param string $sql
-     *        SQL查询语句
-     * @param string $param
-     *        可变参数数组
+     * @param string $sql SQL查询语句
+     * @param string $param 可变参数数组
      * @return array
      */
     public function fetchAll($sql, ...$param)
     {
-        return $this->getReadSchema()->fetchAll($sql, ...$param);
+        return $this->getReadDb()->fetchAll($sql, ...$param);
     }
-
+    
     /**
      * 获取以指定字段名为key的二维数组结果集
      * 注意： 必须有唯一索引或者主键，如果有重复值，则数组会被替代，导致结果集数目不准确。
      *
-     * @param string $sql
-     *        SQL语句
-     * @param string $columnName
-     *        字段名 为空时默认取第一个字段
-     * @param array $param
-     *        可变参数数组
+     * @param string $sql SQL语句
+     * @param string $columnName 字段名 为空时默认取第一个字段
+     * @param array $param 可变参数数组
      * @return array
      */
-    public function fetchAssoc($sql, $columnName = NULL, ...$param)
+    public function fetchAssoc($sql, $columnName = null, ...$param)
     {
-        return $this->getReadSchema()->fetchAssoc($sql, $columnName, ...$param);
+        return $this->getReadDb()->fetchAssoc($sql, $columnName, ...$param);
     }
-
+    
     /**
      * 返回结果集中第一列的所有值(一维数组)
      *
-     * @param string $sql
-     *        SQL查询语句
-     * @param array $param
-     *        可变参数数组
+     * @param string $sql SQL查询语句
+     * @param array $param 可变参数数组
      * @return array
      */
-    public function fetchColumn($sql, $columnName = NULL, ...$param)
+    public function fetchColumn($sql, $columnName = null, ...$param)
     {
-        return $this->getReadSchema()->fetchColumn($sql, $columnName, ...$param);
+        return $this->getReadDb()->fetchColumn($sql, $columnName, ...$param);
     }
-
+    
     /**
      * 执行SQL 返回第一行指定单元格的值
      *
-     * @param string $sql
-     *        SQL查询语句
-     * @param string $columnName
-     *        字段名
-     * @param int $index
-     *        索引值
-     * @param array $param
-     *        可变参数数组
+     * @param string $sql SQL查询语句
+     * @param string $columnName 字段名
+     * @param int $index 索引值
+     * @param array $param 可变参数数组
      * @return array
      */
-    public function fetchCeil($sql, $columnName = NULL, $index = 0, ...$param)
+    public function fetchCeil($sql, $columnName = null, $index = 0, ...$param)
     {
-        return $this->getReadSchema()->fetchCeil($sql, $columnName, $index, ...$param);
+        return $this->getReadDb()->fetchCeil($sql, $columnName, $index, ...$param);
     }
-
+    
     /**
      * 获取第一列第一个单元格的值
      *
-     * @param string $sql
-     *        SQL查询语句
-     * @param array $param
-     *        绑定参数数组
+     * @param string $sql SQL查询语句
+     * @param array $param 绑定参数数组
      * @return string || int
      */
     public function fetchFirstCeil($sql, ...$param)
     {
-        return $this->getReadSchema()->fetchFirstCeil($sql, ...$param);
+        return $this->getReadDb()->fetchFirstCeil($sql, ...$param);
     }
-
+    
     /**
      * 返回最后执行 Insert() 操作时表中有 auto_increment 类型主键的值
      *
@@ -198,9 +178,9 @@ abstract class Table extends Base
      */
     public function lastInsertId()
     {
-        return $this->getWriteSchema()->getLastInsertId();
+        return $this->getWriteDb()->getLastInsertId();
     }
-
+    
     /**
      * 最后 DELETE UPDATE 语句所影响的行数
      *
@@ -208,9 +188,9 @@ abstract class Table extends Base
      */
     public function getAffectedRows()
     {
-        return $this->getWriteSchema()->rowsCount();
+        return $this->getWriteDb()->rowsCount();
     }
-
+    
     /**
      * 返回调用当前查询后的结果集中的记录数
      *
@@ -218,9 +198,9 @@ abstract class Table extends Base
      */
     public function getRowCount()
     {
-        return $this->getReadSchema()->rowsCount();
+        return $this->getReadDb()->rowsCount();
     }
-
+    
     /**
      * 开始事务
      *
@@ -228,9 +208,9 @@ abstract class Table extends Base
      */
     public function beginTransaction()
     {
-        return $this->getWriteSchema()->beginTransaction();
+        return $this->getWriteDb()->beginTransaction();
     }
-
+    
     /**
      * 提交事务
      *
@@ -238,9 +218,9 @@ abstract class Table extends Base
      */
     public function commit()
     {
-        return $this->getWriteSchema()->commit();
+        return $this->getWriteDb()->commit();
     }
-
+    
     /**
      * 事务回滚
      *
@@ -248,9 +228,9 @@ abstract class Table extends Base
      */
     public function rollBack()
     {
-        return $this->getReadSchema()->rollBack();
+        return $this->getReadDb()->rollBack();
     }
-
+    
     /**
      * 返回MYSQL系统中当前所有可用的数据库
      *
@@ -258,9 +238,9 @@ abstract class Table extends Base
      */
     public function getDbs()
     {
-        return $this->getReadSchema()->getDbs();
+        return $this->getReadDb()->getDbs();
     }
-
+    
     /**
      * 返回数据库中所有的表,如果为空则返回当前数据库中所有的表名
      *
@@ -268,9 +248,9 @@ abstract class Table extends Base
      */
     public function getTables()
     {
-        return $this->getReadSchema()->getTables();
+        return $this->getReadDb()->getTables();
     }
-
+    
     /**
      * 返回指定表的所有字段名
      *
@@ -278,66 +258,57 @@ abstract class Table extends Base
      */
     public function getTableColumns()
     {
-        return $this->getReadSchema()->getTableColumns($this->_tableName);
+        return $this->getReadDb()->getTableColumns($this->_tableName);
     }
-
+    
     /**
      * 获取读的DB实例
      *
      * @return Db
      */
-    public function getReadSchema()
+    public function getReadDb()
     {
-        if ($this->_readSchema)
-        {
-            return $this->_readSchema;
+        if ($this->readDb) {
+            return $this->readDb;
         }
         // read如果没有设置 直接返回写入的writekey
-        if (!$this->_readId)
-        {
-            $this->_readSchema = $this->getWriteSchema();
+        if (!$this->readId) {
+            $this->readDb = $this->getWriteDb();
+        } elseif (is_array($this->readId)) {
+            $readIndex = rand(0, count($this->readDb) - 1);
+            $this->readDb = $this->getDb($this->readId[$readIndex]);
+        } else {
+            $this->readDb = $this->getDb($this->readId);
         }
-        elseif (is_array($this->_readId))
-        {
-            $readIndex = rand(0, count($this->_readId) - 1);
-            $this->_readSchema = $this->_getSchema($this->_readId[$readIndex]);
-        }
-        else
-        {
-            $this->_readSchema = $this->_getSchema($this->_readId);
-        }
-        return $this->_readSchema;
+        return $this->readDb;
     }
-
+    
     /**
      * 获取读的Db Schema实例
      *
      * @return Db
      */
-    public function getWriteSchema()
+    public function getWriteDb()
     {
-        if (!$this->_writeSchema)
-        {
-            $this->_writeSchema = $this->_getSchema($this->_writeId);
+        if (!$this->writeDb) {
+            $this->writeDb = $this->getDb($this->writeId);
         }
-        return $this->_writeSchema;
+        return $this->writeDb;
     }
-
+    
     /**
      * 获取数据库操作实例
      *
-     * @param string $id
-     *        数据源操作ID
+     * @param string $id 数据源操作ID
      * @return Db
      */
-    protected function _getSchema($id)
+    protected function getDb($id)
     {
-        $schema = $this->data->getData($id);
-        if (!$schema instanceof Db)
-        {
-            throw new ModelException(sprintf('Model.Db获取失败:ID:%s并非 继承成自 Tiny\Data\Db\Db实例!', $id));
+        $db = $this->data->getDataSource($id);
+        if (!$db instanceof Db) {
+            throw new ModelException(sprintf('Failed to get the database operation instance: %s does not implement the interface named %s!', get_class($db), Db::class));
         }
-        return $schema;
+        return $db;
     }
 }
 ?>

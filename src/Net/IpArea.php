@@ -18,7 +18,7 @@
 namespace Tiny\Net;
 
 // IP库地址
-define('TINY_NET_IPAREA_DAT', TINY_FRAMEWORK_RESOURCE . 'net/qqwry.dat');
+define('TINY_NET_IPAREA_DAT', TINY_FRAMEWORK_RESOURCE_PATH . 'net/qqwry.dat');
 
 /**
  * 获取ip所在的地区和城市
@@ -47,41 +47,6 @@ class IpArea
      */
     const IPAREA_CHARSET = 'UTF-8';
 
-    /**
-     * 获取IP
-     *
-     * @param string $ip
-     *        ip地址
-     * @return string
-     */
-    public static function get($ip)
-    {
-        return self::_get($ip);
-    }
-
-    /**
-     * 根据域名获取地区信息
-     *
-     * @param string $domain
-     *        域名
-     * @return string
-     */
-    public static function getByDomain($domain)
-    {
-        return self::getByDomain($domain);
-    }
-
-    /**
-     * 根据IP获取城市名
-     *
-     * @param string $ip
-     *        IP地址
-     * @return string
-     */
-    public static function getCity($ip)
-    {
-        return self::_getCity($ip);
-    }
 
     /**
      * 取得地区名
@@ -90,7 +55,7 @@ class IpArea
      *        IP地址
      * @return string
      */
-    protected static function _get($ip)
+    public static function get($ip)
     {
         if (!preg_match("/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/", $ip))
         {
@@ -109,7 +74,7 @@ class IpArea
         }
         else
         {
-            $return = self::_getIpAreaByQQWry($ip);
+            $return = self::getIpAreaByQQWry($ip);
         }
         $return = iconv('gbk', 'utf-8', $return);
         return $return;
@@ -122,9 +87,9 @@ class IpArea
      *        域名 不带HTTP://
      * @return string
      */
-    protected static function _getByDomain($domain)
+    public  static function getByDomain($domain)
     {
-        return self::_get(gethostbyname($domain));
+        return self::get(gethostbyname($domain));
     }
 
     /**
@@ -134,9 +99,9 @@ class IpArea
      *        输出IP
      * @return string
      */
-    protected static function _getCity($ip)
+    public static function getCity($ip)
     {
-        $address = self::_get($ip);
+        $address = self::get($ip);
         $address = str_replace('city', '', $address);
         $localinfo['city'] = trim($address);
         $name = IPAREA_CHARSET == 'gbk' ? $localinfo['city'] : iconv('utf-8', 'gbk', $localinfo['city']);
@@ -151,7 +116,7 @@ class IpArea
      *        IP地址
      * @return string
      */
-    protected static function _getIpAreaByQQWry($ip)
+    public static function getIpAreaByQQWry($ip)
     {
         $fp = fopen(self::IPAREA_PATH, 'rb');
         $ip = explode('.', $ip);
