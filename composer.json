@@ -1,7 +1,9 @@
 {
     "name": "opensaas/tinyphp-framework",
-    "description": "A lightweight and high-performance PHP framework",
+    "description": "A lightweight and high-performance PHP framework.",
     "type" : "library",
+    "minimum-stability": "stable",
+    "version": "2.0.0",
     "require" :{
     	"php" : ">= 7.0.0",
     	"opensaas/tinyphp-docs" : ">= 2.0.0",
