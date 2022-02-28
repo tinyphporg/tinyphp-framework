@@ -24,17 +24,17 @@ namespace Tiny\MVC\Web;
  * @package Tiny.Application.Web
  * @since 2013-3-30下午03:04:17
  * @final 2013-3-30下午03:04:17
- *
+ *       
  */
 final class HttpStatus
 {
-
+    
     /**
-     * 所有状态码
+     * http状态码
      *
      * @var array
      */
-    protected static $_status = [
+    protected static $status = [
         100 => "HTTP/1.1 100 Continue",
         101 => "HTTP/1.1 101 Switching Protocols",
         200 => "HTTP/1.1 200 OK",
@@ -75,31 +75,27 @@ final class HttpStatus
         503 => "HTTP/1.1 503 Service Unavailable",
         504 => "HTTP/1.1 504 Gateway Time-out"
     ];
-
+    
     /**
      * 根据状态码获取状态全文
      *
-     * @param int $status
-     *        状态码
+     * @param int $status 状态码
      * @return string
      */
-    public static function get($status)
+    public static function get(int $status)
     {
-        return self::$_status[$status];
+        return self::$status[$status];
     }
-
+    
     /**
      * 设置状态码和对应的状态全文
      *
-     * @param int $code
-     *        状态码
-     * @param string $status
-     *        状态
-     * @return void
+     * @param int $code 状态码
+     * @param string $status 状态
      */
-    public static function set($code, $status)
+    public static function set(string $code, int $status)
     {
-        self::$_status[$code] = $status;
+        self::$status[$code] = $status;
     }
 }
 ?>

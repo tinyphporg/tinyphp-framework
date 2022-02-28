@@ -26,44 +26,37 @@ namespace Tiny\MVC\Web;
  */
 class HttpUtility
 {
-
+    
     /**
      * 将字符串转换为HTML实体
      *
-     * @param string $string
-     *        字符串
-     * @param int $quoteStyle
-     *        是否转换双引号和单引号 默认只转换双引号
-     * @param string $charset
-     *        默认编码为UTF-8
+     * @param string $string 字符串
+     * @param int $quoteStyle 是否转换双引号和单引号 默认只转换双引号
+     * @param string $charset 默认编码为UTF-8
      * @return string
      */
     public static function htmlEncode($string, $quoteStyle = ENT_COMPAT, $charset = 'UTF-8')
     {
         return htmlentities($string, $quoteStyle, $charset);
     }
-
+    
     /**
      * 将HTML实体转换为字符串
      *
-     * @param $htmlEntities string
-     *        已经转码的HTML字符串
-     * @param int $quoteStyle
-     *        是否转换双引号和单引号 默认只转换双引号
-     * @param string $charset
-     *        默认编码为UTF-8
+     * @param $htmlEntities string 已经转码的HTML字符串
+     * @param int $quoteStyle 是否转换双引号和单引号 默认只转换双引号
+     * @param string $charset 默认编码为UTF-8
      * @return string
      */
     public static function htmlDecode($htmlEntities, $quoteStyle = ENT_COMPAT, $charset = 'UTF-8')
     {
         return html_entity_decode($htmlEntities, $quoteStyle, $charset);
     }
-
+    
     /**
      * 解析URL QueryString字符串为数组
      *
-     * @param string $string
-     *        字符串
+     * @param string $string 字符串
      * @return array
      */
     public static function parseQueryString($string)
@@ -72,60 +65,55 @@ class HttpUtility
         parse_str($string, $array);
         return $array;
     }
-
+    
     /**
      * 将数组转换为QueryString
      *
-     * @param array $params
-     *        需要转换的 数组
+     * @param array $params 需要转换的 数组
      * @return string
      */
     public static function queryString(array $params)
     {
         return http_build_query($params);
     }
-
+    
     /**
      * 对字符串进行Url编码
      *
-     * @param string $string
-     *        字符串
+     * @param string $string 字符串
      * @return string
      */
     public static function urlEncode($string)
     {
         return urlencode($string);
     }
-
+    
     /**
      * 对字符串进行URL解码
      *
-     * @param string $string
-     *        字符串
+     * @param string $string 字符串
      * @return string
      */
     public static function urlDecode($string)
     {
         return urldecode($string);
     }
-
+    
     /**
      * 对字符串进行Url编码
      *
-     * @param string $string
-     *        字符串
+     * @param string $string 字符串
      * @return string
      */
     public static function rawUrlEncode($string)
     {
         return rawurlencode($string);
     }
-
+    
     /**
      * 对字符串进行URL解码
      *
-     * @param string $string
-     *        字符串
+     * @param string $string 字符串
      * @return string
      */
     public static function rawUrlDecode($string)

@@ -75,7 +75,7 @@ class Worker extends Base
     /**
      * 格式化worker的options
      *
-     * @param array $options
+     * @param array $options 配置数组
      */
     protected function formatWorkerOptions(array $options)
     {

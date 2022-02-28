@@ -320,7 +320,7 @@ abstract class Db extends Model
         $db = $this->data->getDataSource($dataid);
         if (!$db instanceof DbAdapter)
         {
-            throw new ModelException(sprintf("Model.Db获取失败:DATA ID:%s并非Tiny\Data\Db\Schema实例!", $dataid));
+            throw new ModelException(sprintf('Failed to get the database operation instance: %s does not implement the interface named %s!', get_class($db), DbAdapter::class));
         }
         return $db;
     }

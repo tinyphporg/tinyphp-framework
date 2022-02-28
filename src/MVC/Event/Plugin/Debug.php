@@ -10,7 +10,7 @@
  * @Function List function_container
  * @History King 2022年2月1日下午1:55:05 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\MVC\Event\Listener;
+namespace Tiny\MVC\Event\Plugin;
 
 use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Application\ApplicationBase;
@@ -21,9 +21,12 @@ use Tiny\MVC\Router\Router;
 use Tiny\MVC\Application\ConsoleApplication;
 use Tiny\MVC\Controller\Dispatcher;
 use Tiny\Runtime\ExceptionHandler;
-use Tiny\Event\ExceptionEventListener;
+use Tiny\MVC\Event\Listener\DispatchEventListener;
+use Tiny\MVC\Event\Listener\RouteEventListener;
+use Tiny\MVC\Request\Request;
+use Tiny\MVC\Response\Response;
 
-class DebugEventListener implements RouteEventListener, DispatchEventListener
+class Debug implements RouteEventListener, DispatchEventListener
 {
     
     /**
@@ -33,23 +36,62 @@ class DebugEventListener implements RouteEventListener, DispatchEventListener
      */
     protected $app;
     
+    /**
+     * 当前应用的请求实例
+     * 
+     * @var Request
+     */
     protected $request;
     
+    /**
+     * 当前应用的响应实例
+     * 
+     * @var Response
+     */
     protected $response;
     
+    /**
+     * 当前应用的视图实例
+     * @var View
+     */
     protected $view;
     
+    /**
+     * 当前的运行时实例
+     * 
+     * @var Runtime
+     */
     protected $runtime;
     
+    /**
+     * 当前应用的路由实例
+     * 
+     * @var Router
+     */
     protected $router;
     
+    /**
+     * 当前派发器实例
+     * 
+     * @var Dispatcher
+     */
     protected $dispatcher;
     
-    protected $exceptionHandler;
     /**
-     * 构造函数
-     *
+     * 当前运行时的异常处理器
+     * 
+     * @var ExceptionHandler
+     */
+    protected $exceptionHandler;
+    
+    /**
+     * 构造函数 引入
      * @param ApplicationBase $app
+     * @param Runtime $runtime
+     * @param Router $router
+     * @param View $view
+     * @param Dispatcher $dispatcher
+     * @param ExceptionHandler $exceptionHandler
      */
     public function __construct(ApplicationBase $app, Runtime $runtime, Router $router, View $view, Dispatcher $dispatcher, ExceptionHandler $exceptionHandler)
     {
@@ -299,7 +341,7 @@ class DebugEventListener implements RouteEventListener, DispatchEventListener
         }
         $content = $this->view->fetch($docpath, [], true);
         $content = preg_replace_callback(
-            "/href=\"(?:https\:\/\/github.com\/saasjit\/tinyphp\/blob\/master\/docs\/(.+?)\.md)\"/i",
+            "/href=\"(?:https\:\/\/github.com\/opensaasnet\/tinyphp\/blob\/master\/docs\/(.+?)\.md)\"/i",
             [
                 $this,
                 'parseGithubHref'

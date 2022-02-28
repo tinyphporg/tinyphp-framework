@@ -127,9 +127,7 @@ class Rsyslog implements LogWriterInterface
     /**
      * 构造函数 可输入策略数组，定义内容
      *
-     *
      * @param array $config 配置数组
-     * @return void
      */
     public function __construct(array $config = [])
     {

@@ -63,7 +63,6 @@ class Data implements \ArrayAccess
      *
      * @param string $id 数据源ID
      * @param string $className 数据源操作类名称
-     * @return void
      */
     public static function regDataSourceDriver($driverId, $driverClass)
     {
@@ -77,7 +76,6 @@ class Data implements \ArrayAccess
      * 增加一个数据源
      *
      * @param array $policy 数据池配置数组
-     * @return void
      */
     public function addDataSource(array $config)
     {
@@ -109,7 +107,6 @@ class Data implements \ArrayAccess
      * 设置默认的default 数据源操作ID
      *
      * @param string $id 数据操作实例ID
-     * @return void
      */
     public function setDefaultId(string $id)
     {
@@ -166,7 +163,6 @@ class Data implements \ArrayAccess
      *
      * @param string $id data标示
      * @param DataSourceInterface $dataSchema 数据源操作类
-     * @return void
      */
     public function offsetSet($id, $dataSchema)
     {
@@ -199,7 +195,6 @@ class Data implements \ArrayAccess
      * 数组接口 移除该值 不允许移除
      *
      * @param string $id 数据源ID
-     * @return void
      */
     public function offsetUnset($id)
     {

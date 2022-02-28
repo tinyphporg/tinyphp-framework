@@ -25,8 +25,10 @@ interface WorkerHandlerInterface
 {
     /**
      * 进程的执行接口
-     * @param string $action 事件名
+     * @param string $controller 控制器名
+     * @param string $method 控制器的成员函数
      * @param array $args 参数数组
+     * @param $isMethod 是否为单纯的成员函数，否则为动作函数
      */
     public function onWorkerDispatch($controller, $method, array $args = [], bool $isMethod = true);
 }

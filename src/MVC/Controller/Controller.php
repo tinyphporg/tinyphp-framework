@@ -20,7 +20,7 @@ use Tiny\MVC\Application\WebApplication;
 
 
 /**
- * WEB控制器
+ * WEB控制器基类
  *
  * @package Tiny.Application.Controller
  * @since 2017年3月11日上午12:20:13

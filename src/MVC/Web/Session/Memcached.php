@@ -54,7 +54,6 @@ class Memcached implements SessionAdapterInterface
      * 初始化构造函数
      *
      * @param array $policy 配置
-     * @return void
      */
     function __construct(array $config = [])
     {
@@ -81,8 +80,6 @@ class Memcached implements SessionAdapterInterface
     
     /**
      * 关闭Session
-     *
-     * @return void
      */
     public function close()
     {

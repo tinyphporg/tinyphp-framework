@@ -18,7 +18,7 @@ use Tiny\MVC\Event\Listener\RequestEventListener;
 use Tiny\MVC\Event\Listener\RouteEventListener;
 use Tiny\MVC\Event\Listener\DispatchEventListener;
 /**
- * MVC事件实例
+ * MVC事件
  *
  * @package Tiny.MVC
  * @since 2022年1月15日上午8:58:45

@@ -66,7 +66,6 @@ abstract class Response
      * 设置应用实例
      *
      * @param ApplicationBase $app 当前应用实例
-     * @return void
      */
     public function __construct(ApplicationBase $app)
     {
@@ -75,8 +74,6 @@ abstract class Response
     
     /**
      * 输出HTTP的Header 和 Body
-     *
-     * @return void
      *
      */
     public function output()
@@ -88,7 +85,6 @@ abstract class Response
      * 添加内容到Body里去
      *
      * @param $body string 字符串
-     * @return void
      */
     public function appendBody($body)
     {
@@ -97,8 +93,6 @@ abstract class Response
     
     /**
      * 清除所有缓冲的内容
-     *
-     * @return void
      */
     public function clear()
     {
@@ -107,8 +101,6 @@ abstract class Response
     
     /**
      * 将当前所有缓冲的输出发送到客户端，停止该页的执行。
-     *
-     * @return void
      */
     public function end()
     {
@@ -119,7 +111,6 @@ abstract class Response
      * 设置HTTP输出的Body
      *
      * @param string $string 字符串
-     * @return void
      */
     public function write($string)
     {
@@ -130,7 +121,6 @@ abstract class Response
      * 以JSON格式输出
      *
      * @param mixed $input 输出数据
-     * @return void
      */
     public function outJson($input)
     {
@@ -142,7 +132,6 @@ abstract class Response
      * 设置格式化输出JSON的配置实例
      *
      * @param Configuration $config 配置实例
-     * @return void
      */
     public function setFormatJSONConfigId($configId = false)
     {

@@ -190,7 +190,7 @@ class Filter implements FilterInterface
      * 魔法构造函数 format格式化
      *
      * @param string $method
-     * @param array $args
+     * @param array $params
      */
     public function __call(string $method, array $params)
     {

@@ -122,7 +122,7 @@ abstract class Base
     /**
      * 设置worker回调的handler实例
      *
-     * @param WorkerHandlerInterface $whandler
+     * @param WorkerHandlerInterface $whandler worker执行派发器
      */
     public function setWorkerHandler(WorkerHandlerInterface $whandler)
     {
@@ -154,7 +154,7 @@ abstract class Base
     /**
      * 初始化 在成为子进程之前
      *
-     * @return boolean
+     * @return true
      */
     public function init()
     {
@@ -191,7 +191,8 @@ abstract class Base
     /**
      * 派发
      *
-     * @param string $action
+     * @param string $method 函数名
+     * @param string $args 函数参数数组
      */
     protected function dispatch(string $method = null, array $args = [])
     {
@@ -217,7 +218,7 @@ abstract class Base
     /**
      * 格式化选项数组
      *
-     * @param array $options
+     * @param array $config 配置数组
      * @throws WorkerException
      */
     protected function formatConfig(array $config)
@@ -257,7 +258,7 @@ abstract class Base
     /**
      * 守护进程是否正常运行
      *
-     * @return boolean|boolean|void
+     * @return false|int
      */
     protected function daemonIsRunning()
     {

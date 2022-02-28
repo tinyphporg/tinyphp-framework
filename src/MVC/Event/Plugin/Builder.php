@@ -10,7 +10,7 @@
  * @Function List function_container
  * @History King 2022年1月19日下午10:39:45 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\MVC\Event\Listener;
+namespace Tiny\MVC\Event\Plugin;
 
 use Tiny\Config\Configuration;
 use Tiny\MVC\Application\ApplicationBase;
@@ -19,6 +19,7 @@ use Tiny\MVC\Response\Response;
 use Tiny\MVC\Request\Request;
 use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Application\ConsoleApplication;
+use Tiny\MVC\Event\Listener\RouteEventListener;
 
 /**
 *  打包器监听插件
@@ -27,7 +28,7 @@ use Tiny\MVC\Application\ConsoleApplication;
 * @since 2022年2月17日上午11:43:39
 * @final 2022年2月17日上午11:43:39
 */
-class BuilderEventListener implements RouteEventListener
+class Builder implements RouteEventListener
 {
     /**
      * 当前应用实例

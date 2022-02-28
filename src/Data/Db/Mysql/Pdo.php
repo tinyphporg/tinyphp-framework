@@ -41,9 +41,7 @@ class Pdo implements DbAdapterInterface
      *
      * @var array
      */
-    const RELINK_ERRNO_LIST = [
-        2006,
-        2013
+    const RELINK_ERRNO_LIST = [2006, 2013
     ];
     
     /**
@@ -88,7 +86,6 @@ class Pdo implements DbAdapterInterface
      * 统一的构造函数
      *
      * @param array $policy 默认为空函数
-     * @return
      *
      */
     public function __construct(array $config = [])
@@ -101,7 +98,7 @@ class Pdo implements DbAdapterInterface
      *
      * @param string $sql 查询内容
      * @param float $interval 用时时长
-     * @return void
+     * @return mixed
      */
     public function onQuery($sql, $interval)
     {
@@ -112,7 +109,6 @@ class Pdo implements DbAdapterInterface
      * 错误事件
      *
      * @param string $errmsg 错误信息
-     * @return void
      */
     public function onError($errmsg)
     {
@@ -123,7 +119,6 @@ class Pdo implements DbAdapterInterface
     /**
      * 获取最近一条错误的内容
      *
-     * @param void
      * @return string
      */
     public function getErrorMSg()
@@ -134,7 +129,6 @@ class Pdo implements DbAdapterInterface
     /**
      * 获取最近一条错误的标示
      *
-     * @param void
      * @return int
      *
      */
@@ -167,13 +161,11 @@ class Pdo implements DbAdapterInterface
             
             // 连接计时开始
             $interval = microtime(true);
-            $dns = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', $config['host'], $config['port'],
-                $config['dbname'], $config['charset']);
+            $dns = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', $config['host'], $config['port'], $config['dbname'], $config['charset']);
             $this->connector = new \PDO($dns, $config['user'], $config['password'], $options);
             
             // 连接计时
-            $this->onQuery(sprintf('db connection %s@%s:%s ...', $config['user'], $config['host'], $config['port']),
-                microtime(true) - $interval);
+            $this->onQuery(sprintf('db connection %s@%s:%s ...', $config['user'], $config['host'], $config['port']), microtime(true) - $interval);
         } catch (\PDOException $e) {
             throw new MysqlException(sprintf("Db connection failed: " . $e->getMessage()));
         }
@@ -229,7 +221,7 @@ class Pdo implements DbAdapterInterface
      * 执行SQL 主要为写入操作
      *
      * @param string $sql SQL语句
-     * @return int || false
+     * @return int|false
      */
     public function exec($sql)
     {

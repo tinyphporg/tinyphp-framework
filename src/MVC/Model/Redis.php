@@ -31,37 +31,35 @@ use Tiny\Data\Redis\HashTable;
  */
 class Redis extends Model
 {
-
+    
     /**
      * 数据操作实例
      *
      * @var RedisAdapter
      */
     protected $redis;
-
+    
     /**
      * 数据池操作ID
      *
      * @var string
      */
     protected $dataId;
-
+    
     /**
      * 构造函数
      *
      *
-     * @param $id string
-     *        data实例ID
+     * @param $id string data实例ID
      * @return void
      */
     public function __construct($id = 'default')
     {
-        if (!$this->dataId)
-        {
+        if (!$this->dataId) {
             $this->dataId = $id;
         }
     }
-
+    
     /**
      * 返回连接后的类或者句柄
      *
@@ -71,7 +69,7 @@ class Redis extends Model
     {
         return $this->getRedis()->getConnector();
     }
-
+    
     /**
      * 关闭或者销毁实例和链接
      *
@@ -85,15 +83,14 @@ class Redis extends Model
     /**
      * 获取计数器实例
      *
-     * @param string $key
-     *        键
+     * @param string $key 键
      * @return Counter
      */
     public function createCounter($key)
     {
         return $this->getRedis()->createCounter($key);
     }
-
+    
     /**
      * 创建一个队列对象
      *
@@ -103,7 +100,7 @@ class Redis extends Model
     {
         return $this->getRedis()->createQueue($key);
     }
-
+    
     /**
      * 创建一个哈希表对象
      *
@@ -113,7 +110,7 @@ class Redis extends Model
     {
         return $this->getRedis()->createHashTable($key);
     }
-
+    
     /**
      * 创建一个集合对象
      *
@@ -123,7 +120,7 @@ class Redis extends Model
     {
         return $this->getRedis()->createSet($key);
     }
-
+    
     /**
      * 创建一个有序集合对象
      *
@@ -133,25 +130,22 @@ class Redis extends Model
     {
         return $this->getRedis()->createSortSet($key);
     }
-
+    
     /**
      * 调用Schema自身函数
      *
-     * @param string $method
-     *        函数名称
-     * @param array $params
-     *        参数数组
+     * @param string $method 函数名称
+     * @param array $params 参数数组
      * @return
      *
      */
     public function __call(string $method, array $params)
     {
-        return call_user_func_array([
-            $this->getRedis(),
-            $method
-        ], $params);
+        // @formatter:off
+        return call_user_func_array([$this->getRedis(), $method], $params);
+        // @formatter:on
     }
-
+    
     /**
      * 获取数据操作实例
      *
@@ -159,13 +153,11 @@ class Redis extends Model
      */
     protected function getRedis()
     {
-        if (!$this->redis)
-        {
-        $this->redis = $this->data->getDataSource($this->dataId);
-        if (!$this->redis instanceof RedisAdapter)
-        {
-            throw new ModelException('Data.Redis.Schema实例加载失败，ID' . $this->_dataId . '不是Tiny\Data\Redis\Schema实例');
-        }
+        if (!$this->redis) {
+            $this->redis = $this->data->getDataSource($this->dataId);
+            if (!$this->redis instanceof RedisAdapter) {
+                throw new ModelException(sprintf('Failed to get the database operation instance: %s does not implement the interface named %s!', get_class($this->redis), RedisAdapter::class));
+            }
         }
         return $this->redis;
     }

@@ -46,7 +46,6 @@ class Counter
      *
      * @param Memcached memcached操作实例
      * @param string $key 键名
-     * @return void
      */
     public function __construct(Memcached $memcached, string $key)
     {

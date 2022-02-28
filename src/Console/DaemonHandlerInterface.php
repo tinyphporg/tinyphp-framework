@@ -26,8 +26,9 @@ interface DaemonHandlerInterface
 {
     /**
      * 输出日志
-     * @param string $logId
-     * @param string $log
+     * @param string $logId 日志文件或者节点ID
+     * @param string $log 日志信息
+     * @param int $priority 日志级别
      */
     public function onOutLog($logId, $log, $priority = 1);
 }

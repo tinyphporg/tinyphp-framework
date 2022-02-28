@@ -54,7 +54,6 @@ class Redis implements SessionAdapterInterface
      * 初始化构造函数
      *
      * @param array $config 配置
-     * @return void
      */
     function __construct(array $config = [])
     {
@@ -74,7 +73,6 @@ class Redis implements SessionAdapterInterface
      *
      * @param string $savePath 保存路径
      * @param string $sessionName session名称
-     * @return void
      */
     public function open($savePath, $sessionName)
     {
@@ -83,8 +81,6 @@ class Redis implements SessionAdapterInterface
     
     /**
      * 关闭Session
-     *
-     * @return void
      */
     public function close()
     {

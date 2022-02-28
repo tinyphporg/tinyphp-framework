@@ -25,7 +25,7 @@ interface DataSourceInterface
     /**
      * 构造函数 输入数据源配置数组
      *
-     * @param array $config
+     * @param array $config 数据源的配置数组
      */
     public function __construct(array $config = []);
     
@@ -40,8 +40,8 @@ interface DataSourceInterface
     /**
      * 通过魔法函数访问连接器的函数
      *
-     * @param string $method
-     * @param array $params
+     * @param string $method 成员函数
+     * @param array $params 参数数组
      */
     public function __call(string $method, array $params);
 }

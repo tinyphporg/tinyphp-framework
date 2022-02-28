@@ -39,6 +39,7 @@ abstract class Bootstrap implements BootstrapEventListener
     
     /**
      * 容器实例
+     * 
      * @autowired
      * @var ContainerInterface
      */

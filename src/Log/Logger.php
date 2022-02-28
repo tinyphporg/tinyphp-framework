@@ -163,7 +163,6 @@ class Logger
      * @param mixed $message 日志内容
      * @param $priority int 日志优先级别
      * @param array $extra 附加信息数组
-     * @return void
      */
     public function log($id, $message, $priority = 1, $extra = [])
     {
@@ -188,7 +187,6 @@ class Logger
      * @param int $errLevel 错误优先级别
      * @param mixed $message 日志内容
      * @param array $extra 附加信息数组
-     * @return void
      */
     public function error($id, $errLevel, $message, $extra = [])
     {
@@ -204,7 +202,6 @@ class Logger
      * @param string $id 日志ID
      * @param string $messages
      * @param int $priority 日志优先等级
-     * @return void
      */
     public function write($id, $message, $priority)
     {

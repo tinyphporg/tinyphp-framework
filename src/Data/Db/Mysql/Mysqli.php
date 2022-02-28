@@ -18,7 +18,6 @@ namespace Tiny\Data\Db\Mysql;
 use Tiny\Data\Db\Db;
 use Tiny\Data\Db\DbAdapterInterface;
 
-
 /**
  * MYSQL的MYSQLI扩展
  *
@@ -29,93 +28,84 @@ use Tiny\Data\Db\DbAdapterInterface;
  */
 class Mysqli implements DbAdapterInterface
 {
-
+    
     /**
      * 最大重连次数
      *
      * @var int
      */
     const RELINK_MAX = 3;
-
+    
     /**
      * 重连的错误列表
      *
      * @var array
      */
-    const RELINK_ERRNO_LIST = [
-        2006,
-        2013
-    ];
-
+    const RELINK_ERRNO_LIST = [2006, 2013];
+    
     /**
      * 配置数组
      *
      * @var array
      */
     protected $config;
-
+    
     /**
      * 连接标示
      *
      * @var \Mysqli
      */
     protected $connector;
-
+    
     /**
      * 重连计数器
      *
      * @var int
      */
     protected $relinkCounter = 0;
-
+    
     /**
      * 最后一次SQL返回的statement对象
      *
      * @var \mysqli
      */
     protected $lastStatement = false;
-
+    
     /**
      * 构造函数
      *
-     * @param array $policy
-     *        默认为空函数
-     * @return void
+     * @param array $policy 默认为空函数
      *
      */
     public function __construct(array $config = [])
     {
         $this->config = $config;
     }
-
+    
     /**
      * 记录查询详情
      *
-     * @param string $sql
-     *        查询内容
+     * @param string $sql 查询内容
      * @param float $time
-     * @return void
      */
     public function onQuery($sql, $interval)
     {
         return Db::addQuery($sql, $interval, __CLASS__);
     }
-
+    
     /**
      * 错误发生事件
      *
-     * @param string $errmsg
-     *        错误信息
+     * @param string $errmsg 错误信息
      */
     public function onError($errmsg)
     {
-        if ($this->connector)
-        {
+        if ($this->connector) {
             $errmsg = sprintf('%s %s:%s', $this->connector->errno, $this->connector->error, $errmsg);
         }
         throw new MysqlException($errmsg);
     }
-
+    
     /**
      * 开始连接
      *
@@ -123,27 +113,25 @@ class Mysqli implements DbAdapterInterface
      */
     public function getConnector()
     {
-        if ($this->connector)
-        {
+        if ($this->connector) {
             return $this->connector;
         }
-
+        
         // 计时开始
         $startTimeline = microtime(true);
         $config = $this->config;
         $this->connector = new \Mysqli($config['host'], $config['user'], $config['password'], $config['dbname'], $config['port']);
-        if ($this->connector->connect_error)
-        {
+        if ($this->connector->connect_error) {
             throw new MysqlException('Db connection failed:' . $this->connector->connect_error);
         }
         // 设置编码
         $this->connector->set_charset($config['charset']);
-
+        
         // 连接计时
         $this->onQuery(sprintf('db connection %s@%s:%d ...', $config['user'], $config['host'], $config['port']), microtime(true) - $startTimeline);
         return $this->connector;
     }
-
+    
     /**
      * 获取最近一条错误的内容
      *
@@ -153,7 +141,7 @@ class Mysqli implements DbAdapterInterface
     {
         return $this->getConnector()->error;
     }
-
+    
     /**
      * 获取最近一条错误的标示
      *
@@ -163,21 +151,19 @@ class Mysqli implements DbAdapterInterface
     {
         return $this->getConnector()->errno;
     }
-
+    
     /**
      * 关闭或者销毁实例和链接
      *
-     * @return void
      */
     public function close()
     {
-        if ($this->connector)
-        {
+        if ($this->connector) {
             $this->connector->close();
         }
         $this->connector = null;
     }
-
+    
     /**
      * 重载方法：执行 SQL
      *
@@ -195,14 +181,12 @@ class Mysqli implements DbAdapterInterface
         // SQL执行统计
         $this->onQuery($sql, microtime(true) - $startTime);
         
-        if (false !== $this->lastStatement)
-        {
+        if (false !== $this->lastStatement) {
             $this->relinkCounter = 0;
             return $this->lastStatement;
         }
-
-        if (in_array($conn->errno, self::RELINK_ERRNO_LIST) && $this->relinkCounter < self::RELINK_MAX)
-        {
+        
+        if (in_array($conn->errno, self::RELINK_ERRNO_LIST) && $this->relinkCounter < self::RELINK_MAX) {
             $this->relinkCounter++;
             $this->close();
             $this->getConnector();
@@ -211,31 +195,28 @@ class Mysqli implements DbAdapterInterface
         $this->onError(sprintf('QUERY FAILD:%s', $sql));
         return false;
     }
-
+    
     /**
      * 执行写操作SQL
      *
-     * @param string $sql
-     *        SQL语句
-     * @return int rows
+     * @param string $sql SQL语句
+     * @return int
      */
     public function exec($sql)
     {
         // SQL执行计时开始
         $startTime = microtime(true);
-        
         $mret = $this->query($sql);
         
         // SQL执行统计
         $this->onQuery($sql, microtime(true) - $startTime);
         
-        if ($mret)
-        {
+        if ($mret) {
             return $this->getConnector()->affected_rows;
         }
         return 0;
     }
-
+    
     /**
      * 获取最后一条插入的ID
      *
@@ -245,7 +226,7 @@ class Mysqli implements DbAdapterInterface
     {
         return $this->getConnector()->insert_id;
     }
-
+    
     /**
      * 返回调用当前查询后的结果集中的记录数
      *
@@ -253,56 +234,49 @@ class Mysqli implements DbAdapterInterface
      */
     public function rowsCount()
     {
-        if (!$this->lastStatement)
-        {
+        if (!$this->lastStatement) {
             return 0;
         }
-        if ($this->lastStatement)
-        {
+        if ($this->lastStatement) {
             return $this->getConnector()->affected_rows;
         }
         return $this->lastStatement->num_rows;
     }
-
+    
     /**
      * 查询并获取 一条结果集
      *
-     * @param string $sql
-     *        SQL语句
+     * @param string $sql SQL语句
      * @return array
      */
     public function fetch($sql)
     {
         $statement = $this->query($sql);
-        if (true === $statement)
-        {
+        if (true === $statement) {
             return [];
         }
         $row = $statement->fetch_array(MYSQLI_ASSOC);
-        if (null === $row)
-        {
+        if (null === $row) {
             return [];
         }
         return $row;
     }
-
+    
     /**
      * 查询并获取所有结果集
      *
-     * @param string $sql
-     *        SQL语句
+     * @param string $sql SQL语句
      * @return array
      */
     public function fetchAll($sql)
     {
         $statement = $this->query($sql);
-        if (true === $statement)
-        {
+        if (true === $statement) {
             return [];
         }
         return $statement->fetch_all(MYSQLI_ASSOC);
     }
-
+    
     /**
      * 开始事务
      *
@@ -312,7 +286,7 @@ class Mysqli implements DbAdapterInterface
     {
         return $this->getConnector()->begin_transaction(true);
     }
-
+    
     /**
      * 提交事务
      *
@@ -322,7 +296,7 @@ class Mysqli implements DbAdapterInterface
     {
         return $this->getConnector()->commit();
     }
-
+    
     /**
      * 事务回滚
      *

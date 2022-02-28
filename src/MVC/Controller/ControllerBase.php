@@ -12,11 +12,9 @@
  */
 namespace Tiny\MVC\Controller;
 
-use Tiny\MVC\View\View;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\Request\Request;
-use Tiny\Log\Logger;
 
 /**
  * 控制器积类

@@ -59,7 +59,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      *
      * @param string $id 驱动ID
      * @param string $className 类名
-     * @return void
      */
     public static function registerSessionAdpater($sessionId, $sessionClass)
     {
@@ -85,7 +84,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      *
      * @param string $key
      * @param $value mixed 值
-     * @return void
      */
     public function set($key, $value)
     {
@@ -96,7 +94,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      * 移除session值
      *
      * @param string $key
-     * @return void
      */
     public function remove($key)
     {
@@ -218,7 +215,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
     /**
      *
      * @param string $domain 域名
-     * @return void
      *
      */
     public function setDomain($domain)
@@ -231,7 +227,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      *
      * @param string $savePath 保存路径
      * @param string $sessionName session名称
-     * @return void
      */
     public function open($savePath, $sessionName)
     {
@@ -240,8 +235,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
     
     /**
      * 关闭Session
-     *
-     * @return void
      */
     public function close()
     {
@@ -309,7 +302,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      *
      * @param string $key 键名
      * @param mixed $value 值
-     * @return void
      */
     public function offsetSet($key, $value)
     {
@@ -331,7 +323,6 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      * 实现ArrayAccess接口
      *
      * @param string $key 键名
-     * @return void
      */
     public function offsetUnset($key)
     {

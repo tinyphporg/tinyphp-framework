@@ -40,6 +40,7 @@ use Tiny\DI\Definition\Provider\DefinitionProvider;
 use Tiny\Cache\Storager\PHP;
 use Tiny\MVC\Web\HttpSession;
 use Tiny\MVC\Web\HttpCookie;
+use Tiny\Data\Db\Db;
 
 /**
  * application属性
@@ -356,7 +357,7 @@ class Properties extends Configuration implements DefinitionProviderInterface
             $response = $container->get($responseClassName);
             
             if (!$response instanceof Response) {
-                throw new \Exception('aaa');
+                throw new ApplicationException('Instantiation failed: %s must implement %s', $responseClassName, Response::class);
             }
             
             // output charset
@@ -370,7 +371,7 @@ class Properties extends Configuration implements DefinitionProviderInterface
         // definition proivder
         $proivder = $this->app->container->get(DefinitionProvider::class);
         $proivder->addDefinitionFromArray($sourceDefinitions);
-        $containerPath = $this->properties['container.config_path'];
+        $containerPath = $this['container.config_path'];
         if ($containerPath) {
             $proivder->addDefinitionFromPath($containerPath);
         }
@@ -623,8 +624,8 @@ class Properties extends Configuration implements DefinitionProviderInterface
         if (!$this['data.enabled']) {
             return;
         }
-        
-        return new CallableDefinition(Data::class, function () {
+                
+        return new CallableDefinition(Data::class, function (ApplicationBase $app) {
             $config = $this['data'];
             
             // 驱动
@@ -645,6 +646,7 @@ class Properties extends Configuration implements DefinitionProviderInterface
             // 添加数据源
             foreach ($sources as $sourceConfig) {
                 $sourceConfig['def_charset'] = $charset;
+                $sourceConfig['is_record'] = (bool)$app->isDebug;
                 $dataPool->addDataSource($sourceConfig);
             }
             return $dataPool;

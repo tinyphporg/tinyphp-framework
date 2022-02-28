@@ -23,7 +23,6 @@ use Tiny\Data\Db\Db;
 /**
  * 数据库的表操作模型
  *
- * @author King
  * @package Model
  * @since 2013-3-31下午02:10:22
  * @final 2013-3-31下午02:10:22}

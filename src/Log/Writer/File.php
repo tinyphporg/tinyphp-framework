@@ -34,8 +34,7 @@ class File implements LogWriterInterface
     /**
      * 构造函数
      *
-     * @param array $policy 策略配置
-     * @return void
+     * @param array $config 配置
      */
     public function __construct(array $config = [])
     {
@@ -47,11 +46,9 @@ class File implements LogWriterInterface
     }
     
     /**
-     * 执行日志写入
-     *
-     * @param string $id 日志ID
-     * @param string $message 日志内容
-     * @return void
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\Log\Writer\LogWriterInterface::write()
      */
     public function write($logId, $message, $priority)
     {

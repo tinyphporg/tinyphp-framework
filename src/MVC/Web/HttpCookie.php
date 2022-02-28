@@ -146,7 +146,7 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
      */
     public function clean()
     {
-        foreach ($this->cookies as $key => $val) {
+        foreach (array_keys($this->cookies) as $key) {
             $this->remove($key);
         }
     }
@@ -283,15 +283,9 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
     {
         if (!is_array($value)) {
             $value = base64_encode($value);
-            return str_replace([
-                '=',
-                '+',
-                '/'
-            ], [
-                '_',
-                '-',
-                '|'
-            ], $value);
+            // @formatter:off
+            return str_replace(['=', '+', '/'], ['_', '-', '|'], $value);
+            // @formatter:on
         }
         
         $data = [];
@@ -310,15 +304,9 @@ class HttpCookie implements \ArrayAccess, \Iterator, \Countable
     protected function decode($value)
     {
         if (!is_array($value)) {
-            $str = str_replace([
-                '_',
-                '-',
-                '|'
-            ], [
-                '=',
-                '+',
-                '/'
-            ], $value);
+            // @formatter:off
+            $str = str_replace(['_', '-', '|'], ['=', '+', '/'], $value);
+            // @formatter:on
             return base64_decode($str);
         }
         $data = [];

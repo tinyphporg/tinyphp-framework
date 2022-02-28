@@ -284,7 +284,7 @@ class ImageWrapper
      */
     public static function cleanVerify()
     {
-        Tiny::getApplication()->getSession()->remove(self::$sessionId);
+        Tiny::getApplication()->getSession->remove(self::$sessionId);
     }
     
     /**

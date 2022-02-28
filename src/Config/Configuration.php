@@ -303,8 +303,6 @@ class Configuration implements \ArrayAccess, ParserInterface
     
     /**
      * 初始化并加载配置数据
-     *
-     * @return void
      */
     protected function initDataByPath()
     {
@@ -317,7 +315,7 @@ class Configuration implements \ArrayAccess, ParserInterface
      *
      * @param string $path
      * @param array $d
-     * @return void
+     * @param bool $isHideNode 是否隐藏节点
      */
     protected function parseAllDataFromPaths($path, &$d, $isHideNode = false)
     {
@@ -346,7 +344,7 @@ class Configuration implements \ArrayAccess, ParserInterface
     /**
      * 解析配置路径
      *
-     * @param array|string $path
+     * @param array|string $path 配置路径
      * @return array|string|string[]|mixed[]
      */
     protected function parsePaths($path)
@@ -379,8 +377,8 @@ class Configuration implements \ArrayAccess, ParserInterface
     /**
      * 从文件加载配置数据
      *
-     * @param string $fpath
-     * @param string $extname
+     * @param string $fpath 配置文件路径
+     * @param string $extname 文件扩展名
      * @return mixed
      */
     protected function loadDataFromFile($fpath, $extname)
@@ -397,8 +395,8 @@ class Configuration implements \ArrayAccess, ParserInterface
     
     /**
      * 根据文件扩展名获取解析器
-     *
-     * @param string $extname
+     * 
+     * @param string $extname 文件扩展名
      * @throws ConfigException
      * @return boolean|\Tiny\Config\Parser\ParserInterface
      */

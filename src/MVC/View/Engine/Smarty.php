@@ -52,10 +52,9 @@ class Smarty extends \Smarty implements ViewEngineInterface
     }
     
     /**
-     * 设置缓存选项
      * 
      * {@inheritDoc}
-     * @see \Tiny\MVC\View\Engine\IEngine::setCache()
+     * @see \Tiny\MVC\View\Engine\ViewEngineInterface::setCache()
      */
     public function setCache($cacheDir, int $cacheLifetime = 120)
     {
@@ -65,8 +64,9 @@ class Smarty extends \Smarty implements ViewEngineInterface
     }
     
     /**
-     * 重写fetch
      * 
+     * {@inheritDoc}
+     * @see \Tiny\MVC\View\Engine\ViewEngineInterface::fetch()
      */
     public function fetch($template = null, $assigns = null, $compileId = null, $cacheId = null)
     {

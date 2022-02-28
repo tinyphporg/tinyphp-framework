@@ -200,7 +200,6 @@ class Daemon
     /**
      * 构造化
      *
-     * @return void
      */
     public function __construct(string $id, array $options = [])
     {
@@ -213,7 +212,6 @@ class Daemon
      * 添加worker实例和对应的进程数目
      *
      * @param \Tiny\Console\Worker\Base $worker
-     * @param int $num
      */
     public function addWorker(\Tiny\Console\Worker\Base $worker)
     {
@@ -238,7 +236,8 @@ class Daemon
     /**
      * 根据配置数组添加workers 自动实例化
      *
-     * @param array $workerArray
+     * @param array $workers  workers配置数组
+     * @param WorkerHandlerInterface worker派发句柄实例
      */
     public function addWorkerByConfig(array $workers, WorkerHandlerInterface $handler = null)
     {
@@ -298,8 +297,6 @@ class Daemon
     
     /**
      * 守护运行应用程序实例
-     *
-     * @return bool
      */
     public function run()
     {
@@ -323,7 +320,6 @@ class Daemon
      * 检测运行环境
      *
      * @throws DaemonException
-     * @return void
      */
     protected function checkEnv()
     {
@@ -343,8 +339,7 @@ class Daemon
     
     /**
      * 停止守护进程并退出
-     *
-     * @return void
+     * @param bool $isGraceful 是否优雅退出进程  default=true
      */
     public function stop($isGraceful = true)
     {
@@ -358,9 +353,7 @@ class Daemon
     }
     
     /**
-     * 开始
-     *
-     * @return void
+     * 开始守护进程
      */
     public function start()
     {
@@ -385,7 +378,7 @@ class Daemon
     /**
      * 初始化守护进程参数
      *
-     * @param array $options
+     * @param array $options 守护进程的配置数组
      * @throws DaemonException
      */
     protected function initOptions(array $options)
@@ -447,9 +440,7 @@ class Daemon
     }
     
     /**
-     * 保持workers
-     *
-     * @return void
+     * 保持workers的数量
      */
     protected function keepWorkers()
     {
@@ -490,8 +481,8 @@ class Daemon
     /**
      * 添加创建的worker进程到master主进程管理
      *
-     * @param string $id
-     * @param string $pid
+     * @param string $id worker的id
+     * @param string $pid worker的pid
      */
     protected function addWorkerToMaster($id, $pid)
     {
@@ -515,8 +506,6 @@ class Daemon
     
     /**
      * 检测运行的worker信息 有子进程退出则执行清理和补充动作
-     *
-     * @return void
      */
     protected function monitorWorkers()
     {
@@ -602,28 +591,19 @@ class Daemon
      */
     protected function initSignal()
     {
-        // 守护进程异步处理
+        // 守护进程异步处理 
         pcntl_async_signals(true);
         
-        // stop
-        pcntl_signal(SIGINT, [
-            $this,
-            "onsignal"
-        ], false);
+        // stop @formatter:off
+        pcntl_signal(SIGINT, [$this, 'onsignal'], false);
         
         // stop
-        pcntl_signal(SIGTERM, [
-            $this,
-            "onsignal"
-        ], false);
+        pcntl_signal(SIGTERM, [$this, 'onsignal'], false);
         
         // stop
-        pcntl_signal(SIGTSTP, [
-            $this,
-            "onsignal"
-        ], false);
+        pcntl_signal(SIGTSTP, [$this, 'onsignal'], false);
         
-        // 关闭管道事件
+        // 关闭管道事件 @formatter:on
         pcntl_signal(SIGPIPE, SIG_IGN, false);
     }
     
@@ -680,6 +660,7 @@ class Daemon
     
     /**
      * worker进程停止工作
+     *  @param bool $isGraceful 是否优雅退出
      */
     protected function onWorkerStop($isGraceful = true)
     {
@@ -720,7 +701,7 @@ class Daemon
     /**
      * 停止
      *
-     * @param bool $isGraceful
+     * @param bool $isGraceful 是否优雅停止
      */
     protected function end(bool $isGraceful = true)
     {
@@ -746,7 +727,7 @@ class Daemon
     }
     
     /**
-     * 删除PID文件 如果有
+     * 如果存在则删除PID文件
      */
     protected function delPidFile()
     {
@@ -760,7 +741,7 @@ class Daemon
      *
      * @param int $status 状态码
      * @param string $log 退出时的日志
-     * @return void
+     * @param int $priority 日志级别
      */
     protected function exit($status = 0, $msg = null, $priority = 3)
     {
@@ -778,7 +759,7 @@ class Daemon
      * 记录错误
      *
      * @param string $msg
-     * @param
+     * @param int $priority 日志级别
      */
     protected function err($msg, $priority = 3)
     {

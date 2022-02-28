@@ -49,14 +49,13 @@ class Redis implements DataSourceInterface
      * @var array
      */
     protected $options = [
-        'laze_connect' => true, // 惰性连接
+        'laze_connect' => true, //惰性连接
     ];
     
     /**
      * 统一的构造函数
      *
-     * @param array $policy 默认为空函数
-     * @return void
+     * @param array $config 数据源配置数组 默认为空函数
      */
     public function __construct(array $config = [])
     {
@@ -105,8 +104,6 @@ class Redis implements DataSourceInterface
     
     /**
      * 关闭或者销毁实例和链接
-     *
-     * @return void
      */
     public function close()
     {
@@ -173,14 +170,13 @@ class Redis implements DataSourceInterface
      *
      * @param string $method 函数名称
      * @param array $params 参数组
-     * @return mixed type
+     * @return mixed
      */
     public function __call(string $method, array $params)
     {
-        return call_user_func_array([
-            $this->getConnector(),
-            $method
-        ], $params);
+        // @formatter:off
+        return call_user_func_array([$this->getConnector(),$method], $params);
+        // @formatter:on
     }
     
     /**

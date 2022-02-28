@@ -74,7 +74,7 @@ class Memcached implements DataSourceInterface
      * 初始化构造函数
      *
      *
-     * @param array $policy 配置
+     * @param array $config 配置数组
      */
     function __construct(array $config = [])
     {
@@ -103,7 +103,7 @@ class Memcached implements DataSourceInterface
         if (!is_array($this->servers)) {
             throw new MemcachedException('Initialization failure:  config.servers is an invalid configuration');
         }
-        //DataSource.Memcached connection failed:
+        // DataSource.Memcached connection failed:
         // ttl
         $ttl = (int)$config['ttl'];
         if ($ttl) {

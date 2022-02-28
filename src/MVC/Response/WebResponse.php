@@ -46,7 +46,6 @@ class WebResponse extends Response
      *
      * @param string $header header内容
      * @param bool $replace 是否替换之前相同的标头
-     * @return void
      */
     public function appendHeader($header, $replace = true)
     {
@@ -57,7 +56,6 @@ class WebResponse extends Response
      * 清理已经设置的header
      *
      * @param string $name header名称 默认为空，则清理全部header
-     * @return void
      */
     public function removeHeader($name = null)
     {
@@ -79,7 +77,6 @@ class WebResponse extends Response
      *
      * @param string $type 类型
      * @param string $charset 编码
-     * @return void
      */
     public function setContentType($type, $charset = null)
     {
@@ -116,8 +113,6 @@ class WebResponse extends Response
     
     /**
      * 结束此次finish
-     *
-     * @return void
      */
     public function finishFastCgi()
     {
@@ -153,7 +148,6 @@ class WebResponse extends Response
      * 以JS Callback方式返回数据
      *
      * @param array $data 输出的数据
-     * @return void
      */
     public function outJsonp($data)
     {
@@ -167,7 +161,6 @@ class WebResponse extends Response
      * 设置编码
      *
      * @param string $charset 编码名
-     * @return void
      */
     public function setCharset($charset)
     {

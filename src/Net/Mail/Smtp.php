@@ -28,79 +28,79 @@ class Smtp
 
 	/**
 	 * 真实服务器路径
+	 * 
 	 * @var string
-	 * @access protected
 	 */
 	protected $host = '';
 
 	/**
 	 * Smtp协议端口
+	 * 
 	 * @var int
-	 * @access protected
 	 */
 	protected $port = 25;
 
 	/**
 	 * 发送邮件的Socket连接超时时间
+	 * 
 	 * @var int
-	 * @access protected
 	 */
 	protected $timeout = 3;
 
 	/**
 	 * 发送域名
+	 * 
 	 * @var string
-	 * @access protected
 	 */
 	protected $hostName = '';
 
 	/**
 	 * 是否开启调试模式
+	 * 
 	 * @var bool
-	 * @access protected
 	 */
 	protected $isDebug = false;
 
 	/**
 	 * 是否进行身份验证
+	 * 
 	 * @var bool
-	 * @access protected
 	 *
 	 */
 	protected $auth = false;
 
 	/**
 	 * 验证的登录用户名
+	 * 
 	 * @var string
-	 * @access protected
 	 */
 	protected $username;
 
 	/**
 	 * 验证时的登录密码
+	 * 
 	 * @var string
-	 * @access protected
 	 */
 	protected $password;
 
 	/**
 	 * Socket连接句柄
+	 * 
 	 * @var #resource
-	 * @access protected
 	 */
 	protected $sock;
 
 	/**
     * 附件数组
+    * 
     * @var array
-    * @access protected
     */
 	protected $attachments;
 
 	/**
 	* 是否采用html格式
+	* 
 	* @var bool
-	* @access protected
 	*/
 	protected $isBodyHtml = false;
 
@@ -112,7 +112,6 @@ class Smtp
 	 * @param bool $auth 是否需要验证
 	 * @param string $username 用户名
 	 * @param string $password 密码
-	 * @return void
 	 *
 	 */
 	public function __construct($host = '', $port = 25, $auth = true, $username = '', $password = '')
@@ -215,7 +214,6 @@ class Smtp
 	/**
 	 * 清理附加的附件路径
 	 *
-	 * @param void
 	 * @return Smtp
 	 */
 	public function clearAttachments()
@@ -234,7 +232,7 @@ class Smtp
 	 * @param string $mailtype 邮件类型 HTML和TEXT
 	 * @param string $cc 抄送地址
 	 * @param string $bcc
-	 * @param string 附送的Header头
+	 * @param string $additionalHeaders 附送的Header头
 	 * @return bool
 	 */
 	public function sendMail($to, $subject = null, $body = null, $cc = null, $bcc = null, $from = null, $fromName = null,  $additionalHeaders = null)
@@ -388,7 +386,6 @@ class Smtp
 	/**
 	 * 应答
 	 *
-	 * @param void
 	 * @return bool
 	 */
 	private function relay()
@@ -443,7 +440,6 @@ class Smtp
 	/**
 	 * 邮件内容边界符
 	 *
-	 * @param void
 	 * @return bool
 	 */
 	private function eom()
@@ -456,7 +452,6 @@ class Smtp
 	/**
 	 * OK
 	 *
-	 * @param void
 	 * @return bool
 	 */
 	private function ok()
@@ -515,7 +510,6 @@ class Smtp
 	 * 输出调试信息
 	 *
 	 * @param $message
-	 * @return void
 	 */
 	private function debug($message)
 	{

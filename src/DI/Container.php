@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  *
  * @copyright (C), 2013-, King.
@@ -29,7 +29,7 @@ use Tiny\DI\Definition\Provider\DefinitionProvider;
  * @package Tiny.Container
  * @since 2021年11月26日上午11:32:43
  * @final 2021年11月26日上午11:32:43
- *
+ *       
  */
 class Container implements ContainerInterface, InvokerInterface
 {
@@ -100,8 +100,7 @@ class Container implements ContainerInterface, InvokerInterface
      * @param ContainerInterface $wrapperContainer
      * @param InvokerInterface $invokerFactory
      */
-    public function __construct(DefinitionProviderInterface $defintionProvider = null,
-        ContainerInterface $wrapperContainer = null)
+    public function __construct(DefinitionProviderInterface $defintionProvider = null, ContainerInterface $wrapperContainer = null)
     {
         // 定义源
         $this->defintionProvider = $defintionProvider ?: $this->createDefineProvider();
@@ -150,8 +149,8 @@ class Container implements ContainerInterface, InvokerInterface
     /**
      * 设置容器
      *
-     * @param string $name
-     * @param mixed $value
+     * @param string $name 类名
+     * @param mixed $value 类的实例
      */
     public function set(string $name, $value)
     {
@@ -211,23 +210,21 @@ class Container implements ContainerInterface, InvokerInterface
             return $instance;
         }
         
+        
         $className = get_class($instance);
         
-        $definition = false !== strpos($className, '@anonymous')
-        ? $this->definitionSource->getDefinition($className)
-        : $this->getDefinition($className);
-        if ($definition instanceof ObjectDefinition)
-        {
+        // 是否已定义
+        $definition = false !== strpos($className, '@anonymous') ? $this->definitionSource->getDefinition($className) : $this->getDefinition($className);
+        if ($definition instanceof ObjectDefinition) {
             return $instance;
         }
         
+        // 实例定义
         $instanceDefinition = new InstanceDefinition($className, $instance);
-        if (false === strpos($className, '@anonymous')  && !key_exists($className, $this->entriesBeingResolved))
-        {
+        if (false === strpos($className, '@anonymous') && !key_exists($className, $this->entriesBeingResolved)) {
             $this->setDefinition($className, $instanceDefinition);
         }
         $this->definitionResolver->resolve($instanceDefinition);
-        
     }
     
     /**

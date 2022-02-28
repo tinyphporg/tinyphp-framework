@@ -29,6 +29,7 @@ use Tiny\Event\ExceptionEventListener;
 use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Controller\Dispatcher;
 use Tiny\MVC\View\View;
+use Tiny\Event\EventListenerInterface;
 
 /**
  * app实例基类
@@ -120,8 +121,9 @@ abstract class ApplicationBase implements ExceptionEventListener
     /**
      * 初始化应用实例
      *
-     * @param string $profile 配置文件路径
-     * @return void
+     * @param ContainerInterface $container 容器实例
+     * @param string $path application的工作目录
+     * @param string|array $profile 配置文件 为数组时多个配置文件
      */
     public function __construct(ContainerInterface $container = null, $path, $profile = null)
     {
@@ -144,8 +146,7 @@ abstract class ApplicationBase implements ExceptionEventListener
     /**
      * 添加事件监听器
      *
-     * @param string $eventListener 监听器名称
-     *        EventListenerInterface 监听器实例
+     * @param EventListenerInterface $eventListener 监听器实例
      * @return boolean
      */
     public function addEventListener($eventListener)
@@ -188,7 +189,6 @@ abstract class ApplicationBase implements ExceptionEventListener
      *
      * @param array $exception 异常
      * @param array $exceptions 所有异常
-     * @return void
      */
     public function onException(array $exception, array $exceptions)
     {
@@ -207,8 +207,6 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 执行
-     *
-     * @return void
      */
     public function run()
     {
@@ -314,13 +312,15 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @access protected
      * @param string $cname 控制器名称
      * @param string $aname 动作名称
+     * @param array $args 参数
+     * @param bool $isEvent 是否为成员函数本身
      * @return mixed
      */
-    public function dispatch(string $cname = null, string $aname = null, array $args = [], bool $isEvent = false)
+    public function dispatch(string $cname = null, string $aname = null, array $args = [], bool $isMethod = false)
     {
         $cname = $cname ?: $this->request->getControllerName();
         $aname = $aname ?: $this->request->getActionName();
-        return $this->getDispatcher()->dispatch($cname, $aname, $args, $isEvent);
+        return $this->getDispatcher()->dispatch($cname, $aname, $args, $isMethod);
     }
     
     /**
@@ -372,8 +372,6 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 引导
-     *
-     * @return void
      */
     protected function bootstrap()
     {

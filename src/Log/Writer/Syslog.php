@@ -26,7 +26,6 @@ class Syslog implements LogWriterInterface
      * 构造函数
      *
      * @param array $config 配置数组
-     * @return void
      */
     public function __construct(array $config = [])
     {
@@ -37,7 +36,6 @@ class Syslog implements LogWriterInterface
      *
      * @param string $id 日志ID
      * @param string $message 日志内容
-     * @return void
      */
     public function write($logId, $message, $priority)
     {

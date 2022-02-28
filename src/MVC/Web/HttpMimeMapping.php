@@ -24,17 +24,17 @@ namespace Tiny\MVC\Web;
  * @package Tiny.Application.Wev
  * @since 2013-3-30下午03:00:27
  * @final 2013-3-30下午03:00:27
- *
+ *       
  */
 final class HttpMimeMapping
 {
-
+    
     /**
-     * 扩展名
-     *
+     * 扩展名列表
+     * 
      * @var array
      */
-    protected static $_exts = [
+    protected static $exts = [
         'ai' => 'application/postscript',
         'aif' => 'audio/x-aiff',
         'aifc' => 'audio/x-aiff',
@@ -197,31 +197,27 @@ final class HttpMimeMapping
         'zip' => 'application/zip ',
         'apk' => 'application/vnd.android.package-archive'
     ];
-
+    
     /**
      * 根据ext获取mime全文信息
      *
-     * @param string $ext
-     *        扩展名
+     * @param string $ext 扩展名
      * @return string
      */
     public static function get($ext)
     {
-        return self::$_exts[$ext];
+        return self::$exts[$ext];
     }
-
+    
     /**
      * 设置输出的mime信息
      *
-     * @param $ext string
-     *        扩展名
-     * @param $mime string
-     *        扩展信息
-     * @return void
+     * @param $ext string 扩展名
+     * @param $mime string 扩展信息
      */
     public static function set($ext, $mime)
     {
-        self::$_exts[$ext] = $mime;
+        self::$exts[$ext] = $mime;
     }
 }
 ?>

@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  *
  * @copyright (C), 2013-, King.
@@ -90,12 +90,14 @@ class Dispatcher
     }
     
     /**
-     * 分发
+     * 执行派发
      *
-     * @access protected
      * @param string $cname 控制器名称
-     * @param string $aname 动作名称
-     * @return mixed
+     * @param string $aname 动作或者成员函数名
+     * @param array $args 调用动作或成员函数的参数数组
+     * @param bool $isMethod 是否为调用成员函数，true为成员函数,false为动作函数
+     * @throws DispatcherException
+     * @return void|boolean|mixed
      */
     public function dispatch(string $cname, string $aname, array $args = [], bool $isMethod = false)
     {
@@ -107,16 +109,21 @@ class Dispatcher
         }
         
         // application
-        $this->container->call([$controllerInstance, 'setApplication']);
+        $this->container->call([
+            $controllerInstance,
+            'setApplication'
+        ]);
         
         // 执行前置函数 结果为false时不执行动作函数
-        $beginRet = $this->container->call([$controllerInstance, 'onBeginExecute']);
-        if (false === $beginRet)
-        {
+        $beginRet = $this->container->call([
+            $controllerInstance,
+            'onBeginExecute'
+        ]);
+        if (false === $beginRet) {
             return false;
         }
         
-        //执行动作函数
+        // 执行动作函数
         $actionMethod = $isMethod ? $aname : $this->getActionName($aname);
         if (!method_exists($controllerInstance, $actionMethod)) {
             if ($isMethod) {
@@ -125,23 +132,30 @@ class Dispatcher
             throw new DispatcherException(sprintf("The controller named %s does not have an action named %s", $controllerClass, $actionMethod));
         }
         
-        $result = $this->container->call([$controllerInstance, $actionMethod]);
+        $result = $this->container->call([
+            $controllerInstance,
+            $actionMethod
+        ]);
         
         // 执行后触发动作
-        $this->container->call([$controllerInstance, 'onEndExecute']);
+        $this->container->call([
+            $controllerInstance,
+            'onEndExecute'
+        ]);
         return $result;
     }
     
     /**
      * 获取控制器的类名
-     * @param string $cname
+     *
+     * @param string $cname 控制器名
      * @throws \Exception
      * @return string
      */
     public function getControllerClass(string $cname)
     {
         if (!$cname) {
-            throw new \Exception('aaa');
+            throw new DispatcherException('Faild to get controller classname: $cname is null!');
         }
         if (key_exists($cname, $this->controllerClasses)) {
             return $this->controllerClasses[$cname];
@@ -150,17 +164,15 @@ class Dispatcher
         $cparam = preg_replace_callback("/\b\w/", function ($param) {
             return strtoupper($param[0]);
         }, $cname);
-            
-            $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
-            
-            $controllerClass = $this->controllerNamespace . $cparam;
-            if (!class_exists($controllerClass)) {
-                throw new DispatcherException("Faild to dispatch: {$controllerClass} does not exists!", E_NOFOUND);
-            }
-            $this->controllerClasses[$cname] = $controllerClass;
-            return $controllerClass;
+        $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
+        
+        $controllerClass = $this->controllerNamespace . $cparam;
+        if (!class_exists($controllerClass)) {
+            throw new DispatcherException("Faild to dispatch: {$controllerClass} does not exists!", E_NOFOUND);
+        }
+        $this->controllerClasses[$cname] = $controllerClass;
+        return $controllerClass;
     }
-    
     
     /**
      * 获取动作名称

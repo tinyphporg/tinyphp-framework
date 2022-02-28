@@ -24,43 +24,46 @@ namespace Tiny\Net\Ssh;
  */
 class Connector
 {
+    
     /**
      * ssh host
+     *
      * @var string
      */
     protected $host = '127.0.0.1';
     
     /**
      * ssh 连接端口
+     *
      * @var integer
      */
     protected $port = 22;
     
     /**
      * ssh 用户名
-     * 
+     *
      * @var string
      */
     protected $user = 'root';
     
     /**
-     *  ssh 登录密码
-     * @var  string
+     * ssh 登录密码
+     *
+     * @var string
      */
     protected $password;
-
+    
     /**
      * 连接
      *
      * @var resource
      */
     protected $connection;
-
+    
     /**
      * 构造函数初始化SSH链接参数
      *
-     * @param array $policy
-     * @return void
+     * @param array $config 配置数组
      */
     public function __construct(array $config = [])
     {
@@ -87,49 +90,42 @@ class Connector
             $this->password = $password;
         }
     }
-
+    
     /**
      * 执行远程SSH命令
      *
-     * @param string $cmd
-     *        执行命令
+     * @param string $cmd 执行命令
      * @return string
      */
     public function exec($cmd)
     {
         $connection = $this->connect();
-        if (!$connection)
-        {
+        if (!$connection) {
             return $this->disconnect();
         }
         $stream = ssh2_exec($connection, $cmd);
-        if (!$stream)
-        {
+        if (!$stream) {
             return $this->disconnect();
         }
-        try
-        {
+        try {
             stream_set_blocking($stream, true);
             stream_set_timeout($stream, 30);
             $ret = stream_get_contents($stream);
-        }
-        catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             return $this->disconnect();
         }
         return $ret;
     }
-
+    
     /**
      * 回收链接
      *
-     * @return void
      */
     public function __destruct()
     {
         $this->disconnect();
     }
-
+    
     /**
      * 链接
      *
@@ -137,28 +133,24 @@ class Connector
      */
     protected function connect()
     {
-        if (!$this->connection)
-        {
+        if (!$this->connection) {
             $this->connection = ssh2_connect($this->host, $this->port);
-            if (!$this->connection)
-            {
+            if (!$this->connection) {
                 return false;
             }
-            if (!ssh2_auth_password($this->connection, $this->user, $this->password))
-            {
+            if (!ssh2_auth_password($this->connection, $this->user, $this->password)) {
                 return false;
             }
         }
         return $this->connection;
     }
-
+    
     /**
      * 断开链接
      */
     protected function disconnect()
     {
-        if (!$this->connection)
-        {
+        if (!$this->connection) {
             return false;
         }
         $this->exec('echo "EXITING" && exit');

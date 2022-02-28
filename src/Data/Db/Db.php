@@ -20,7 +20,7 @@ use Tiny\Data\Db\Mysql\Mysqli;
 use Tiny\Data\Db\Mysql\Pdo;
 
 /**
- * Db的结构类
+ * Db数据源
  *
  * @package Tiny.Data.Db
  * @since 2013-11-28上午03:41:37
@@ -35,6 +35,13 @@ class Db implements DataSourceInterface
      * @var int
      */
     const DB_QUERY_RECORD_MAX = 100;
+    
+    /**
+     * 是否记录query sql
+     *
+     * @var bool
+     */
+    protected static $isRecord = false;
     
     /**
      * 执行的数据库语句集合
@@ -54,9 +61,9 @@ class Db implements DataSourceInterface
     ];
     
     /**
-     * 数据库操作实例
+     * 数据库适配器实例
      *
-     * @var Db
+     * @var DbAdapterInterface
      */
     protected $dbAdapter;
     
@@ -74,15 +81,15 @@ class Db implements DataSourceInterface
         'dbname' => 'test',
         'charset' => 'utf8',
         'timeout' => 0,
+        'is_record' => false,
         'pconnect' => false
     ];
     
     /**
-     * 注册数据库的驱动
+     * 注册数据库适配器
      *
-     * @param string $id 策略名称
-     * @param string $className 类名称
-     * @return void
+     * @param string $id 适配器ID
+     * @param string $adapterClass 适配器类
      */
     public static function regDbAdapter($id, $adapterClass)
     {
@@ -98,10 +105,12 @@ class Db implements DataSourceInterface
      * @param string $sql sql语句
      * @param int $time 执行时间
      * @param string $engineName 数据库引擎
-     * @return void
      */
     public static function addQuery($sql, $time, $engineName)
     {
+        if (!self::$isRecord) {
+            return;
+        }
         if (self::DB_QUERY_RECORD_MAX <= count(self::$queryRecords)) {
             array_shift(self::$queryRecords);
         }
@@ -126,13 +135,16 @@ class Db implements DataSourceInterface
     /**
      * 通过配置数组初始化实例
      *
-     * @param array $policy 配置策略数组
-     * @return void
+     * @param array $config 数据源配置
      */
     public function __construct(array $config = [])
     {
         $this->config = array_merge($this->config, $config);
         
+        // recode querys
+        self::$isRecord = (bool)$this->config['is_record'];
+        
+        // check adapter
         $adapter = $this->config['adapter'];
         if (!$adapter) {
             throw new DbException('Failed to instantiate data source adapter: config.adapter is not set');
@@ -141,7 +153,6 @@ class Db implements DataSourceInterface
         if (!key_exists($adapter, self::$adapterMap)) {
             throw new DbException(sprintf('Failed to instantiate data source adapter: db.adapter:%s does not exists!', $adapter));
         }
-        
         $this->config['adapterClass'] = self::$adapterMap[$adapter];
     }
     
@@ -158,8 +169,6 @@ class Db implements DataSourceInterface
     
     /**
      * 关闭或者销毁实例和链接
-     *
-     * @return void
      */
     public function close()
     {
@@ -337,7 +346,6 @@ class Db implements DataSourceInterface
     /**
      * 魔法调用
      *
-     *
      * @param string $method 函数名称
      * @param array $params 参数数组
      * @return
@@ -345,10 +353,9 @@ class Db implements DataSourceInterface
      */
     public function __call($method, $params)
     {
-        return call_user_func_array([
-            $this->getDbAdapter(),
-            $method
-        ], $params);
+        // @formatter:off
+        return call_user_func_array([$this->getDbAdapter(), $method], $params);
+        // @formatter:on
     }
     
     /**
@@ -363,10 +370,9 @@ class Db implements DataSourceInterface
         if (!$param) {
             return $sql;
         }
-        return preg_replace_callback("/:([0-9]{1,2})([tfwuis]?)/s",
-            function ($matchs) use ($param) {
-                return $this->_parseSqlParam($matchs, $param);
-            }, $sql);
+        return preg_replace_callback("/:([0-9]{1,2})([tfwuis]?)/s", function ($matchs) use ($param) {
+            return $this->_parseSqlParam($matchs, $param);
+        }, $sql);
     }
     
     /**
@@ -387,15 +393,15 @@ class Db implements DataSourceInterface
         $pval = $param[$match[1]];
         switch ($ptype) {
             case 't':
-                return $this->_parseParamTable($pval); /* 解析表名 */
+                return $this->_parseParamTable($pval); // 解析表名
             case 'f':
-                return $this->_parseParamField($pval); /* 解析查询字段名 */
+                return $this->_parseParamField($pval); // 解析查询字段名
             case 'u':
-                return $this->_parseParamUpdate($pval); /* 解析更新设置 */
+                return $this->_parseParamUpdate($pval); // 解析更新设置
             case 'w':
-                return $this->_parseParamWhere($pval); /* 解析WHERE 条件查询 */
+                return $this->_parseParamWhere($pval); // 解析WHERE条件查询
             case 'i':
-                return $this->_parseParamInsert($pval); /* 解析插入语句 */
+                return $this->_parseParamInsert($pval); // 解析插入语句
             default:
                 return $pval;
         }
@@ -425,13 +431,12 @@ class Db implements DataSourceInterface
         $pval = is_array($pval) ? $pval : [
             $pval
         ];
-        array_walk($pval,
-            function (&$v) {
-                $v = trim($v);
-                if (false === strpbrk($v, ' ,.')) {
-                    $v = sprintf('`%s`', $v);
-                }
-            });
+        array_walk($pval, function (&$v) {
+            $v = trim($v);
+            if (false === strpbrk($v, ' ,.*')) {
+                $v = sprintf('`%s`', $v);
+            }
+        });
         return join(',', $pval);
     }
     
@@ -478,9 +483,9 @@ class Db implements DataSourceInterface
      * 一维数组 插入一条
      * 二维数组 插入多条
      *
-     * @param string || array $pval 插入数组
+     * @param string|array $pval 插入数组
      *       
-     * @return
+     * @return string
      */
     protected function _parseParamInsert($pval)
     {
@@ -519,9 +524,10 @@ class Db implements DataSourceInterface
     }
     
     /**
-     * 获取数据库实例
-     *
-     * @return DbAdapterInterface
+     * 获取数据库适配器实例
+     * 
+     * @throws DbException
+     * @return \Tiny\Data\Db\DbAdapterInterface
      */
     protected function getDbAdapter()
     {
@@ -530,12 +536,11 @@ class Db implements DataSourceInterface
             $adapterClass = $config['adapterClass'];
             unset($config['adapter'], $config['adapterClass']);
             
-            //create adapter 
-            $dbAdapterInstance = new $adapterClass($config);
-            if (!$dbAdapterInstance instanceof DbAdapterInterface) {
+            // create adapter
+            $this->dbAdapter = new $adapterClass($config);
+            if (!$this->dbAdapter instanceof DbAdapterInterface) {
                 throw new DbException(sprintf('Failed to get database adapter:%s is not instance of %s', $adapterClass, DbAdapterInterface::class));
             }
-            $this->dbAdapter = $dbAdapterInstance;
         }
         return $this->dbAdapter;
     }

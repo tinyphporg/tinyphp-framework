@@ -26,7 +26,6 @@ interface  LogWriterInterface
      *
      * @param string $id 日志ID
      * @param string $message 日志内容
-     * @return void
      */
     public function write($logId, $message, $priority);
 }

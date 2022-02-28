@@ -87,7 +87,7 @@ interface DbAdapterInterface
      * 查询并获取 一条结果集
      *
      * @param string $sql 查询的SQL语句
-     * @return array|null
+     * @return array
      */
     public function fetch($sql);
     
@@ -95,7 +95,7 @@ interface DbAdapterInterface
      * 查询并获取所有结果集
      *
      * @param string $sql 查询的SQL语句
-     * @return array|null
+     * @return array
      */
     public function fetchAll($sql);
     

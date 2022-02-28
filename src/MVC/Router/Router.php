@@ -139,8 +139,6 @@ class Router
     
     /**
      * 执行路由动作
-     *
-     * @return void
      */
     public function route()
     {

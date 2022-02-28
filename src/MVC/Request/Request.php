@@ -26,23 +26,24 @@ use Tiny\Runtime\Param\Readonly;
  */
 abstract class Request
 {
+    
     /**
      * 服务器参数数组
-     * 
+     *
      * @var Readonly
      */
     public $server;
     
     /**
      * 通用参数数组
-     * 
+     *
      * @var Readonly
      */
     public $param;
     
     /**
      * 路由参数
-     * 
+     *
      * @var Readonly
      */
     public $routeParam;
@@ -213,13 +214,14 @@ abstract class Request
         $this->param->merge($params);
     }
     
-    /**]
+    /**
      * 设置路由上下文字符串
+     *
      * @param string $routeContext
      */
     public function setRouteContext(string $routeContext)
     {
-        $this->routeContext =  $routeContext; 
+        $this->routeContext = $routeContext;
     }
     
     /**
