@@ -12,6 +12,7 @@
  */
 namespace Tiny\DI\Injection;
 
+use Tiny\DI\Definition\ObjectDefinition;
 use Tiny\DI\ContainerInterface;
 
 /**
@@ -53,10 +54,10 @@ class ObjectInjection
      * @param \ReflectionClass $classReflection
      * @param object $object
      */
-    public function injectObject(\ReflectionClass $classReflection, object $object)
+    public function injectObject(\ReflectionClass $classReflection, object $object, array $resolvedParameters = [])
     {
-        $this->injectProperties($classReflection, $object);
-        $this->injectMethods($classReflection, $object);
+        $this->injectProperties($classReflection, $object, $resolvedParameters);
+        $this->injectMethods($classReflection, $object, $resolvedParameters);
     }
     
     /**
@@ -65,14 +66,14 @@ class ObjectInjection
      * @param \ReflectionClass $reflectionClassInstance
      * @param object $classInstance
      */
-    public function injectProperties(\ReflectionClass $classReflection, object $object)
+    public function injectProperties(\ReflectionClass $classReflection, object $object, array $resolvedParameters = [])
     {
         $properties = $classReflection->getProperties();
         foreach ($properties as $property) {
             if ($property->isStatic()) {
                 continue;
             }
-            $this->readProperty($property, $object);
+            $this->readProperty($property, $object, $resolvedParameters);
         }
         
         $class = $classReflection;
@@ -82,7 +83,7 @@ class ObjectInjection
                 if ($property->isStatic()) {
                     continue;
                 }
-                $this->readProperty($property, $object);
+                $this->readProperty($property, $object, $resolvedParameters);
             }
         }
     }
@@ -93,12 +94,12 @@ class ObjectInjection
      * @param \ReflectionClass $classReflection
      * @param object $object
      */
-    public function injectMethods(\ReflectionClass $classReflection, object $object)
+    public function injectMethods(\ReflectionClass $classReflection, object $object, array $resolvedParameters = [])
     {
         $methods = $classReflection->getMethods();
         foreach($methods as $method)
         {
-            $this->injectMethod($method, $object);
+            $this->injectMethod($method, $object, $resolvedParameters);
         }
     }
     
@@ -108,7 +109,7 @@ class ObjectInjection
      * @param \ReflectionMethod $method
      * @param object $object
      */
-    protected function injectMethod(\ReflectionMethod $method, object $object)
+    protected function injectMethod(\ReflectionMethod $method, object $object, array $resolvedParameters = [])
     {
         if($method->isConstructor() || $method->isDestructor() || $method->isAbstract())
         {
@@ -119,7 +120,7 @@ class ObjectInjection
         {
             return;
         }
-        $args = $this->injection->getParameters($method);
+        $args = $this->injection->getParameters($method, $resolvedParameters);
         if ($method->isPrivate() || $method->isProtected())
         {
             $method->setAccessible(true);
@@ -133,15 +134,15 @@ class ObjectInjection
      * @param \ReflectionProperty $property
      * @param object $object
      */
-    protected function readProperty(\ReflectionProperty $property, object $object)
+    protected function readProperty(\ReflectionProperty $property, object $object, array $resolvedParameters = [])
     {
         $propertyComment = $property->getDocComment();
         if (! $propertyComment || ! $this->isAutowired($propertyComment)) {
             return;
         }
-        $propertyValue = $this->readPropertyFromPHPType($property);
+        $propertyValue = $this->readPropertyFromPHPType($property, $resolvedParameters);
         if (! $propertyValue) {
-            $propertyValue = $this->readPropertyFromAnnotation($property, $propertyComment);
+            $propertyValue = $this->readPropertyFromAnnotation($property, $propertyComment, $resolvedParameters);
         }
         if (! $propertyValue) {
             return;
@@ -159,7 +160,7 @@ class ObjectInjection
      * @param string $propertyComment
      * @return void|\Tiny\DI\ContainerInterface|mixed
      */
-    protected function readPropertyFromAnnotation(\ReflectionProperty $property, string $propertyComment)
+    protected function readPropertyFromAnnotation(\ReflectionProperty $property, string $propertyComment, array $resolvedParameters = [])
     {
         $namespace = $property->getDeclaringClass()->getNamespaceName();
         if (! preg_match('/\s*\*\s+@var\s+([\\\\\w]+)/i', $propertyComment, $out)) {
@@ -173,7 +174,7 @@ class ObjectInjection
             $propertyClass = substr($propertyClass, 1);
         }
         
-        return $this->readPropertyFromContainer($propertyClass);
+        return $this->readPropertyFromContainer($propertyClass, $resolvedParameters);
     }
     
     /**
@@ -181,7 +182,7 @@ class ObjectInjection
      * @param \ReflectionProperty $property
      * @return boolean|\Tiny\DI\ContainerInterface|mixed
      */
-    protected function readPropertyFromPHPType(\ReflectionProperty $property)
+    protected function readPropertyFromPHPType(\ReflectionProperty $property, array $resolvedParameters = [])
     {
         $propertyType = $property->getType();
         if (! $propertyType) {
@@ -192,12 +193,15 @@ class ObjectInjection
             return false;
         }
         if ($propertyType->isBuiltin()) {
-            // Primitive types are not supported
+            $propertyName = $property->getName();
+            if (key_exists($propertyName, $resolvedParameters)) {
+                return $resolvedParameters[$propertyName];
+            }
             return false;
         }
         
         $propertyClass = $propertyType->getName();
-        return $this->readPropertyFromContainer($propertyClass);
+        return $this->readPropertyFromContainer($propertyClass, $resolvedParameters);
     }
     
     /**
@@ -207,11 +211,15 @@ class ObjectInjection
      *
      * @return \Tiny\DI\ContainerInterface|mixed
      */
-    protected function readPropertyFromContainer($name)
+    protected function readPropertyFromContainer(string $name, array $resolvedParameters = [])
     {
         if ($name === ContainerInterface::class) {
             return $this->container;
+        } elseif (key_exists($name, $resolvedParameters)) {
+            return $resolvedParameters[$name];
         } elseif ($this->container->has($name)) {
+            return $this->container->get($name);
+        } elseif ($this->isAutowiredClass($name)) {
             return $this->container->get($name);
         }
     }
@@ -225,6 +233,29 @@ class ObjectInjection
     protected function isAutowired(string $comment)
     {
         return stripos($comment, '@autowired') !== false;
+    }
+    
+    /**
+     * 是否自动注解类
+     *
+     * @param string $className
+     * @return bool
+     */
+    public function isAutowiredClass(string $className)
+    {
+        if (!class_exists($className)) {
+            return false;
+        }
+        $reflectionClass  = new \ReflectionClass($className);
+        $comment = $reflectionClass->getDocComment();
+        if (!$comment) {
+            return false;
+        }
+        if (!$this->isAutowired($comment)) {
+            return false;
+        }
+        $this->container->set($className, new ObjectDefinition($className, $className));
+        return true;
     }
 }
 ?>

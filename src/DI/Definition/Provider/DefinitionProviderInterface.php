@@ -12,6 +12,9 @@
  */
 namespace Tiny\DI\Definition\Provider;
 
+
+use Tiny\DI\Definition\DefinitionInterface;
+
 /**
  * 定义提供者类接口
  *
@@ -22,19 +25,12 @@ namespace Tiny\DI\Definition\Provider;
  */
 interface DefinitionProviderInterface
 {
-    
     /**
      * 根据名称获取定义
      *
      * @param string $name
+     * @return DefinitionInterface|false
      */
     public function getDefinition(string $name);
-    
-    /**
-     * 获取所有定义
-     *
-     * @return array
-     */
-    public function getDefinitions(): array;
 }
 ?>

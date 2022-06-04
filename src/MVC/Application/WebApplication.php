@@ -32,8 +32,8 @@ class WebApplication extends ApplicationBase
     public function onException(array $exception, array $exceptions)
     {
         if ($exception['isThrow']) {
-            $statusCode = ($e['level'] === E_NOFOUND) ? 404 : 500;
-             $this->response->setStatusCode($statusCode);
+            $statusCode = ($exception['level'] === E_NOFOUND) ? 404 : 500;
+              $this->response->setStatusCode($statusCode);
         }
         parent::onException($exception, $exceptions);
     }

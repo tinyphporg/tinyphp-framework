@@ -77,7 +77,6 @@ class ObjectResolver implements DefinitionResolverInterface
     protected function createInstance(ObjectDefinition $definition, array $parameters = [])
     {
         $className = $definition->getClassName();
-        
         if (!class_exists($className)) {
             throw new InvalidDefinitionException(sprintf('Entry "%s" cannot be resolved: the class doesn\'t exist', $definition->getName()));
         }
@@ -87,16 +86,17 @@ class ObjectResolver implements DefinitionResolverInterface
             throw new InvalidDefinitionException(sprintf('Entry "%s" cannot be resolved: the class is not instantiable', $definition->getName()));
         }
         
+        $parameters = array_merge($definition->getParameters(), $parameters);
         $args = [];
         $constructor = $classReflection->getConstructor();
         if ($constructor)
         {
-            $args = $this->injection->getParameters($constructor,$parameters);
+            $args = $this->injection->getParameters($constructor, $parameters);
         }
         $object = new $className(...$args);
         
         // inject
-        $this->injection->injectObject($classReflection, $object);
+        $this->injection->injectObject($classReflection, $object, $parameters);
         return $object;
     }
     

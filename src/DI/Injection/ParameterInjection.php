@@ -13,6 +13,7 @@
 namespace Tiny\DI\Injection;
 
 use Tiny\DI\ContainerInterface;
+use Tiny\DI\Definition\ObjectDefinition;
 
 /**
  * 函数的参数注入器
@@ -31,13 +32,21 @@ class ParameterInjection
     private $container;
     
     /**
+     * 注入器
+     * 
+     * @var Injection
+     */
+    private $injection;
+    
+    /**
      * 构造函数
      *
      * @param ContainerInterface $container  提供注入的容器实例
      */
-    public function __construct(ContainerInterface $container)
+    public function __construct(ContainerInterface $container, Injection $injection)
     {
         $this->container = $container;
+        $this->injection = $injection;
     }
     
     /**
@@ -115,6 +124,9 @@ class ParameterInjection
                 $resolvedParameters[$index] = $proivderParameters[$parameterClass];
             }
             elseif ($this->container->has($parameterClass)) {
+                $resolvedParameters[$index] = $this->container->get($parameterClass);
+            }
+            elseif ($this->injection->isAutowiredClass($parameterClass)) {
                 $resolvedParameters[$index] = $this->container->get($parameterClass);
             }
         }

@@ -19,8 +19,7 @@
 namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
-use Tiny\MVC\View\View;
-use Tiny\MVC\View\Engine\Template\TemplatePluginInterface;
+use Tiny\MVC\Application\ApplicationBase;
 
 define('TINY_IS_IN_VIEW_ENGINE_TEMPLATE', true);
 
@@ -35,11 +34,25 @@ class Template extends ViewEngine
 {
     
     /**
+     * 
+     * @autowired
+     * @var ApplicationBase
+     */
+    protected ApplicationBase $app;
+    
+    /**
+     * 插件实例
+     * 
+     * @var array
+     */
+    protected $pluginInstances = [];
+    
+    /**
      * 匹配变量的正则
      *
      * @var string
      */
-    const REGEXP_VARIABLE = "\@?\\\$[a-zA-Z_]\w*(?:(?:\-\>[a-zA-Z_]\w*)?(?:\[[\w\.\"\'\[\]\$]+\])?)*";
+    const REGEXP_VARIABLE = "\@?\\\$[a-zA-Z_]\w*(?:(?:\-\>[a-zA-Z_]\w*)?(?:\[[\w\.\"\'\[\]\$\-]+\])?)*";
     
     /**
      * 匹配标签里变量标识的正则
@@ -54,65 +67,7 @@ class Template extends ViewEngine
      * @var string
      */
     const REGEXP_CONST = "\{((?!else)[\w]+)\}";
-    
-    /**
-     * 注册的模板插件实例
-     *
-     * @var array IPlugin
-     */
-    protected $plugins = [];
-    
-    /**
-     * 注册函数
-     *
-     * @param bool $plugin
-     */
-    public function regPlugin($pconfig)
-    {
-        if (!is_array($pconfig)) {
-            return false;
-        }
-        
-        if (!key_exists('plugin', $pconfig) || !is_string($pconfig['plugin'])) {
-            return false;
-        }
-        
-        $pluginName = (string)$pconfig['plugin'];
-        $config = (array)$pconfig['config'];
-        if (!key_exists($pluginName, $this->plugins)) {
-            $this->plugins[$pluginName] = [
-                'plugin' => $pluginName,
-                'config' => $config,
-                'instance' => null
-            ];
-            return true;
-        }
-        
-        $plugin = $this->plugins[$pluginName];
-        $plugin['config'] += $config;
-        if (!isset($plugin['plugin'])) {
-            $plugin['plugin'] = $pluginName;
-        }
-        $this->plugins[$pluginName] = $plugin;
-        return true;
-    }
-    
-    /**
-     *
-     * {@inheritdoc}
-     * @see \Tiny\MVC\View\Engine\ViewEngine::setViewEngineConfig()
-     */
-    public function setViewEngineConfig(View $view, array $config)
-    {
-        parent::setViewEngineConfig($view, $config);
-        if (!is_array($config['plugins'])) {
-            return;
-        }
-        foreach ($config['plugins'] as $pconfig) {
-            $this->regPlugin($pconfig);
-        }
-    }
-    
+   
     /**
      * 获取模板解析后的文件路径
      *
@@ -120,16 +75,17 @@ class Template extends ViewEngine
      * @param bool $isAbsolute 是否绝对位置
      * @return string 编译后的文件路径
      */
-    public function getCompiledFile($tpath, $isAbsolute = false)
+    public function getCompiledFile($tpath, $templateId = null)
     {
-        $tfile = $this->getTemplateRealPath($tpath, $isAbsolute);
+        $tpath = preg_replace('/\/+/', '/', $tpath);        
+        $tfile = $this->getTemplateRealPath($tpath, $templateId);
         if (!$tfile) {
             throw new ViewException(sprintf("viewer error: the template file %s is not exists!", $tpath));
         }
         
         // 如果开启模板缓存 并且 模板存在且没有更改
         $compilePath = $this->createCompileFilePath($tfile);
-        if (file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile)) {
+        if (!$this->app->isDebug && file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile)) {
             return $compilePath;
         }
         
@@ -313,11 +269,11 @@ class Template extends ViewEngine
      */
     protected function onPreParse($template)
     {
-        foreach ($this->plugins as $pconfig) {
-            $instance = $pconfig['instance'];
-            if (!$instance) {
-                $instance = $this->getPluginInstanceByConfig($pconfig);
-            }
+            foreach ($this->plugins as $pname) {
+                if (!key_exists($pname, $this->pluginInstances)) {
+                    $this->pluginInstances[$pname] = $this->app->get($pname);
+                }
+                $instance =  $this->pluginInstances[$pname];
             $ret = $instance->onPreParse($template);
             if (false !== $ret) {
                 return $ret;
@@ -379,12 +335,6 @@ class Template extends ViewEngine
                 return $this->parseElseIfTag($tagBody, $extra);
             case 'eval':
                 return $this->parseEvalTag($tagBody, $extra);
-            case 'template':
-                return $this->parseTemplateTag($tagBody, $extra);
-            case 'date':
-                return $this->parseDateTag($tagBody, $extra);
-            case 'url':
-                return $this->parseUrlTag($tagBody, $extra);
         }
         return $this->onPluginParseTag($tagName, $tagBody, $extra);
     }
@@ -397,11 +347,11 @@ class Template extends ViewEngine
      */
     protected function onPostParse($template)
     {
-        foreach ($this->plugins as $pconfig) {
-            $instance = $pconfig['instance'];
-            if (!$instance) {
-                $instance = $this->getPluginInstanceByConfig($pconfig);
+        foreach ($this->plugins as $pname) {
+            if (!key_exists($pname, $this->pluginInstances)) {
+                $this->pluginInstances[$pname] = $this->app->get($pname);
             }
+            $instance =  $this->pluginInstances[$pname];
             $ret = $instance->onPostParse($template);
             if (false !== $ret) {
                 return $ret;
@@ -420,11 +370,11 @@ class Template extends ViewEngine
      */
     protected function onPluginParseCloseTag($tagName)
     {
-        foreach ($this->plugins as $pconfig) {
-            $instance = $pconfig['instance'];
-            if (!$instance) {
-                $instance = $this->getPluginInstanceByConfig($pconfig);
+        foreach ($this->plugins as $pname) {
+            if (!key_exists($pname, $this->pluginInstances)) {
+                $this->pluginInstances[$pname] = $this->app->get($pname);
             }
+            $instance =  $this->pluginInstances[$pname];
             $ret = $instance->onParseCloseTag($tagName);
             if (false !== $ret) {
                 return $ret;
@@ -443,36 +393,30 @@ class Template extends ViewEngine
      */
     protected function onPluginParseTag($tagName, $tagBody, $extra)
     {
-        foreach ($this->plugins as $pconfig) {
-            $instance = $pconfig['instance'];
-            if (!$instance) {
-                $instance = $this->getPluginInstanceByConfig($pconfig);
+        $regex = '/(' .self::REGEXP_VARIABLE . ')/';
+        $tagBody = preg_replace($regex, '{\\1}', $tagBody);
+        $extra = preg_replace($regex, '{\\1}', $extra);
+        switch ($tagName) {
+            case 'template':
+                return $this->parseTemplateTag($tagBody, $extra);
+            case 'date':
+                return $this->parseDateTag($tagBody, $extra);
+            case 'url':
+                return $this->parseUrlTag($tagBody, $extra);
+        }
+        
+        // plugins
+        foreach ($this->plugins as $pname) {
+            if (!key_exists($pname, $this->pluginInstances)) {
+                $this->pluginInstances[$pname] = $this->app->get($pname);
             }
-
-            $ret = $instance->onParseTag($tagName, $tagBody, $extra);
+            $instance =  $this->pluginInstances[$pname];
+            $ret =  $instance->onParseTag($tagName, $tagBody, $extra);
             if (false !== $ret) {
                 return $ret;
             }
         }
         return false;
-    }
-    
-    /**
-     * 根据配置返回插件实例
-     *
-     * @param array $pconfig 配置实例
-     * @return TemplatePluginInterface 实现了Template引擎插件接口IPlugin的实例
-     */
-    protected function getPluginInstanceByConfig($pconfig)
-    {
-        $pluginName = $pconfig['plugin'];
-        if (!class_exists($pluginName)) {
-            throw new ViewException(sprintf('Template Engine: Plugin class:%s is not exists!', $pluginName));
-        }
-        $pluginInstance = new $pluginName();
-        $pluginInstance->setTemplateConfig($this, (array)$pconfig['config']);
-        $this->plugins[$pluginName]['instance'] = $pluginInstance;
-        return $pluginInstance;
     }
     
     /**
@@ -566,14 +510,15 @@ class Template extends ViewEngine
      */
     protected function parseTemplateTag($tagBody, $extra = null)
     {
-        $extra = (bool)$extra ? 'true' : 'false';
-        if (strpos($tagBody, '.') > 0) {
-            $engineInstance = $this->view->getEngineByPath($tagBody);
-            if ($engineInstance instanceof Template) {
-                return sprintf('<? include $this->getCompiledFile("%s", %s); ?>', $tagBody, $extra);
-            }
+        if (!$extra) {
+            $extra = $this->fetchingTemplateId;
         }
-        return sprintf('<? echo $this->view->fetch("%s", [], %s) ?>', $tagBody, $extra);
+        $templateId = $extra  === 'true' ? 'true' : "'" . $extra . "'";
+        
+        if (strpos($tagBody, '$') !== false) {
+            $tagBody =  preg_replace("/(\\$[a-z][a-z0-9_]*(\[(\"|\')?[a-z][\-a-z0-9]*(\"|\')?\])*(>?->[a-z][a-z0-9_]*(\[(\"|\')?[a-z][\-a-z0-9]*(\"|\')?\])*)*)/i", "{\\1}", $tagBody);
+        }
+        return sprintf('<? echo $this->view->fetch("%s", $this->fetchingVariables, %s) ?>', $tagBody, $templateId);
     }
     
     /**

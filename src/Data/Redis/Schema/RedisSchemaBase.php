@@ -110,7 +110,8 @@ abstract class RedisSchemaBase
         }
         
         if ($this->exists() && $this->type() !== $this->schemaType) {
-            throw new RedisSchemaException(sprintf('Failed to create %s from redis: type %s is not %s',$this->type(), $this->schemaType));
+            echo $this->type(), $this->schemaType;
+            throw new RedisSchemaException(sprintf('Failed to create %s from redis: type %s is not %s', $this->type(), $this->schemaType));
         }
     }
 

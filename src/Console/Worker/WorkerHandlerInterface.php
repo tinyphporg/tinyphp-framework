@@ -22,7 +22,17 @@ namespace Tiny\Console\Worker;
  * @final 2020年6月1日下午2:24:20
  */
 interface WorkerHandlerInterface
-{
+{   
+    /**
+     * 派发前检测
+     * 
+     * @param string $controller
+     * @param string $method
+     * @param string $module
+     * @param bool $isMethod
+     */
+    public function onWorkerPreDispatch(string $controller, string $method, string $module = null, bool $isMethod = true);
+    
     /**
      * 进程的执行接口
      * @param string $controller 控制器名
@@ -30,6 +40,6 @@ interface WorkerHandlerInterface
      * @param array $args 参数数组
      * @param $isMethod 是否为单纯的成员函数，否则为动作函数
      */
-    public function onWorkerDispatch($controller, $method, array $args = [], bool $isMethod = true);
+    public function onWorkerDispatch(string $controller, string $method, string $module = null, array $args = [], bool $isMethod = true);
 }
 ?>

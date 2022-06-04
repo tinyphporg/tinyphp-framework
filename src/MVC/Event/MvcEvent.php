@@ -13,10 +13,8 @@
 namespace Tiny\MVC\Event;
 
 use Tiny\Event\Event;
-use Tiny\MVC\Event\Listener\BootstrapEventListener;
-use Tiny\MVC\Event\Listener\RequestEventListener;
-use Tiny\MVC\Event\Listener\RouteEventListener;
-use Tiny\MVC\Event\Listener\DispatchEventListener;
+
+
 /**
  * MVC事件
  *
@@ -25,55 +23,54 @@ use Tiny\MVC\Event\Listener\DispatchEventListener;
  * @final 2022年1月15日上午8:58:45
  */
 class MvcEvent extends Event
-{
-    
+{   
     /**
      * 引导事件
      *
      * @var string
      */
-    const EVENT_BOOTSTRAP = BootstrapEventListener::class;
+    const EVENT_BOOTSTRAP = BootstrapEventListenerInterface::class;
     
     /**
      * 路由初始化事件
      *
      * @var string
      */
-    const EVENT_ROUTER_STARTUP = RouteEventListener::class . '.onRouterStartup';
+    const EVENT_ROUTER_STARTUP = RouteEventListenerInterface::class . '.onRouterStartup';
     
     /**
      * 路由结束事件
      *
      * @var string
      */
-    const EVENT_ROUTER_SHUTDOWN = RouteEventListener::class . '.onRouterShutdown';
+    const EVENT_ROUTER_SHUTDOWN = RouteEventListenerInterface::class . '.onRouterShutdown';
     
     /**
      * 派发前事件
      *
      * @var string
      */
-    const EVENT_PRE_DISPATCH = DispatchEventListener::class . '.onPreDispatch';
+    const EVENT_PRE_DISPATCH = DispatchEventListenerInterface::class . '.onPreDispatch';
     
     /**
      * 派发后事件
      *
      * @var string
      */
-    const EVENT_POST_DISPATCH = DispatchEventListener::class . '.onPostDispatch';
+    const EVENT_POST_DISPATCH = DispatchEventListenerInterface::class . '.onPostDispatch';
     
     /**
      * 请求开始事件
      *
      * @var string
      */
-    const EVENT_BEGIN_REQUEST = RequestEventListener::class . '.onBeginRequest';
+    const EVENT_BEGIN_REQUEST = RequestEventListenerInterface::class . '.onBeginRequest';
     
     /**
      * 请求结束事件
      *
      * @var string
      */
-    const EVENT_END_REQUEST = RequestEventListener::class . '.onEndRequest';
+    const EVENT_END_REQUEST = RequestEventListenerInterface::class . '.onEndRequest';
 }
 ?>

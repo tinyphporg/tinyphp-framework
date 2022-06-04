@@ -50,7 +50,8 @@ class CallableResolver implements DefinitionResolverInterface
      */
     public function resolve(DefinitionInterface $definition, array $parameters = [])
     {
-        return $this->container->call($definition->getCallable());
+        $parameters = array_merge($definition->getParameters(), $parameters);
+        return $this->container->call($definition->getCallable(), $parameters);
     }
     
     /**

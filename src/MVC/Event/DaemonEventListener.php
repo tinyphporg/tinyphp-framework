@@ -10,16 +10,15 @@
  * @Function List function_container
  * @History King 2022年2月4日下午10:14:21 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\MVC\Event\Plugin;
+namespace Tiny\MVC\Event;
 
-use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\Application\ConsoleApplication;
 use Tiny\MVC\Request\ConsoleRequest;
 use Tiny\MVC\Response\ConsoleResponse;
 use Tiny\MVC\Application\Properties;
 use Tiny\MVC\Application\ApplicationException;
-use Tiny\MVC\Event\Listener\RouteEventListener;
+use Tiny\Console\Daemon;
 
 /**
  * 守护进程监听器
@@ -28,7 +27,7 @@ use Tiny\MVC\Event\Listener\RouteEventListener;
  * @since 2022年2月4日下午10:17:22
  * @final 2022年2月4日下午10:17:22
  */
-class Daemon implements RouteEventListener
+class DaemonEventListener implements DispatchEventListenerInterface
 {
     
     /**
@@ -74,57 +73,64 @@ class Daemon implements RouteEventListener
     /**
      *
      * {@inheritdoc}
-     * @see \Tiny\MVC\Event\Listener\RouteEventListener::onRouterStartup()
+     * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterStartup()
      */
-    public function onRouterStartup(MvcEvent $event, array $params)
+    public function onPreDispatch(MvcEvent $event, array $params)
     {
+        $param = $this->request->param;
+        
         // 监听 -d --daemon参数
-        if (!$this->request->param['d'] && !$this->request->param['daemon']) {
+        if (!$param['d'] && !$param['daemon']) {
             return;
         }
-        
-        // daemon action
-        $action = $this->request->param['daemon'] ?: 'start';
-        
+        $daemonAction = $param['daemon'] ?: 'start';
+        foreach ($param as $k => $v) {
+            if (is_int($k) && in_array($v, ['start', 'stop', 'restart'])) {
+                $daemonAction = $v;
+                break;
+            }
+        }
+
         // properties.daemon
         $config = $this->properties['daemon'];
         if (!$config['enabled']) {
             return;
         }
-        
+
         // debug
-        $config['debug'] = $this->app->isDebug;
-        
+        $daemons = (array)$config['daemons'];
+        if (!$daemons) {
+            throw new ApplicationException('daemon init failed!: config.daemons is null or not set', E_ERROR);
+        }
         // properties.daemon.id
-        $id = $this->request->param['id'] ?: $config['id'];
+        $id = $this->request->param['id'] ?: ((string)$config['id'] ?: key($daemons));
         if (!$id) {
             throw new ApplicationException('daemon init failed!: option --id is null or not set', E_ERROR);
         }
-        
-        if (!isset($config['policys'][$id])) {
+        if (!key_exists($id, $daemons)) {
             throw new ApplicationException('daemon init failed!:  option --id:%s in policys is null', E_ERROR);
         }
         
-        // properties.daemon.policys
-        $policy = $config['policys'][$id];
-        $policy['id'] = $id;
-        if (!$policy || !is_array($policy)) {
+        // properties.daemon.config
+        $daemonConfig = $daemons[$id];
+        if (!$daemonConfig || !is_array($daemonConfig)) {
+            return;
+        }
+        $daemonConfig['id'] = $id;
+        
+        $options = [];
+        $options['action'] = $daemonAction;
+        $options['piddir'] = $config['piddir'];
+        $options = array_merge($options, (array)$daemonConfig['options']);
+        
+        $workers = (array)$daemonConfig['workers'];
+        if (!$workers) {
             return;
         }
         
-        $options['action'] = $action;
-        $options['piddir'] = $config['piddir'];
-        $options['logdir'] = $config['logdir'];
-        if (is_array($policy['options'])) {
-            $options = array_merge($options, $policy['options']);
-        }
-        if (is_array($policy['workers'])) {
-            $workers = $policy['workers'];
-        }
-        
         // Daemon
-        $daemonInstance = new \Tiny\Console\Daemon($id, $options);
-        $daemonInstance->addWorkerByConfig($workers, $this->app);
+        $daemonInstance = new Daemon($id, $options);
+        $daemonInstance->addWorkersByConfig($workers, $this->app);
         $daemonInstance->setDaemonHandler($this->app);
         $daemonInstance->run();
         $this->response->end();
@@ -133,9 +139,9 @@ class Daemon implements RouteEventListener
     /**
      *
      * {@inheritdoc}
-     * @see \Tiny\MVC\Event\Listener\RouteEventListener::onRouterShutdown()
+     * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterShutdown()
      */
-    public function onRouterShutdown(MvcEvent $event, array $params)
+    public function onPostDispatch(MvcEvent $event, array $params)
     {
     }
 }

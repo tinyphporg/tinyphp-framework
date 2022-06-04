@@ -21,6 +21,7 @@ use Tiny\MVC\Router\Route\RouteInterface;
 use Tiny\MVC\Router\Route\PathInfo;
 use Tiny\MVC\Router\Route\RewriteUriInterface;
 use Tiny\MVC\Router\Route\RegEx;
+use Tiny\MVC\Router\Route\ModuleRoute;
 
 
 /**
@@ -33,6 +34,26 @@ use Tiny\MVC\Router\Route\RegEx;
  */
 class Router
 {
+    /**
+     * 控制器路由参数名
+     *
+     * @var string
+     */
+    const ROUTE_PARAM_CONTROLLER = 'controller';
+    
+    /**
+     * 动作路由参数名
+     *
+     * @var string
+     */
+    const ROUTE_PARAM_ACTION = 'action';
+    
+    /**
+     * 模块参数名
+     *
+     * @var string
+     */
+    const ROUTE_PARAM_MODULE = 'module';
     
     /**
      * 路由提供者集合
@@ -134,6 +155,7 @@ class Router
         $routeRule['class'] = $this->routeFactoryConfig[$routeNname];
         $routeRule['rule'] = $ruleConfig;
         $this->routeChain[] = $routeRule;
+        //array_unshift($this->routeChain,$routeRule);
         return true;
     }
     
@@ -142,23 +164,22 @@ class Router
      */
     public function route()
     {
+        if ($this->isRouted) {
+            return;
+        }
+        $this->isRouted = true;
+        
+        // routestring
         $routeString = $this->request->getRouteContext();
         if (!$routeString || $routeString === '/') {
             return false;
         }
         
-        $httpRoute = ($this->request instanceof WebRequest) ? $this->factory(HttpRoute::class) : null;
-        foreach ($this->routeChain as $routeConfig) {
-            if ($httpRoute && !$httpRoute->match($this->request, $routeString, $routeConfig['rule'])) {
-                continue;
-            }
-            $route = $this->factory($routeConfig['class']);
-            if ($route->match($this->request, $routeString, $routeConfig['rule'])) {
-                $this->resolveMatchedRoute($route);
-                return $route;
-            }
+        // route match
+        if ($matchedParams = $this->matchRoute($routeString)) {
+            $this->resolveMatchedRoute($matchedParams);
+            return true;
         }
-        return false;
     }
     
     /**
@@ -203,7 +224,6 @@ class Router
         $actionName = (isset($params[$ap])) ? $params[$ap] : $request->getActionName();
         
         // rewrite uri
-       
         if ($isRewrited && $this->matchedRoute && $this->matchedRoute instanceof RewriteUriInterface) {
             
             $rparams = $params;
@@ -221,35 +241,134 @@ class Router
     }
     
     /**
+     * 匹配路由
+     *
+     * @param string $routeString
+     * @return array
+     */
+    protected function matchRoute($routeString)
+    {
+        foreach (array_reverse($this->routeChain) as $routeConfig) {
+            
+            $matchedParams = [];
+            // web application
+            if (!$this->matchHttpRoute($routeString, $routeConfig, $matchedParams)) {
+                continue;
+            }
+            // module
+            $this->matchModuleRoute($routeString, $routeConfig, $matchedParams);
+
+            //match route
+            if ($this->matchRouteConfig($routeString, $routeConfig, $matchedParams)) {
+                return $matchedParams;
+            }
+        }
+    }
+    
+    /**
+     *
+     * @param string $routeString 路由上下文
+     * @param string $routeConfig 路由配置
+     * @param string $matchedParams
+     * @return boolean
+     */
+    protected function matchHttpRoute($routeString, $routeConfig, &$matchedParams)
+    {
+        if (!$this->request instanceof WebRequest) {
+            return true;
+        }
+        
+        // route
+        $httpRoute = $this->factory(HttpRoute::class);
+        if (!$httpRoute->match($this->request, $routeString, $routeConfig['rule'])) {
+            return false;
+        }
+        $matchedParams = array_merge($matchedParams, $httpRoute->getParams());
+        return true;
+        
+    }
+    
+    /**
+     *  获取
+     *
+     * @param string $routeString
+     * @param array $routeConfig
+     * @param array $matchedParams
+     * @return void|RouteInterface
+     */
+    protected function matchRouteConfig($routeString, $routeConfig, &$matchedParams)
+    {
+        $routeClass = (string)$routeConfig['class'];
+        $route = $this->factory($routeClass);
+        if (!$route->match($this->request, $routeString, $routeConfig['rule'])) {
+            return;
+        }
+        $matchedParams = array_merge($matchedParams, $route->getParams());
+        $this->matchedRoute = clone  $route;
+        return true;
+    }
+    
+    /**
+     * 匹配模块
+     *
+     * @param string $routeString 路由上下文
+     * @param string $routeConfig 路由配置
+     * @param string $matchedParams
+     * @return boolean
+     */
+    protected function matchModuleRoute($routeString, $routeConfig, &$matchedParams)
+    {
+        $rule = (array)$routeConfig['rule'];
+        if (!key_exists('module', $rule)) {
+            return true;
+        }
+        $moduleRoute = $this->factory(ModuleRoute::class);
+        if (!$moduleRoute->match($this->request, $routeString, $rule)) {
+           return false;
+        }
+        $matchedParams = array_merge($matchedParams, $moduleRoute->getParams());
+        return true;
+        
+    }
+    
+    /**
      * 解析规则，并注入到当前应用程序的参数中去
      *
      * @param array $params 参数
      * @return void
      */
-    protected function resolveMatchedRoute(RouteInterface $route)
+    protected function resolveMatchedRoute(array $matchedParams = [])
     {
-        $this->matchedRoute = $route;
-        $params = $this->params + $route->getParams();
-        
-        if (key_exists('controller', $params))
+        // controller
+        $cpname = self::ROUTE_PARAM_CONTROLLER;
+        if (key_exists($cpname, $matchedParams))
         {
             $cp = $this->request->getControllerParamName();
-            $params[$cp] = $params['controller'];
-            $this->request->setControllerName($params['controller']);
-            unset($params['controller']);
+            $matchedParams[$cp] = $matchedParams[$cpname];
+            $this->request->setControllerName($matchedParams[$cpname]);
+            unset($matchedParams[$cpname]);
         }
         
-        if (key_exists('action', $params))
+        // action
+        $apname = self::ROUTE_PARAM_ACTION;
+        if (key_exists($apname, $matchedParams))
         {
             $ap = $this->request->getActionParamName();
-            $params[$ap] = $params['action'];
-            $this->request->setActionName($params['action']);
-            unset($params['action']);
+            $matchedParams[$ap] = $matchedParams[$apname];
+            $this->request->setActionName($matchedParams[$apname]);
+            unset($matchedParams[$apname]);
         }
         
-        $this->request->setRouteParam($params);
-        $this->params = $params;
-        return $params;
+        // module
+        $mpname = self::ROUTE_PARAM_MODULE;
+        if (key_exists($mpname, $matchedParams)) {
+            $mp = $this->request->getModuleParamName();
+            $matchedParams[$mp] = $matchedParams[$mpname];
+            $this->request->setModuleName($matchedParams[$mpname]);
+            unset($matchedParams[$mpname]);
+        }
+        $this->request->setRouteParam($matchedParams);
+        $this->params = $matchedParams;
     }
     
     /**
@@ -258,22 +377,22 @@ class Router
      * @param string $routeName 路由器的类名
      * @return RouteInterface
      */
-    protected function factory(string $routeName)
+    protected function factory(string $routeClass)
     {
-        if (key_exists($routeName, $this->routes)) {
-            return $this->routes[$routeName];
+        if (key_exists($routeClass, $this->routes)) {
+            return $this->routes[$routeClass];
         }
         
-        if (!class_exists($routeName)) {
-            throw new RouterException(sprintf('router driver:%s is not exists!', $routeName));
+        if (!class_exists($routeClass)) {
+            throw new RouterException(sprintf('router driver:%s is not exists!', $routeClass));
         }
         
-        $routerInstance = new $routeName();
+        $routerInstance = new $routeClass();
         if (!$routerInstance instanceof RouteInterface) {
-            throw new RouterException(sprintf('router driver:%s is not instanceof Tiny\MVC\Router\RouterInterface', $routeName));
+            throw new RouterException(sprintf('router driver:%s is not instanceof Tiny\MVC\Router\RouterInterface', $routeClass));
         }
         
-        $this->routes[$routeName] = $routerInstance;
+        $this->routes[$routeClass] = $routerInstance;
         return $routerInstance;
     }
 }

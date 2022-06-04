@@ -16,7 +16,7 @@ namespace Tiny\MVC\View\Helper;
 
 use Tiny\MVC\View\View;
 use Tiny\MVC\View\ViewException;
-use Tiny\MVC\View\ViewHelperInterface;
+use Tiny\MVC\View\Helper\ViewHelperInterface;
 
 /**
  * 视图助手的工具类 根据属性名检索视图层的所有助手并返回实例
@@ -50,17 +50,6 @@ class HelperList implements ViewHelperInterface, \ArrayAccess
      * @var array
      */
     protected $config;
-
-    /**
-     * 设置View实例
-     *
-     * @param View $view
-     */
-    public function setViewHelperConfig(View $view, array $config)
-    {
-        $this->view = $view;
-        $this->config = $config;
-    }
 
     /**
      * 检测作为视图实例的属性的名称

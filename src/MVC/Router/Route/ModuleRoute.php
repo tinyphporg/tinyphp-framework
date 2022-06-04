@@ -22,7 +22,7 @@ use Tiny\MVC\Request\WebRequest;
  * @since 2022年1月9日上午8:30:59
  * @final 2022年1月9日上午8:30:59
  */
-class HttpRoute implements RouteInterface
+class ModuleRoute implements RouteInterface
 {
     
     /**
@@ -37,7 +37,7 @@ class HttpRoute implements RouteInterface
      *
      * @var array
      */
-    protected $params = [];
+    protected $params;
     
     /**
      *
@@ -46,14 +46,23 @@ class HttpRoute implements RouteInterface
      */
     public function match(Request $request, string $routeString, array $routeRule = [])
     {
-        if (!$request instanceof WebRequest) {
-            return false;
+        $this->params = [];
+        $modules = $routeRule['module'];
+        
+        // string
+        if (!is_array($modules)) {
+            $this->params['module'] = $modules;
+            return true;
         }
-        $this->request = $request;
-        if (!$this->matcheDomain($routeRule)) {
-            return false;
+        
+        // match module regex
+        foreach ($modules as $module) {
+            if ($matchValue = $this->matchModuleRule($routeString, (string)$module['regex'], (string)$module['value'])){
+                $this->params['module'] = $matchValue;
+                return true;
+            }
         }
-        return true;
+        return false;
     }
     
     /**
@@ -72,34 +81,23 @@ class HttpRoute implements RouteInterface
      * @param string $domain
      * @return string
      */
-    protected function matcheDomain(array $routeRule)
+    protected function matchModuleRule($routeString, $regex, $value)
     {
-        
-        // match domain
-        if (!key_exists('domain', $routeRule)) {
-            return true;
+        if (!$regex || !$value) {
+            return false;
         }
         
-        $routeDomain = $routeRule['domain'];
-        if (!is_array($routeDomain)) {
-            $routeDomain = [
-                (string)$routeDomain
-            ];
+        $matchs = [];
+        if (!preg_match($regex, $routeString, $matchs)) { 
+            return false;
         }
-        
-        $domain = $this->request->host;
-        if (!$routeDomain) {
-            return true;
+        if (false === strpos($value, '$')) {
+            return $value;
         }
-        foreach ($routeDomain as $rd) {
-            // @formatter:off
-            $rd = preg_replace(['/\./', '/[\*]+/', '/\?/'], ['\.', '.*', '.{1}'], $rd);
-            // @formatter:on
-            if (preg_match('/^' . $rd . '$/i', $domain)) {
-                return true;
-            }
-        }
-        return false;
+        return preg_replace_callback('/\$([0-9]+)/', function($ms) use ($matchs){
+                    $index = $ms[1];
+                    return (key_exists($index, $matchs)) ? $matchs[$index] : $ms[0];
+        }, $value);
     }
 }
 ?>

@@ -37,14 +37,22 @@ class CallableDefinition implements DefinitionInterface
     protected $name;
     
     /**
+     * 附加参数
+     * 
+     * @var array
+     */
+    protected $parameters = [];
+    
+    /**
      *
      * @param string $name
      * @param callable $value
      */
-    public function __construct($name, callable $callable)
+    public function __construct(string $name, callable $callable, array $parameters = [])
     {
-        $this->name = $name;
+        $this->name = (string)$name;
         $this->callable = $callable;
+        $this->parameters = $parameters;
     }
     
     /**
@@ -65,6 +73,35 @@ class CallableDefinition implements DefinitionInterface
     public function setName(string $name)
     {
         $this->name = $name;
+    }
+    
+    /**
+     * 获取回调函数的参数
+     * 
+     * @return array
+     */
+    public function getParameters()
+    {
+        return $this->parameters;
+    }
+    
+    /**
+     * 设置回调函数的参数
+     * 
+     */
+    public function setParameters(array $parameters)
+    {
+        $this->parameters = $parameters;      
+    }
+    
+    /**
+     * 设置实例的回调函数
+     * 
+     * @param callable $callable
+     */
+    public function setCallable(callable $callable)
+    {
+        $this->callable = $callable;
     }
     
     /**

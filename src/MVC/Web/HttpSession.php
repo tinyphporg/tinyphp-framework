@@ -188,28 +188,11 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      */
     public function __construct(array $config = [])
     {
+        // parse config
         if ($config['enabled']) {
-            
-            // session cookie params
-            $domain = (string)$config['domain'] ?: '';
-            $expires = intval($config['expires']);
-            $path = $config['path'] ?: '/';
-            session_set_cookie_params($expires, $path, $domain);
-            
-            // adpater
-            $adapter = (string)$config['adapter'];
-            if (!$config['adapter']) {
-                throw new SessionException('Initialization failed, profile.session.adapter is required!');
-            }
-            if (!key_exists($adapter, self::$sessionAdapterMap)) {
-                throw new SessionException(sprintf("Initialization failed, %s is not registered ", $adapter));
-            }
-            $config['class'] = self::$sessionAdapterMap[$adapter];
-            $this->config = $config;
-            session_set_save_handler($this, true);
+            $this->config = $this->parseConfig($config);
         }
         session_start();
-       
     }
     
     /**
@@ -329,6 +312,35 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
         unset($_SESSION[$key]);
     }
     
+    /**
+     * 解析配置
+     * 
+     * @param array $config
+     */
+    protected function parseConfig(array $config)
+    {
+        // cookie
+        $domain = (string)$config['domain'] ?: '';
+        $expires = intval($config['expires']);
+        $path = $config['path'] ?: '/';
+        session_set_cookie_params($expires, $path, $domain);
+        
+        // adpater
+        $adapter = (string)$config['adapter'];
+        if (!$config['adapter']) {
+            throw new SessionException('Initialization failed, profile.session.adapter is required!');
+        }
+        
+        //
+        if (!key_exists($adapter, self::$sessionAdapterMap)) {
+            throw new SessionException(sprintf("Initialization failed, %s is not registered ", $adapter));
+        }
+        
+        // class
+        $config['class'] = self::$sessionAdapterMap[$adapter];
+        session_set_save_handler($this, true);
+        return $config;
+    }
     /**
      * 获取实例
      *

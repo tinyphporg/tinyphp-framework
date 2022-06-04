@@ -27,15 +27,6 @@ use Tiny\MVC\View\Engine\Template;
 interface TemplatePluginInterface
 {    
     /**
-     * 设置插件的初始化参数
-     * 
-     * @param Template $template
-     * @param array $config
-     * @return boolean
-     */
-    public function setTemplateConfig(Template $template, array $config);
-    
-    /**
      * 解析前发生
      *
      * @param string $template 解析前的模板字符串

@@ -16,6 +16,7 @@ namespace Tiny\MVC\Request;
 
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\Runtime\Param\Readonly;
+use Tiny\MVC\Application\Properties;
 
 /**
  * 请求体基类
@@ -84,6 +85,27 @@ abstract class Request
     protected $actionParamName = 'a';
     
     /**
+     * 默认模块
+     * 
+     * @var string
+     */
+    protected $moduleName = '';
+    
+    /**
+     * 默认模块的参数名
+     * 
+     * @var string
+     */
+    protected $moduleParamName = 'm';
+    
+    /**
+     * 控制器的命名空间
+     * 
+     * @var string
+     */
+    protected $controllerNamespace;
+    
+    /**
      * 供路由的上下文
      *
      * @var string
@@ -98,6 +120,9 @@ abstract class Request
     public function __construct(ApplicationBase $app)
     {
         $this->application = $app;
+        if (!key_exists('argv', $_SERVER)) {
+            $_SERVER['argv'] = [];
+        }
         $this->server = new Readonly($_SERVER);
         unset($_SERVER);
         $this->param = new Readonly();
@@ -174,6 +199,79 @@ abstract class Request
     public function getControllerParamName(): string
     {
         return $this->controllerParamName;
+    }
+    
+    /**
+     * 设置动作名称
+     *
+     * @param string $mname 动作名称
+     */
+    public function setModuleName(string $mname)
+    {
+        if (!$mname) {
+            return;
+        }
+        $this->moduleName = $mname;
+    }
+    
+    /**
+     * 获取动作名称
+     *
+     * @return string
+     */
+    public function getModuleName(): string
+    {
+        return $this->moduleName;
+    }
+    
+    /**
+     * 设置控制器输入的参数名称
+     *
+     * @param string $pname 控制器参数名
+     */
+    public function setModuleParamName(string $pname)
+    {
+        if (!$pname) {
+            return;
+        }
+        
+        $this->moduleParamName = $pname;
+        if ($this->param[$pname]) {
+            $this->setModuleName($this->param[$pname]);
+        }
+    }
+    
+    /**
+     * 获取控制器的命名空间
+     * 
+     * @return string
+     */
+    public function getControllerNamespace()
+    {
+        return $this->controllerNamespace;
+    }
+    
+    /**
+     * 设置控制器的命名空间
+     * 
+     * @param string $namespace
+     */
+    public function setControllerNamespace(string $namespace)
+    {
+        if (!$namespace) {
+            return;
+        }
+        $this->controllerNamespace = $namespace;
+    }
+    
+    /**
+     * 获取控制器输入的参数名
+     *
+     * @return string 控制器参数名称
+     */
+    public function getModuleParamName(): string
+    {
+        return $this->moduleParamName;
     }
     
     /**

@@ -168,6 +168,7 @@ class Lang implements \ArrayAccess
         if (!$this->config) {
             $this->config = new Configuration($this->path);
         }
+
         return $this->config;
     }
 }

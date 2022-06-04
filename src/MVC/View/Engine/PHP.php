@@ -32,9 +32,9 @@ class PHP extends ViewEngine
      * @throws ViewException
      * @return string
      */
-    public function getCompiledFile($tpath, $isAbsolute = false)
+    public function getCompiledFile($tpath, $templateId = null)
     {
-        $tfile  = $this->getTemplateRealPath($tpath, $isAbsolute);
+        $tfile  = $this->getTemplateRealPath($tpath, $templateId);
         if (!$tfile)
         {
             throw new ViewException(sprintf("viewer error: file %s is not a file", $tfile));

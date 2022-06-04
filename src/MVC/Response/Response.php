@@ -16,6 +16,7 @@ namespace Tiny\MVC\Response;
 
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\Config\Configuration;
+use Tiny\Lang\Lang;
 
 /**
  * 响应基类
@@ -148,10 +149,9 @@ abstract class Response
      */
     public function outFormatJSON($status = 0, ...$param)
     {
-        $this->application->isDebug = false;
-        
+      $this->application->isDebug = false;
         if (!$this->formatJSONConfig) {
-            $config = $this->application->container->get('lang');
+            $config = $this->application->get(Lang::class);
             $configId = $this->application->properies['response']['formatJsonConfigId'] ?: 'status';
             $this->formatJSONConfig = $config->translate($configId);
         }
@@ -167,7 +167,6 @@ abstract class Response
             
             $msg = sprintf($msg, ...$param);
         }
-        
         $this->write(json_encode([
             'status' => $status,
             'msg' => $msg,

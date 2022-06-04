@@ -20,6 +20,8 @@ use Tiny\Cache\Storager\File;
 use Tiny\Cache\Storager\Memcached;
 use Tiny\Cache\Storager\Redis;
 use Tiny\Cache\Storager\PHP;
+use Tiny\Cache\Storager\CacheStorager;
+use Tiny\Cache\Storager\SingleCache;
 
 /**
  * Cache管理 mvc
@@ -40,7 +42,8 @@ class Cache implements CacheInterface, \ArrayAccess
         'file' => File::class,
         'memcached' => Memcached::class,
         'redis' => Redis::class,
-        'php' => PHP::class
+        'php' => PHP::class,
+        'singlephp' => SingleCache::class
     ];
     
     /**
@@ -70,7 +73,7 @@ class Cache implements CacheInterface, \ArrayAccess
      * @var array
      */
     protected $storagers = [];
-    
+
     /**
      * 注册缓存适配器
      *
@@ -94,9 +97,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public static function getStoragerId(string $storagerClass)
     {
-        if ($storagerId = array_search($storagerClass, self::$storagerMap)) {
-            return $storagerId;
-        }
+        return array_search($storagerClass, self::$storagerMap);
     }
     
     /**
@@ -200,15 +201,34 @@ class Cache implements CacheInterface, \ArrayAccess
     }
     
     /**
+     *  根据存储器类获取存储实例
+     *  
+     * @param string $className
+     * @throws CacheException
+     * @return \Tiny\Cache\CacheInterface
+     */
+    public function getStoragerByClass(string $className) 
+    {
+        if (!$className) {
+            throw new CacheException('Unable to get cache storager:storage classname is empty!');
+        }
+        $cacheId = array_search($className, array_column($this->storagers, 'storagerClass', 'cacheId'));
+        if (!$cacheId) {
+            throw new CacheException('Unable to get cache storager:storage classname is not exists!');
+        }
+        return $this->getStoragerById($cacheId);
+    }
+    
+    /**
      * 根据Cache ID获取一个缓存实例
      *
      * @param string $id storageid
      * @return CacheInterface
      */
-    public function getStoragerByCacheId(?string $cacheId = null)
+    public function getStoragerById(string $cacheId = null)
     {
         if (!$this->storagers) {
-            throw new CacheException('Unable to get cache storager:storage array is empty!');
+            throw new CacheException('Unable to get cache storager:storager array is empty!');
         }
         
         $cacheId = $cacheId ?: $this->defaultId;
@@ -242,7 +262,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function get(string $key, $default = null)
     {
-        return $this->getStoragerByCacheId()->get($key, $default);
+        return $this->getStoragerById()->get($key, $default);
     }
     
     /**
@@ -256,7 +276,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function set(string $key, $value = null, int $ttl = 0)
     {
-        return $this->getStoragerByCacheId()->set($key, $value, $ttl);
+        return $this->getStoragerById()->set($key, $value, $ttl);
     }
     
     /**
@@ -268,7 +288,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function delete($key)
     {
-        return $this->getStoragerByCacheId()->delete($key);
+        return $this->getStoragerById()->delete($key);
     }
     
     /**
@@ -278,7 +298,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function clear()
     {
-        return $this->getStoragerByCacheId()->clear();
+        return $this->getStoragerById()->clear();
     }
     
     /**
@@ -291,7 +311,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function getMultiple(array $keys, $default = null)
     {
-        return $this->getStoragerByCacheId()->getMultiple($keys, $default);
+        return $this->getStoragerById()->getMultiple($keys, $default);
     }
     
     /**
@@ -305,7 +325,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function setMultiple(array $values, int $ttl = 0)
     {
-        return $this->getStoragerByCacheId()->setMultiple($values, $ttl);
+        return $this->getStoragerById()->setMultiple($values, $ttl);
     }
     
     /**
@@ -329,7 +349,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function has($key)
     {
-        return $this->getStoragerByCacheId()->has($key);
+        return $this->getStoragerById()->has($key);
     }
     
     /**
@@ -350,7 +370,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function offsetGet($cacheId)
     {
-        return $this->getStoragerByCacheId($cacheId);
+        return $this->getStoragerById($cacheId);
     }
     
     /**
@@ -383,7 +403,7 @@ class Cache implements CacheInterface, \ArrayAccess
      */
     public function __get($cacheId)
     {
-        return $this->getStoragerByCacheId($cacheId);
+        return $this->getStoragerById($cacheId);
     }
     
     /**
@@ -397,5 +417,4 @@ class Cache implements CacheInterface, \ArrayAccess
         throw new CacheException('It is not permitted to set this property. ');
     }
 }
-
 ?>

@@ -27,7 +27,12 @@ use Tiny\Data\Redis\Schema\RedisSchemaBase;
  */
 class SortSet extends RedisSchemaBase
 {
-    
+    /**
+     * 数据类型
+     * 
+     * @var int
+     */
+    protected $schemaType = self::SCHEMA_TYPE_ZSET;
     /**
      * 添加值到集合中
      *

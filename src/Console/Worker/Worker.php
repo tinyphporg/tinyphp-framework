@@ -24,7 +24,7 @@ namespace Tiny\Console\Worker;
  * @since 2020年6月1日下午2:23:37
  * @final 2020年6月1日下午2:23:37
  */
-class Worker extends Base
+class Worker extends WorkerBase
 {
     
     /**
@@ -56,17 +56,14 @@ class Worker extends Base
      * worker运行
      *
      * {@inheritdoc}
-     * @see \Tiny\Console\Worker\Base::run()
+     * @see \Tiny\Console\Worker\WorkerBase::run()
      */
     public function run()
     {
-        if (!$this->handler) {
-            return;
-        }
         for ($i = $this->runmax; $i > 0; $i--) {
             if (!$this->daemonIsRunning()) {
                 break;
-            }
+            }       
             $this->dispatch();
             usleep($this->tick * 1000);
         }
@@ -79,11 +76,16 @@ class Worker extends Base
      */
     protected function formatWorkerOptions(array $options)
     {
-        if (isset($options['runmax']) && intval($options['runmax']) > 0) {
-            $this->runmax = (int)$options['runmax'];
+        // 最大运行次数
+        $runmax = (int)$options['runmax'];
+        if ($runmax > 0) {
+            $this->runmax = $runmax;
         }
-        if (isset($options['tick']) && floatval($options['tick']) > 0) {
-            $this->tick = intval($options['tick'] * 1000);
+        
+        // 时间间隔
+        $tick = (float)$options['tick'];
+        if ($tick > 0) {
+            $this->tick = $tick;
         }
     }
 }

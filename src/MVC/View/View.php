@@ -26,6 +26,14 @@ use Tiny\MVC\View\Engine\Template;
 use Tiny\MVC\View\Engine\Markdown;
 use Tiny\MVC\View\Helper\HelperList;
 use Tiny\MVC\View\Engine\ViewEngineInterface;
+use Tiny\MVC\View\Helper\ViewHelperInterface;
+use Tiny\DI\Definition\Provider\DefinitionProviderInterface;
+use Tiny\DI\Definition\ObjectDefinition;
+use Tiny\Event\Event;
+use Tiny\DI\Container;
+use Tiny\DI\ContainerInterface;
+use Tiny\DI\Definition\DefinitionInterface;
+use Tiny\MVC\Module\Module;
 
 /**
  * 视图层
@@ -34,7 +42,7 @@ use Tiny\MVC\View\Engine\ViewEngineInterface;
  * @since : Mon Dec 12 01:15 51 CST 2011
  * @final : Mon Dec 12 01:15 51 CST 2011
  */
-class View implements \ArrayAccess
+class View implements \ArrayAccess, DefinitionProviderInterface
 {
     
     /**
@@ -53,10 +61,10 @@ class View implements \ArrayAccess
      *      @formatter:off
      */
     protected $engines = [
-        PHP::class => ['ext' => ['php'], 'config' => [], 'instance' => null],
-        Smarty::class => ['ext' => ['tpl'], 'config' => [], 'instance' => null],
-        Template::class => ['ext' => ['htm', 'html'], 'config' => [], 'instance' => null],
-        Markdown::class => [ 'ext' => [ 'md'], 'config' => [],  'instance' => null]
+        PHP::class => ['ext' => ['php'], 'config' => [], 'plugins' => []],
+        Smarty::class => ['ext' => ['tpl'], 'config' => [], 'plugins' => []],
+        Template::class => ['ext' => ['htm', 'html'], 'config' => [], 'plugins' => []],
+        Markdown::class => [ 'ext' => [ 'md'], 'config' => [], 'plugins' => []]
     ];
 
     /**
@@ -64,8 +72,14 @@ class View implements \ArrayAccess
      * 
      * @var array
      */
-    protected $helpers = [HelperList::class => ['config' => [], 'instance' => null]];
+    protected $helpers = [HelperList::class => []];
     
+    /**
+     * 引擎实例数组
+     * 
+     * @var array
+     */
+    protected $engineInstances = [];
     /**
      * 视图层预设的值
      *
@@ -75,25 +89,18 @@ class View implements \ArrayAccess
     protected $variables = [];
     
     /**
-     * 各种视图引擎配置
+     * 模板文件夹
      *
      * @var array
      */
-    protected $viewConfig = [];
-    
-    /**
-     * 模板文件夹
-     *
-     * @var string|array
-     */
-    protected $templateDir = '';
+    protected $templateDirs = [];
     
     /**
      * 模板编译存放文件夹
      *
      * @var string
      */
-    protected $compileDir = '';
+    protected $compileDir;
     
     /**
      * 已解析的模板文件列表
@@ -103,25 +110,18 @@ class View implements \ArrayAccess
     protected $templateList = [];
     
     /**
-     * 是否开启模板缓存
+     * 容器实例
      *
-     * @var boolean
+     * @var Container
      */
-    protected $cacheEnabled = false;
+    protected $container;
     
     /**
-     * 模板缓存路径
-     *
-     * @var string
+     * 容器定义数组
+     * 
+     * @var array
      */
-    protected $cacheDir;
-    
-    /**
-     * 模板缓存时间
-     *
-     * @var integer
-     */
-    protected $cacheTtl = 120;
+    protected $definitions = [];
     
     /**
      * 初始化视图层
@@ -129,6 +129,7 @@ class View implements \ArrayAccess
     public function __construct(ApplicationBase $app)
     {
         $this->app = $app;
+        $this->container = $app->container;
         $this->variables = [
             'request' => $app->request,
             'response' => $app->response,
@@ -136,6 +137,42 @@ class View implements \ArrayAccess
         ];
     }
     
+    /**
+     *
+     * @param string $name
+     */
+    public function getDefinition(string $name)
+    {
+        if (key_exists($name, $this->engines)) {
+            $engineConfig = $this->engines[$name];
+            $engineConfig['plugins'] = $this->formatEnginePlugins($engineConfig['plugins']);
+            return new ObjectDefinition($name, $name, $engineConfig);
+        }
+        
+        if (key_exists($name, $this->helpers)) {
+            return new ObjectDefinition($name, $name, [
+                'config' =>  (array)$this->helpers[$name]
+            ]);
+        }
+        if (key_exists($name, $this->definitions)) {
+            return $this->definitions[$name];
+        }
+    }
+    
+    /**
+     * 设置容器定义
+     *
+     * @param string $name
+     * @param DefinitionInterface $definition
+     */
+    public function setDefinition(string $name, DefinitionInterface $definition)
+    {
+        if (key_exists($name, $this->definitions)) {
+            throw new ViewException(sprintf("%s is exists in definitions arraylist!", $name));
+        }
+        $this->definitions[$name] = $definition;
+    }
+
     /**
      * 通过扩展名绑定视图处理引擎
      *
@@ -153,33 +190,27 @@ class View implements \ArrayAccess
             return false;
         }
         
-        $engineName = $engineConfig['engine'];
-        $config = (array)$engineConfig['config'] ?: [];
-        $ext = is_array($engineConfig['ext']) ? $engineConfig['ext'] : [
+        $engineName = (string)$engineConfig['engine'];
+        $config = (array)$engineConfig['config'];
+        $plugins = (array)$engineConfig['plugins'];
+        $exts = is_array($engineConfig['ext']) ? $engineConfig['ext'] : [
             (string)$engineConfig['ext']
         ];
-        $ext = array_map('strtolower', $ext);
-       
+        $exts = array_map('strtolower', $exts);
+        
         // 不存在新建
         if (!key_exists($engineName, $this->engines)) {
             // @formatter:off
-            $this->engines[$engineName] = ['engine' => $engineName, 'config' => $config, 'ext' => $ext, 'instance' => null];
+            $this->engines[$engineName] = ['config' => $config, 'ext' => $exts, 'plugins' => $plugins];
             // @formatter:on
             return true;
         }
         
         // 存在类似配置 则合并
         $enginePolicy = &$this->engines[$engineName];
-        $enginePolicy['config'] = array_merge($enginePolicy['config'], $config);
-        $enginePolicy['ext'] = array_merge($enginePolicy['ext'], $ext);
-        
-        // 补全
-        if (!isset($enginePolicy['engine'])) {
-            $enginePolicy['engine'] = $engineName;
-        }
-        if (!isset($enginePolicy['instance'])) {
-            $enginePolicy['instance'] = null;
-        }
+        $enginePolicy['config'] = array_merge_recursive($enginePolicy['config'], $config);
+        $enginePolicy['plugins'] = array_merge_recursive($enginePolicy['plugins'], $plugins);
+        $enginePolicy['ext'] = array_merge($enginePolicy['ext'], $exts);
         return true;
     }
     
@@ -205,23 +236,12 @@ class View implements \ArrayAccess
         
         // 不存在新建
         if (!key_exists($helperName, $this->helpers)) {
-            $this->helpers[$helperName] = [
-                'helper' => $helperName,
-                'config' => $config,
-                'instance' => null
-            ];
+            $this->helpers[$helperName] = $config;
             return true;
         }
         
         // 存在则合并
-        $helperPolicy = &$this->helpers[$helperName];
-        $helperPolicy['config'] = array_merge($helperPolicy['config'], $config);
-        if (!isset($helperPolicy['helper'])) {
-            $helperPolicy['helper'] = $helperName;
-        }
-        if (!isset($helperPolicy['instance'])) {
-            $helperPolicy['instance'] = null;
-        }
+        $this->helpers[$helperName] = array_merge($this->helpers[$helperName], $config);
         return true;
     }
     
@@ -247,7 +267,7 @@ class View implements \ArrayAccess
      */
     public function getTemplateDir()
     {
-        return $this->templateDir;
+        return $this->templateDirs;
     }
     
     /**
@@ -274,7 +294,6 @@ class View implements \ArrayAccess
             $templatePath,
             $templateRealPath,
             get_class($engineInstance),
-            $engineInstance
         ];
     }
     
@@ -286,8 +305,27 @@ class View implements \ArrayAccess
      */
     public function setTemplateDir($path)
     {
-        $this->templateDir = $path;
+        $this->templateDirs = is_array($path) ? $path : [(string)$path];
+        foreach($this->engineInstances as $enginsInstance) {
+            $enginsInstance->setTemplateDir($this->templateDirs);
+        }
         return $this;
+    }
+    
+    /**
+     * 添加模板文件夹
+     * 
+     * @param string $path
+     * @param string $templateId
+     */
+    public function addTemplateDir(string $path, string $templateId = null) {
+        if ($templateId !== null) {
+            $this->templateDirs[$templateId] = $path;
+        }
+        $this->templateDirs[] = $path;
+        foreach($this->engineInstances as $enginsInstance) {
+            $enginsInstance->setTemplateDir($this->templateDirs);
+        }
     }
     
     /**
@@ -299,6 +337,9 @@ class View implements \ArrayAccess
     public function setCompileDir($path)
     {
         $this->compileDir = $path;
+        foreach($this->engineInstances as $enginsInstance) {
+            $enginsInstance->setCompileDir($this->compileDir);
+        }
         return $this;
     }
     
@@ -317,7 +358,7 @@ class View implements \ArrayAccess
      *
      * @return array
      */
-    public function getAssigns()
+    public function getVariables()
     {
         return $this->variables;
     }
@@ -335,6 +376,9 @@ class View implements \ArrayAccess
         } else {
             $this->variables[$key] = $value;
         }
+        foreach($this->engineInstances as $enginsInstance) {
+            $enginsInstance->assign($this->variables);
+        }
         return $this;
     }
     
@@ -346,9 +390,9 @@ class View implements \ArrayAccess
      * @param boolean $isAbsolute 模板路径是否为绝对路径
      * @return void
      */
-    public function display($tpath, $assign = false, $isAbsolute = false)
+    public function display($tpath, $assign = false,  $templateId = null)
     {
-        $content = $this->getEngineByPath($tpath)->fetch($tpath, $assign, $isAbsolute);
+        $content = $this->getEngineByPath($tpath)->fetch($tpath, $assign, $templateId);
         $this->app->response->appendBody($content);
     }
     
@@ -360,9 +404,9 @@ class View implements \ArrayAccess
      * @param boolean $isAbsolute 是否为绝对的模板路径
      * @return string
      */
-    public function fetch($tpath, $assign = false, $isAbsolute = false)
+    public function fetch($tpath, $assign = false, $templateId = null)
     {
-        return $this->getEngineByPath($tpath)->fetch($tpath, $assign, $isAbsolute);
+        return $this->getEngineByPath($tpath)->fetch($tpath, $assign, $templateId);
     }
     
     /**
@@ -428,25 +472,6 @@ class View implements \ArrayAccess
     }
     
     /**
-     * 设置模板缓存
-     *
-     * @param string $cacheDir 模板缓存存放文件夹
-     * @param int $cacheTtl 模板缓存时间 <=0时不开启cache >0时开启缓存
-     * @return boolean 是否开启
-     */
-    public function setCache($cacheDir, int $cacheTtl = 120)
-    {
-        if ($cacheTtl <= 0) {
-            return $this->clearCache();
-        }
-        
-        $this->cacheLifetime = $cacheTtl;
-        $this->cacheDir = $cacheDir;
-        $this->cacheEnabled = true;
-        return true;
-    }
-    
-    /**
      * 惰性加载 视图助手的实例作为视图层的成员变量
      *
      * @param string $helperName 助手类名
@@ -462,11 +487,36 @@ class View implements \ArrayAccess
         // 获取助手实例
         $helperInstance = $this->getMatchedHelper($helperName);
         if (!$helperInstance) {
-            throw new ViewException('该变量不存在，或不是实现了IHelper接口的视图助手实例');
+            throw new ViewException(sprintf('该变量%s不存在，或不是实现了IHelper接口的视图助手实例', $helperName));
         }
         
         $this->{$helperName} = $helperInstance;
         return $helperInstance;
+    }
+    
+    /**
+     * 格式化配置数组
+     * @param array $plugins
+     * @return string[]
+     */
+    protected function formatEnginePlugins(array $plugins)
+    {
+        $fplugins = [];
+        foreach ($plugins as $pconfig) { 
+            if (!key_exists('plugin', $pconfig) || !is_string($pconfig['plugin'])) {
+                continue;
+            }
+            $pluginName = (string)$pconfig['plugin'];
+            if (in_array($pluginName, $fplugins)) {
+                continue;
+            }
+            $config = (array)$pconfig['config'];
+            $fplugins[] = $pluginName;
+            $this->setDefinition($pluginName, new ObjectDefinition($pluginName, $pluginName, [
+                'config' => $config
+            ]));
+        }
+        return $fplugins;
     }
     
     /**
@@ -516,9 +566,6 @@ class View implements \ArrayAccess
             throw new ViewException(sprintf('class "%s" is not instanceof \Tiny\MVC\View\Helper\IHelper', $helperName));
         }
         $hconfig['instance'] = $helperInstance;
-        
-        // 注入视图实例和配置
-        $helperInstance->setViewHelperConfig($this, $hconfig['config']);
         return $helperInstance;
     }
     
@@ -552,50 +599,24 @@ class View implements \ArrayAccess
      */
     protected function getEngineInstanceByConfig($econfig)
     {
-        if ($econfig['instance']) {
-            // 每次调用视图引擎实例 刷新注入的视图变量
-            $econfig['instance']->assign($this->variables);
-            return $econfig['instance'];
-        }
-        
         $engineName = (string)$econfig['engine'];
-        if (!class_exists($engineName)) {
-            throw new ViewException(sprintf('class "%s" is not exists', $engineName));
+        if (key_exists($engineName, $this->engineInstances)) {
+            return $this->engineInstances[$engineName];
         }
         
-        // 注入视图实例和引擎配置数组
-        $engineInstance = new $engineName();
-        $engineInstance->setViewEngineConfig($this, $econfig['config']);
+        $engineInstance = $this->container->get($engineName);
         if (!$engineInstance instanceof ViewEngineInterface) {
             throw new ViewException(sprintf('class "%s" is not instanceof \Tiny\MVC\View\Engine\IEngine', $engineName));
         }
         
         // 设置初始化的路径参数
-        $engineInstance->setTemplateDir($this->templateDir);
+        $engineInstance->setTemplateDir($this->templateDirs);
         $engineInstance->setCompileDir($this->compileDir);
-        
-        // 设置是否缓存
-        if ($this->cacheEnabled) {
-            $engineInstance->setCache($this->cacheDir, $this->cacheLifetime);
-        }
         
         // 注入预设变量
         $engineInstance->assign($this->variables);
-        $this->engines[$engineName]['instance'] = $engineInstance;
+        $this->engineInstances[$engineName] = $engineInstance;
         return $engineInstance;
-    }
-    
-    /**
-     * 清空缓存参数
-     *
-     * @return boolean
-     */
-    protected function clearCache()
-    {
-        $this->cacheEnabled = false;
-        $this->cacheLifetime = 0;
-        $this->cacheDir = '';
-        return $this->cacheEnabled;
     }
 }
 ?>

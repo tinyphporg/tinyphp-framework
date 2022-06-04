@@ -10,9 +10,8 @@
  * @Function List function_container
  * @History King 2022年2月1日下午1:55:05 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\MVC\Event\Plugin;
+namespace Tiny\MVC\Event;
 
-use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\View\View;
 use Tiny\Runtime\Runtime;
@@ -21,12 +20,11 @@ use Tiny\MVC\Router\Router;
 use Tiny\MVC\Application\ConsoleApplication;
 use Tiny\MVC\Controller\Dispatcher;
 use Tiny\Runtime\ExceptionHandler;
-use Tiny\MVC\Event\Listener\DispatchEventListener;
-use Tiny\MVC\Event\Listener\RouteEventListener;
 use Tiny\MVC\Request\Request;
 use Tiny\MVC\Response\Response;
 
-class Debug implements RouteEventListener, DispatchEventListener
+
+class DebugEventListener implements RequestEventListenerInterface, RouteEventListenerInterface
 {
     
     /**
@@ -93,15 +91,10 @@ class Debug implements RouteEventListener, DispatchEventListener
      * @param Dispatcher $dispatcher
      * @param ExceptionHandler $exceptionHandler
      */
-    public function __construct(ApplicationBase $app, Runtime $runtime, Router $router, View $view, Dispatcher $dispatcher, ExceptionHandler $exceptionHandler)
+    public function __construct(ApplicationBase $app, Runtime $runtime, ExceptionHandler $exceptionHandler)
     {
         $this->app = $app;
-        $this->request = $app->request;
-        $this->response = $app->response;
         $this->runtime = $runtime;
-        $this->view = $view;
-        $this->router = $router;
-        $this->dispatcher = $dispatcher;
         $this->exceptionHandler = $exceptionHandler;
         $this->viewDir = TINY_FRAMEWORK_RESOURCE_PATH . 'mvc/view/debug/';
     }
@@ -109,7 +102,7 @@ class Debug implements RouteEventListener, DispatchEventListener
     /**
      *
      * {@inheritdoc}
-     * @see \Tiny\MVC\Event\Listener\RouteEventListener::onRouterStartup()
+     * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterStartup()
      */
     public function onRouterStartup(MvcEvent $event, array $params)
     {
@@ -132,11 +125,15 @@ class Debug implements RouteEventListener, DispatchEventListener
     /**
      *
      * {@inheritdoc}
-     * @see \Tiny\MVC\Event\Listener\RouteEventListener::onRouterShutdown()
+     * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterShutdown()
      */
     public function onRouterShutdown(MvcEvent $event, array $params)
     {
+        $this->request = $this->app->request;
+        $this->response = $this->app->response;
+        $this->view = $this->app->getView();
         $cname = $this->request->getControllerName();
+        
         if ($cname != 'debug') {
             return;
         }
@@ -145,6 +142,8 @@ class Debug implements RouteEventListener, DispatchEventListener
             $aname = $this->request->getActionName();
             if ($aname == 'showdocs') {
                 $this->showDocsAction();
+            } else {
+                echo "Access denied"; 
             }
         } finally
         {
@@ -152,29 +151,36 @@ class Debug implements RouteEventListener, DispatchEventListener
         }
     }
     
-    /**
-     *
-     * {@inheritdoc}
-     * @see \Tiny\MVC\Event\Listener\DispatchEventListener::onPreDispatch()
-     */
-    public function onPreDispatch(MvcEvent $event, array $params)
+    public function onBeginRequest(MvcEvent $event, array $params)
     {
+        
     }
     
     /**
      *
      * {@inheritdoc}
-     * @see \Tiny\MVC\Event\Listener\DispatchEventListener::onPostDispatch()
+     * @see \Tiny\MVC\Event\DispatchEventListenerInterface::onPostDispatch()
      */
-    public function onPostDispatch(MvcEvent $event, array $params)
+    public function onEndRequest(MvcEvent $event, array $params)
     {
+        $this->request = $this->app->request;
+        $this->response = $this->app->response;
+        
+        $this->router = $this->app->getRouter();
+        
+        $this->dispatcher = $this->app->getDispatcher();
+        
+        $this->view = $this->app->getView();
+        if (!$this->app->isDebug) {
+            return;
+        }
         $debugInterval = $this->runtime->getRuntimeTotal();
         
         $debugMemory = number_format(memory_get_peak_usage(true) / 1024 / 1024, 4);
         
         // 视图
         $viewPaths = $this->view->getTemplateList();
-        $viewAssign = $this->view->getAssigns();
+        $viewAssign = $this->view->getVariables();
         
         // DB
         $dbQuerys = Db::getQuerys();
@@ -185,16 +191,16 @@ class Debug implements RouteEventListener, DispatchEventListener
         $debugDbQueryTotal = count($dbQuerys);
         
         // 路由
-        $router = $this->router->getMatchedRoute();
-        if ($router) {
-            $routerName = get_class($router);
+        if ($route = $this->router->getMatchedRoute()) {
+            $routerName = get_class($route);
         }
         $routerUrl = $this->request->uri;
         $routerParams = $this->router->getParams();
-        
+       
         // 加载的控制器信息
         $controllerName = $this->request->getControllerName();
-        $controllerClass = $this->dispatcher->getControllerClass($controllerName);
+        $moduleName = $this->request->getModuleName();
+        $controllerClass = $this->dispatcher->getControllerClass($controllerName, $moduleName);
         $actionName = $this->request->getActionName();
         $actionMethod  = $this->dispatcher->getActionName($actionName);
         
@@ -250,10 +256,12 @@ class Debug implements RouteEventListener, DispatchEventListener
         $debugs['debugConstants'] = get_defined_constants(true);
         //$debugs['debugRequestData'] = $this->request->getRequestData();
         $debugs['debugExts'] = get_loaded_extensions();
+        $debugs['debugIncludeFiles'] = get_included_files();
         $debugs['debugIncludePaths'] = get_include_path() ?: $this->request->server['PATH'];
         $debugs['debugFirstException'] = $this->getFirstException($debugExceptions[0]);
         
         // 附加debug信息到输出
+      //  print_r( array_keys($debugs));
         $body = $this->view->fetch('debug/web.htm', $debugs);
         return $this->app->response->appendBody($body);
     }

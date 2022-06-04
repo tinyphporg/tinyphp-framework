@@ -34,10 +34,20 @@ class ObjectDefinition implements DefinitionInterface
      */
     protected $className;
     
-    public function __construct($name, $className)
+    /**
+     * 创建实例输入的初始化数组
+     * 
+     * @var array
+     */
+    protected $parameters = [];
+    
+    public function __construct($name, $className, array $parameters = [])
     {
         $this->name = $name;
         $this->className = $className;
+        if ($parameters) {
+            $this->parameters = $parameters;
+        }
     }
     
     /**
@@ -58,6 +68,16 @@ class ObjectDefinition implements DefinitionInterface
     public function getClassName(): string
     {
         return $this->className;
+    }
+    
+    /**
+     * 获取参数数组
+     * 
+     * @return []
+     */
+    public function getParameters()
+    {
+        return $this->parameters;
     }
     
     /**

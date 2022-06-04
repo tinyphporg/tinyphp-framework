@@ -15,7 +15,7 @@
 namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\View;
-
+use \Smarty as SmartyBase;
 /**
  * smarty的模板引擎本地化扩展
  * 
@@ -25,31 +25,21 @@ use Tiny\MVC\View\View;
  * @final 2021年10月19日下午2:40:02 
  *
  */
-class Smarty extends \Smarty implements ViewEngineInterface
+class Smarty extends SmartyBase implements ViewEngineInterface
 {
     /**
      * 当前的View对象
+     * 
+     * @autowired
      * @var View
      */
-    protected $view;
+    protected View $view;
     
     /**
-     * 视图引擎配置
-     *
+     * @autowired
      * @var array
      */
-    protected $viewEngineConfig = [];
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \Tiny\MVC\View\Engine\ViewEngineInterface::setViewEngineConfig()
-     */
-    public function setViewEngineConfig(View $view, array $config)
-    {
-        $this->view = $view;
-        $this->viewEngineConfig += $config;
-    }
+    protected array $viewEngineConfig;
     
     /**
      * 

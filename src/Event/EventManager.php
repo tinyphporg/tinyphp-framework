@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  *
  * @copyright (C), 2013-, King.
@@ -14,6 +14,7 @@ namespace Tiny\Event;
 
 use Tiny\DI\ContainerInterface;
 use Tiny\DI\Definition\ObjectDefinition;
+use Tiny\MVC\Event\MvcEvent;
 
 /**
  * 事件管理器
@@ -80,17 +81,18 @@ class EventManager
             throw new EventException(sprintf('Illegal event handle:%s', gettype($eventListener)));
         }
         
-        if (key_exists($eventListener, $this->eventListeners) && $this->eventListeners[$eventListener]) {
+        if (key_exists($eventListener, $this->eventListeners)) {
             return false;
         }
         
-        $this->eventListeners[$eventListener] = $this->factory($eventListener);
+        $this->eventListeners[$eventListener] = null;
+        // $this->factory($eventListener);
     }
     
     /**
      *
      * @param string $listenerClass 监听者类名
-     *
+     *       
      * @return EventListenerInterface
      */
     protected function factory(string $listenerClass)
@@ -98,11 +100,9 @@ class EventManager
         if (!$this->container->has($listenerClass)) {
             $this->container->set($listenerClass, new ObjectDefinition($listenerClass, $listenerClass));
         }
-        
         $eventListener = $this->container->get($listenerClass);
         if (!$eventListener instanceof EventListenerInterface) {
-            throw new EventException(
-                sprintf("EventLister %s must be instance of %s", $listenerClass, EventListenerInterface::class));
+            throw new EventException(sprintf("EventLister %s must be instance of %s", $listenerClass, EventListenerInterface::class));
         }
         return $eventListener;
     }
@@ -173,14 +173,14 @@ class EventManager
         ];
         
         $eparams['params'] = $params;
-        // $this->container->call
-        foreach ($this->eventListeners as $listener) {
+        foreach ($this->eventListeners as $className => & $listener) {
+            if (!$listener) {
+                $listener = $this->factory($className);
+            }
             if (!$listener instanceof $handlerName) {
                 continue;
             }
             foreach ($methods as $methodName) {
-                // echo get_class($listener), $methodName;
-                
                 $this->container->call([
                     $listener,
                     $methodName

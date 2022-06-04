@@ -14,8 +14,9 @@
  */
 namespace Tiny\Console;
 
-use Tiny\Console\Worker\Base;
 use Tiny\Console\Worker\WorkerHandlerInterface;
+use Tiny\Console\Worker\Worker;
+use Tiny\Console\Worker\WorkerBase;
 
 /**
  * 命令行守护进程类
@@ -60,7 +61,7 @@ class Daemon
      * @var array
      */
     const WORKER_DRIVER_MAP = [
-        'worker' => '\Tiny\Console\Worker\Worker'
+        'worker' => Worker::class
     ];
     
     /**
@@ -193,7 +194,7 @@ class Daemon
     /**
      * fork后当前子进程运行的worker实例
      *
-     * @var Base
+     * @var WorkerBase
      */
     protected $currentWorkerInstance;
     
@@ -211,14 +212,15 @@ class Daemon
     /**
      * 添加worker实例和对应的进程数目
      *
-     * @param \Tiny\Console\Worker\Base $worker
+     * @param \Tiny\Console\Worker\WorkerBase $worker
      */
-    public function addWorker(\Tiny\Console\Worker\Base $worker)
+    public function addWorker(WorkerBase $worker)
     {
         $workerNum = $worker->getNum();
         if (count($this->workerInstances) + $workerNum > $this->maxDefaultWorkers) {
             return;
         }
+        
         $workerId = $worker->getId();
         if (key_exists($workerId, $this->workers)) {
             return;
@@ -239,23 +241,44 @@ class Daemon
      * @param array $workers  workers配置数组
      * @param WorkerHandlerInterface worker派发句柄实例
      */
-    public function addWorkerByConfig(array $workers, WorkerHandlerInterface $handler = null)
+    public function addWorkersByConfig(array $workers, WorkerHandlerInterface $handler = null)
     {
-        foreach ($workers as $worker) {
-            $driverName = key_exists($worker['type'], self::WORKER_DRIVER_MAP) ? $worker['type'] : self::WORKER_DRIVER_DEFAULT;
-            $className = self::WORKER_DRIVER_MAP[$driverName];
-            $handler = ($worker['handler'] && $worker['handler'] instanceof WorkerHandlerInterface) ? $worker['handler'] : $handler;
-            if (!$handler) {
-                $handler = null;
+        foreach ($workers as $workerConfig) {
+            if (!key_exists('handler', $workerConfig) || !$workerConfig['handler'] instanceof WorkerHandlerInterface) {
+                $workerConfig['handler'] = $handler;
             }
-            
-            $args = isset($worker['args']) && is_array($worker['args']) ? $worker['args'] : [];
-            $worker['args'] = $args;
-            $worker['num'] = (int)$worker['num'] ?: 0;
-            $worker['handler'] = $handler;
-            $workerInstance = new $className($worker);
+            $workerInstance = $this->factory($workerConfig);
             $this->addWorker($workerInstance);
         }
+    }
+    
+    /**
+     * 创建worker代理实例
+     * 
+     * @param array $config
+     */
+    protected function factory(array $config)
+    {
+        // worker
+        $workerName = (string)$config['worker'];
+        if (!key_exists($workerName, self::WORKER_DRIVER_MAP)){
+            $workerName = self::WORKER_DRIVER_DEFAULT;
+        }
+        $workerClass = self::WORKER_DRIVER_MAP[$workerName];
+        
+        // childs
+        $workerNum = (int)$config['num'];
+        if ($workerNum < 1) {
+            $workerNum = 1;
+        }
+        $config['num'] = $workerNum;
+        
+        // create worker
+        $workerInstance = new $workerClass($config);
+        if (!$workerInstance instanceof WorkerBase) {
+            throw new DaemonException('Faild to : %s is not ');
+        }
+        return $workerInstance;
     }
     
     /**
@@ -649,10 +672,15 @@ class Daemon
                 return $this->stop(true);
             }
             
-            // 运行事件
+            // 运行事件  
             $this->currentWorkerInstance->run();
-        } catch (DaemonException $e) {
+            
+        } catch (\Exception $e) {
+            $this->err(sprintf("Worker Exception:  %s Line:%d File:%s", $e->getMessage(), $e->getLine(), $e->getFile()));
             $this->log(sprintf("Worker Exception:  %s Line:%d File:%s", $e->getMessage(), $e->getLine(), $e->getFile()));
+            
+            // 防止大量创建子进程
+            sleep(2);
             exit(1);
         }
         exit(0);
@@ -716,6 +744,7 @@ class Daemon
         foreach ($this->workerInstances as $pid => $worker) {
             posix_kill($pid, $sig);
         }
+        
         if ($isGraceful) {
             sleep(2);
             foreach ($this->workerInstances as $pid => $worker) {
@@ -797,13 +826,10 @@ class Daemon
      */
     protected function outlog($id, $msg, $priority = 6)
     {
-        $msg .= "\n";
-        if (true || $this->debug) {
-            echo $msg;
+        if (!$this->daemonHandler) {
+            return;
         }
-        if ($this->daemonHandler) {
-            @$this->daemonHandler->onOutLog($id, $msg, $priority);
-        }
+        $this->daemonHandler->onOutLog($id, $msg, $priority);
     }
 }
 ?>

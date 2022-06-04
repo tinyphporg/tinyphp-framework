@@ -10,16 +10,15 @@
  * @Function List function_container
  * @History King 2022年1月19日下午10:39:45 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\MVC\Event\Plugin;
+namespace Tiny\MVC\Event;
 
 use Tiny\Config\Configuration;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\Application\Properties;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\Request\Request;
-use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Application\ConsoleApplication;
-use Tiny\MVC\Event\Listener\RouteEventListener;
+
 
 /**
 *  打包器监听插件
@@ -28,7 +27,7 @@ use Tiny\MVC\Event\Listener\RouteEventListener;
 * @since 2022年2月17日上午11:43:39
 * @final 2022年2月17日上午11:43:39
 */
-class Builder implements RouteEventListener
+class BuilderEventListener implements RouteEventListenerInterface
 {
     /**
      * 当前应用实例
@@ -73,7 +72,7 @@ class Builder implements RouteEventListener
     /**
      * 
      * {@inheritDoc}
-     * @see \Tiny\MVC\Event\Listener\RouteEventListener::onRouterStartup()
+     * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterStartup()
      */
     public function onRouterStartup(MvcEvent $event, array $params)
     {
@@ -143,7 +142,7 @@ class Builder implements RouteEventListener
     /**
      * 
      * {@inheritDoc}
-     * @see \Tiny\MVC\Event\Listener\RouteEventListener::onRouterShutdown()
+     * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterShutdown()
      */
     public function onRouterShutdown(MvcEvent $event, array $params)
     {
@@ -174,7 +173,7 @@ class Builder implements RouteEventListener
     protected function _formatOptions($options, $boption)
     {
         $boption = array_merge($boption, $options);
-        $boption['name'] = $boption['name'] ?: 'tinyd';
+        $boption['name'] = $boption['name'] ?: 'tinyphp';
         $boption['exclude'] = is_array($boption['exclude']) ? $boption['exclude'] : [(string)$boption['exclude']];
         $boption['exclude'][] = "/\.phar$/";
         
@@ -185,11 +184,11 @@ class Builder implements RouteEventListener
         $boption['vendor_path'] = $boption['vendor_path'] ?: dirname(dirname(get_included_files()[0])) . '/vendor';
         
         // imports
-        if (is_array($boption['imports']))
+        if (is_array($boption['namespaces']))
         {
-            foreach ($boption['imports'] as $ns => $path)
+            foreach ($boption['namespaces'] as $ns => $path)
             {
-                $boption['imports'][$ns] = $path;
+                $boption['namespaces'][$ns] = $path;
             }
         }
         return $boption;

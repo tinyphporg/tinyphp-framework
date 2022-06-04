@@ -12,7 +12,9 @@
  *          King 2021年10月22日下午5:25:07 1 修改
  *          King 2021年10月22日下午5:25:07 stable 1.0 审定
  */
-namespace Tiny\MVC\View;
+namespace Tiny\MVC\View\Helper;
+
+use Tiny\MVC\View\View;
 
 /**
  * 视图助手接口
@@ -24,12 +26,6 @@ namespace Tiny\MVC\View;
  */
 interface ViewHelperInterface
 {
-    /**
-     * 设置View实例
-     * 
-     * @param View $view
-     */
-    public function setViewHelperConfig(View $view, array $config);
     
     /**
      * 是否支持指定的helper名检索

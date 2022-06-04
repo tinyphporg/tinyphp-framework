@@ -16,6 +16,7 @@ namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
 use Tiny\MVC\View\View;
+use Tiny\MVC\Module\Module;
 
 /**
  * 视图基类
@@ -26,177 +27,149 @@ use Tiny\MVC\View\View;
  */
 abstract class ViewEngine implements ViewEngineInterface
 {
-
+    
     /**
      * 当前的View对象
      *
+     * @autowired
      * @var View
      */
-    protected $view;
-
+    protected View $view;
+    
     /**
      * 视图引擎配置
      *
+     * @autowired
      * @var array
      */
-    protected $viewEngineConfig = [];
-
+    protected array $config = [];
+    
+    /**
+     * 插件配置数组
+     * 
+     * @autowired
+     * @var array
+     */
+    protected array $plugins = [];
+    
     /**
      * 模板目录
      *
      * @var string
      */
     protected $templateDir;
-
+    
     /**
      * 模板解析目录
      *
      * @var string
      */
     protected $compileDir;
-
+    
     /**
      * 预先分配变量
      *
      * @var array
      */
     protected $variables = [];
-
+    
+ 
     /**
-     * 是否缓存编译后的模板
+     * 正在解析时的templateId
      *
-     * @var boolean
+     * @var string|bool
      */
-    protected $cacheEnabled = false;
-
+    protected $fetchingTemplateId;
+    
     /**
-     * 模板缓存路径
+     * 正在解析时的函数变量名
      *
-     * @var string
+     * @var array
      */
-    protected $cacheDir = '';
-
-    /**
-     * 模板缓存时间
-     *
-     * @var integer
-     */
-    protected $cacheTtl = 120;
-
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \Tiny\MVC\View\Engine\ViewEngineInterface::setViewEngineConfig()
-     */
-    public function setViewEngineConfig(View $view, array $config)
-    {
-        $this->view = $view;
-        $this->viewEngineConfig += $config;
-    }
+    protected $fetchingVariables = [];
 
     /**
      * 设置模板引擎的模板文件夹
      *
-     * @param string $path
-     *            文件夹路径
+     * @param string $path 文件夹路径
      * @return void
      */
     public function setTemplateDir($path)
     {
         $this->templateDir = $path;
     }
-
+    
     /**
      * 获取模板引擎的模板文件夹
      *
-     * @param string $path
-     *            文件夹路径
+     * @param string $path 文件夹路径
      * @return string 视图文件夹路径
      */
     public function getTemplateDir()
     {
         return $this->templateDir;
     }
-
+    
     /**
      * 设置模板引擎的编译文件夹
      *
-     * @param string $path
-     *            文件夹路径
+     * @param string $path 文件夹路径
      * @return void
      */
     public function setCompileDir($path)
     {
         $this->compileDir = $path;
     }
-
+    
     /**
      * 获取模板引擎的编译文件夹
      *
-     * @param string $path
-     *            文件夹路径
+     * @param string $path 文件夹路径
      * @return string 编译存放路径
      */
     public function getCompileFolder()
     {
         return $this->compileFolder;
     }
-
+    
     /**
      * 分配变量
      *
-     * @param string $key
-     *            变量分配的键
-     * @param mixed $value
-     *            分配的值
-     * @return void
+     * @param string $key 变量分配的键
+     * @param mixed $value 分配的值
      *
      */
     public function assign($key, $value = null)
     {
-        if (is_array($key))
-        {
+        if (is_array($key)) {
             $this->variables = array_merge($this->variables, $key);
             return;
         }
         $this->assign($key, $value);
     }
-
+    
     /**
      * 获取输出的HTML内容
      *
      * @return string
      */
-    public function fetch($tpath, $assign = false, $isAbsolute = false)
+    public function fetch($tpath, array $assigns = [], $templateId = null)
     {
-        $compileFile = $this->getCompiledFile($tpath, $isAbsolute);
-        return $this->fetchCompiledContent($compileFile, $assign);
+        $this->fetchingVariables = $assigns;
+        $this->fetchingTemplateId = $templateId;
+        $variables = $assigns ? array_merge($this->variables, $assigns) : $this->variables;
+        $compileFile = $this->getCompiledFile($tpath, $templateId, $variables);
+        return $this->fetchCompiledContent($compileFile, $variables);
     }
-
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \Tiny\MVC\View\Engine\ViewEngineInterface::setCache()
-     */
-    public function setCache($cacheDir, int $cacheTtl= 120)
-    {
-        $this->cacheEnabled = ($cacheTtl <= 0) ? false : true;
-        $this->cacheFolder = $cacheDir;
-        if (!is_dir($cacheDir))
-        {
-            throw new ViewException('cachedir is not exists!');
-        }
-        $this->cacheTtl= $cacheTtl;
-    }
-
+    
     /**
      * 通过模板路径获取模板编译文件
      *
      * @param string $tpath
      * @param boolean $isAbsolute
      */
-    abstract public function getCompiledFile($tpath, $isAbsolute = false);
-
+    abstract public function getCompiledFile($tpath, $templateId = null);
+    
     /**
      * 通过模板文件的真实路径获取文件内容
      *
@@ -204,17 +177,18 @@ abstract class ViewEngine implements ViewEngineInterface
      * @param mixed $assign
      * @return string
      */
-    protected function fetchCompiledContent($compileFile, $assign = false)
+    protected function fetchCompiledContent($compileFile, array $variables = [])
     {
-        $variables = is_array($assign) ? array_merge($this->variables, $assign) : $this->variables;
+        if ($variables) {
+            extract($variables, EXTR_SKIP);
+        }
         ob_start();
-        extract($variables, EXTR_SKIP);
         include $compileFile;
         $content = ob_get_contents();
         ob_end_clean();
         return $content;
     }
-
+    
     /**
      * 获取template真实路径
      *
@@ -222,38 +196,39 @@ abstract class ViewEngine implements ViewEngineInterface
      * @param boolean $isAbsolute
      * @return mixed
      */
-    protected function getTemplateRealPath($tpath, $isAbsolute = false)
+    protected function getTemplateRealPath($tpath, $templateId = null)
     {
-        if ($isAbsolute && is_file($tpath))
-        {
-            $this->view->addTemplateList($tpath, $tpath, $this);
-            return $tpath;
+        if ($tpath[0] === '/' && !$templateId) {
+           // $templateId = true;
         }
-
-        if ($isAbsolute)
-        {
-            return false;
-        }
-
-        if (is_array($this->templateDir))
-        {
-            foreach ($this->templateDir as $tdir)
-            {
-                $tePath = $tdir . $tpath;
-                if (is_file($tePath))
-                {
-                    $this->view->addTemplateList($tpath, $tePath, $this);
-                    return $tePath;
-                }
+        
+        if (true === $templateId) {
+            if (is_file($tpath)) {
+                $this->view->addTemplateList($tpath, $tpath, $this);
+                return $tpath;
             }
             return false;
         }
-        $tpath = $this->templateDir . $tpath;
-        if (!is_file($tpath))
-        {
-            return false;
+        
+        $templateDirs = (is_array($this->templateDir)) ? $this->templateDir : [(string)$this->templateDir];
+        if (key_exists($templateId, $templateDirs)) {
+            $tepath = $templateDirs[$templateId] . $tpath;
+            if (is_file($tepath)) {
+                $this->view->addTemplateList($tpath, $tepath, $this);
+                return $tepath;
+            }
         }
-        return $tpath;
+        
+        foreach ($templateDirs as $tid => $tdir) {
+            if (!is_int($tid)) {
+                continue;
+            }
+            $tePath = $tdir . $tpath;
+            if (is_file($tePath)) {
+                $this->view->addTemplateList($tpath, $tePath, $this);
+                return $tePath;
+            }
+        }
     }
 }
 ?>

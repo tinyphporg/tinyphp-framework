@@ -35,7 +35,7 @@ class RegEx implements RouteInterface
      *
      * @var array
      */
-    protected $params = [];
+    protected $params;
     
     /**
      *
@@ -44,21 +44,61 @@ class RegEx implements RouteInterface
      */
     public function match(Request $request, string $routeString, array $routeRule = [])
     {
+        $this->params = [];
         $regex = (string)$routeRule['regex'];
-        $regKeys = (array)$routeRule['keys'];
+        $regValues = (array)$routeRule['values'];
+        
+        // checkRegex
+        $checkRegex  = (string)$routeRule['checkRegex'];
+        if ($checkRegex && $checkRegex !== $regex) {
+            if (!$this->checkUri($routeString, $checkRegex)) {
+                return false;
+            }
+        }
+        
+        // checkRegex
+        if ($this->matchUri($routeString,$regex, $regValues))
+        {
+            return true;
+        }
+    }
+    
+    /**
+     * check uri is matched route.rule.checkregex
+     * @param string $routeString 路由上下文
+     * @param string $checkRegex 检测正则
+     * @return bool
+     */
+    protected function checkUri(string $routeString, string $checkRegex)
+    {
+        return (bool)preg_match($checkRegex, $routeString);
+    }
+    
+    /**
+     * 
+     * @param string $routeString
+     * @param string $regex
+     * @param array $values
+     * @return boolean
+     */
+    protected function matchUri(string $routeString, string $regex, array $values = [])
+    {
+        $matchs = [];
         if (!preg_match($regex, $routeString, $matchs)) {
             return false;
         }
-        foreach ($regKeys as $key => $valueName) {
-            $valueName = preg_replace_callback('/\$([0-9]{1,2})/',
-                function ($ms) use ($matchs) {
-                    $index = $ms[1];
-                    if (key_exists($index, $matchs)) {
-                        return $matchs[$index];
-                    }
-                }, $valueName);
-            
-            $this->params[$key] = $valueName;
+        
+        if (!$values) {
+            return true;
+        }
+        
+        // parser value
+        foreach ($values as $key => $value) {
+            $val = preg_replace_callback('/\$([0-9]{1,2})/', function ($ms) use ($matchs) {
+                $index = $ms[1];
+                return key_exists($index, $matchs) ? $matchs[$index] : $ms[0];
+            }, $value);
+            $this->params[$key] = $val;
         }
         return true;
     }

@@ -37,6 +37,13 @@ class Autoloader
     protected $classPathMap = [];
     
     /**
+     * 全局类的加载路径
+     * 
+     * @var array
+     */
+    protected $gloablPaths = [];
+    
+    /**
      * 构造函数，主动自动加载类
      *
      * @param void
@@ -115,20 +122,31 @@ class Autoloader
      */
     public function loadClass($className)
     {
+        // class map
         if (key_exists($className, $this->classPathMap)) {
             $classfile = $this->classPathMap[$className];
             include_once $classfile;
             return;
         }
         
+        // global class
         if (false === strpos($className, "\\")) {
             $classfile = $className . '.php';
-            if ($this->classFileExists($classfile)) {
-                include_once ($classfile);
+            if (!$this->gloablPaths) {
+                $this->gloablPaths = array_reverse(explode(PATH_SEPARATOR, get_include_path()));
+            }
+            foreach ($this->gloablPaths as $gpath)
+            {
+                $gclassfile = $gpath . DIRECTORY_SEPARATOR . $classfile;
+                if ($this->classFileExists($gclassfile)) {
+                    include_once($gclassfile);
+                    return;
+                }
             }
             return;
         }
         
+        // namespace search
         $namespaceClassMap = [];
         $classNodes = explode("\\", $className);
         for ($i = count($classNodes); $i >= 1; $i--) {
@@ -138,6 +156,7 @@ class Autoloader
             ];
         }
         
+        // namespaces
         foreach ($namespaceClassMap as $node) {
             list($namespace, $pathSuffix) = $node;
             if (!key_exists($namespace, $this->namspacePathMap)) {
@@ -161,7 +180,6 @@ class Autoloader
     protected function loadClassFromPath($namespace, $pathSuffix, $classname)
     {
         $paths = $this->namspacePathMap[$namespace];
-        
         foreach ($paths as $ipath) {
             $classfile = $ipath . $pathSuffix . '.php';
             if ($this->classFileExists($classfile)) {
@@ -179,7 +197,7 @@ class Autoloader
      */
     protected function classFileExists($file)
     {
-        return (extension_loaded('opcache') && opcache_is_script_cached($file)) || is_file($file);
+        return (extension_loaded('opcache') && opcache_is_script_cached($file)) || file_exists($file);
     }
     
     /**

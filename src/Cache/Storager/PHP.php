@@ -13,7 +13,6 @@
 namespace Tiny\Cache\Storager;
 
 use Tiny\Cache\CacheException;
-
 /**
  * 文件缓存
  *

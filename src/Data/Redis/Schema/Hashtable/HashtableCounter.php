@@ -15,7 +15,8 @@
  */
 namespace Tiny\Data\Redis\Schema\Hashtable;
 
-use Tiny\Data\Redis\HashTable;
+
+use Tiny\Data\Redis\Schema\HashTable;
 
 /**
  * 哈希表的计数器
@@ -30,7 +31,7 @@ class HashtableCounter
     /**
      * 哈希表操作实例
      *
-     * @var Hashtable
+     * @var HashTable
      */
     protected $hashtable;
     

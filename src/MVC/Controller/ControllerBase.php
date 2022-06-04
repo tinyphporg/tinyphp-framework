@@ -15,6 +15,8 @@ namespace Tiny\MVC\Controller;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\Request\Request;
+use Tiny\MVC\Module\Module;
+use Tiny\MVC\View\View;
 
 /**
  * 控制器积类
@@ -46,9 +48,19 @@ abstract class ControllerBase
      * @var Response
      */
     protected $response;
+
+    /**
+     * 模块设置数组
+     * 
+     * @autowired
+     * @var Module
+     */
+    protected ?Module $module = null;
     
     /**
      * 通过应用实例初始化
+     * 
+     * @autowired
      *
      * @param ApplicationBase $app
      */
@@ -115,37 +127,31 @@ abstract class ControllerBase
     }
     
     /**
-     * 解析视图模板，注入到响应实例里
-     *
-     * @param string $viewPath 视图模板文件的相对路径
-     *        视图相对路径
-     * @return void
-     */
-    public function parse($viewPath)
-    {
-        return $this->application->getView()->display($viewPath);
-    }
-    
-    /**
      * 解析视图模板并注入response
      *
      * @param string $viewPath
-     * @return void
      */
-    public function display($viewPath)
+    public function display($viewPath, array $assigns = [], $templateId = null)
     {
-        return $this->application->getView()->display($viewPath);
+        if ($this->module) {
+            $templateId =  $templateId ?: $this->module->name;
+            $assigns['module'] = $this->module;
+        }
+        return $this->application->getView()->display($viewPath, $assigns, $templateId);
     }
     
     /**
      * 解析视图模板，并返回解析后的字符串
      *
      * @param string $viewPath 视图模板文件的相对路径
-     * @return void
      */
-    public function fetch($viewPath)
+    public function fetch($viewPath, array $assigns = [], $templateId = null)
     {
-        return $this->application->getView()->fetch($viewPath);
+        if ($this->module) {
+            $templateId =  $templateId ?: $this->module->name;
+            $assigns['module'] = $this->module;
+        }
+        return $this->application->getView()->fetch($viewPath, $assigns, $templateId);
     }
     
     /**
@@ -153,11 +159,11 @@ abstract class ControllerBase
      *
      * @param string $cName 控制器名称
      * @param string $aName 动作名称
-     * @return void
      */
-    public function dispathch($cName, $aName)
+    public function dispathch($cName, $aName, string $mname = null)
     {
-        return $this->application->dispatch($cName, $aName);
+        $mname = $mname ?: $this->moduleName;
+        return $this->application->dispatch($cName, $aName, $mname);
     }
     
     /**

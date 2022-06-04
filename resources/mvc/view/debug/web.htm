@@ -84,11 +84,9 @@
 {if $debugRouterName}
 <p><span class="font_green">Router: </span>{$debugRouterName}</p>
 <p><span class="font_green">Router Matched URL: </span>{$debugRouterUrl}</p>
-<p><span class="font_green">Router Matched Router Params: </span>{eval echo var_export($debugRouterParams, true)}</p>
+<p><span class="font_green">Router Matched Router Params: </span>{$debugRouterParams}</p>
 {/if}
-<p><span class="font_green">Controller: </span>{$debugControllerList} </p>
-<p><span class="font_green">Action: </span>{$actionName}({$controllerName}->{$actionName}Action)</p>
-<p><span class="font_green">Model List: </span>{$debugModelList}
+<p><span class="font_green">Dispatcher: </span>({$debugControllerName}->{$debugActionName}) </p>
     </div>
         </div>
 <!-- EXEC BOX End -->
@@ -117,6 +115,7 @@
             </h4>
             <div class="cont" style="" id="TINYPHP_DEBUG_VIEW">
                 <p><span class="font_green">视图变量:&nbsp;</span>${eval echo join(', $', array_keys($debugViewAssign))}</p>
+
 
                 {loop $debugViewPaths $vpath}
                 
@@ -148,27 +147,27 @@
             {/loop}
 
 <p><b class="font_blue" >_GET</b></p>
-{loop $debugRequestData['get']  $key $val}
+{loop $request->get  $key $val}
 <p>{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
 {/loop}
 <p><b class="font_blue" >_POST</b></p>
-{loop $debugRequestData['post']  $key $val}
+{loop $request->post  $key $val}
 <p>{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
 {/loop}
 <p><b class="font_blue" >_COOKIE</b></p>
-{loop $debugRequestData['cookie']  $key $val}
+{loop $request->cookie  $key $val}
 <p>{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
 {/loop}
 <p><b class="font_blue" >_SESSION</b></p>
-{loop $debugRequestData['session']  $key $val}
+{loop $request->session  $key $val}
 <p>{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
 {/loop}
 <p><b class="font_blue" >_SERVER</b></p>
-{loop $debugRequestData['server']  $key $val}
+{loop $request->server  $key $val}
 <p>{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
 {/loop}
 <p><b class="font_blue" >_argv</b></p>
-{loop $debugRequestData['argv']  $key $val}
+{loop $request->server['argv']  $key $val}
 <p>{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
 {/loop}
     </div>
@@ -184,17 +183,14 @@
 <p><b class="font_blue" >loaded extensions</b></p>
 <p style="height:auto"><span class="font_green">&nbsp;"{eval echo join('</span>,<span class="font_green">', $debugExts)}"&nbsp; </p>
 <p><b class="font_blue" >INCLUDE FILES</b></p>
-{eval $debugIncludeFiles = get_included_files()}
 {loop $debugIncludeFiles $key $val}
 <p>{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
 {/loop}
 
 
 
-<p><b class="font_blue" >INCLUDE PATHS</b></p>
-{loop $debugIncludePaths $key $val}
-<p>INCLUDE_PATH_{$key} = <span class="font_green">&nbsp;"{$val}"&nbsp;</span></p>
-{/loop}
+<p><b class="font_blue" >INCLUDE PATHS</b> </p>
+<p>$debugIncludePaths</p>
 
     </div>
         </div>

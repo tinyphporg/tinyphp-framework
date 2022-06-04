@@ -23,7 +23,7 @@ namespace Tiny\Console\Worker;
  * @since 2020年6月1日下午2:25:05
  * @final 2020年6月1日下午2:25:05
  */
-abstract class Base
+abstract class WorkerBase
 {
     
     /**
@@ -62,13 +62,6 @@ abstract class Base
     protected $num = 1;
     
     /**
-     * 执行worker委托的代理实例
-     *
-     * @var WorkerHandlerInterface
-     */
-    protected $handler;
-    
-    /**
      * 策略数组
      *
      * @var array
@@ -83,6 +76,7 @@ abstract class Base
     protected $dispatcher = [
         'controller' => 'main',
         'action' => 'index',
+        'module' => '',
         'args' => [],
     ];
     
@@ -92,10 +86,8 @@ abstract class Base
     public function __construct(array $config = [])
     {
         $this->pid = posix_getpid();
-        $ret = $this->formatConfig($config);
-        if (!$ret) {
-            throw new WorkerException(
-                sprintf('Worker Excetion: options：%s is format faild!', var_export($config, true)));
+        if (!$this->formatConfig($config)) {
+            throw new WorkerException(sprintf('Worker Exception: options：%s is format faild!', var_export($config, true)));
         }
     }
     
@@ -120,26 +112,6 @@ abstract class Base
     }
     
     /**
-     * 设置worker回调的handler实例
-     *
-     * @param WorkerHandlerInterface $whandler worker执行派发器
-     */
-    public function setWorkerHandler(WorkerHandlerInterface $whandler)
-    {
-        $this->handler = $whandler;
-    }
-    
-    /**
-     * 获取设置的worker回调的handler实例
-     *
-     * @return mixed
-     */
-    public function getWorkerHandler()
-    {
-        return $this->handler;
-    }
-    
-    /**
      * 设置守护进程的选型
      *
      * @param int $daemonPid
@@ -158,6 +130,9 @@ abstract class Base
      */
     public function init()
     {
+        if (!$this->preDispatch()) {
+            throw new WorkerException('Worker Exception: options.dispatch is format faild!');
+        }
         return true;
     }
     
@@ -189,30 +164,48 @@ abstract class Base
     abstract public function run();
     
     /**
+     * 执行前派发检测
+     * 
+     * @param string $method
+     * @param bool $isMethod
+     * @return mixed
+     */
+    protected function preDispatch(string $method = '', bool $isMethod = true)
+    {
+        $controllerName = $this->dispatcher['controller'];
+        $actionName = $this->dispatcher['action'];
+        $moduleName = $this->dispatcher['module'];
+        if (!$method) {
+            $method = $actionName;
+            $isMethod = false;
+        }
+        $callback = $this->dispatcher['preCallback'];
+        $params = [$controllerName, $method, $moduleName, $isMethod];
+        return call_user_func_array($callback, $params);
+    }
+    /**
      * 派发
      *
      * @param string $method 函数名
      * @param string $args 函数参数数组
      */
-    protected function dispatch(string $method = null, array $args = [])
+    protected function dispatch(string $method = '', array $args = [], bool $isMethod = true)
     {
-        if (!$this->handler) {
-            return;
-        }
-        
-        $isMethod = true;
+        $args = array_merge($args, $this->dispatcher['args']);
+        $controllerName = $this->dispatcher['controller'];
+        $actionName = $this->dispatcher['action'];
+        $moduleName = $this->dispatcher['module'];     
         if (!$method) {
-            $method = $this->dispatcher['action'];
-            $args  = array_merge($args, (array)$this->dispatcher['args']);
+            $method = $actionName;
             $isMethod = false;
         }
-        return call_user_func_array($this->dispatcher['callback'],
-            [
-                $this->dispatcher['controller'],
-                $method,
-                $args,
-                $isMethod
-            ]);
+        
+        $callback = $this->dispatcher['callback'];
+        $params = [$controllerName, $method, $moduleName, $args, $isMethod];
+        
+        //dispatch
+        return call_user_func_array($callback, $params);
+
     }
     
     /**
@@ -223,35 +216,35 @@ abstract class Base
      */
     protected function formatConfig(array $config)
     {
-        if (!$config['id']) {
-            return false;
+        $id = (string)$config['id'];
+        if (!$id) {
+            return;
         }
-        $this->id = $config['id'];
+        $this->id = $id;
         
         // handler
-        if ($config['handler'] && $config['handler'] instanceof WorkerHandlerInterface) {
-            $this->handler = $config['handler'];
+        $handler = $config['handler'];
+        if (!$handler || !$handler instanceof WorkerHandlerInterface) {
+            return;
+        }
+
+        //dispatcher
+        $dispatcher = (array)$config['dispatcher'];
+        if (!$dispatcher) {
+            return;
         }
         
-        // hanlder onworkerevent args
-        if (is_array($config['dispatcher'])) {
-            $config['dispatcher']['args'] = (array)$config['dispatcher']['args'];
-            $this->dispatcher = array_merge($this->dispatcher, $config['dispatcher']);
-            $this->dispatcher['callback'] = [
-                $this->handler,
-                'onWorkerDispatch'
-            ];
-        }
+        $dispatcher['args'] = (array)$dispatcher['args'];
+        $dispatcher['callback'] = [$handler, 'onWorkerDispatch'];
+        $dispatcher['preCallback'] = [$handler, 'onWorkerPreDispatch'];
+        $this->dispatcher = array_merge($this->dispatcher, $dispatcher);
         
-        // 附带选项
-        if (is_array($config['options'])) {
-            $this->options = array_merge($this->options, $config['options']);
-        }
+        // options
+        $options = (array)$config['options'];
+        $this->options = array_merge($options, $this->options);
         
         // worker num
-        if (isset($config['num']) && $config['num'] > 0) {
-            $this->num = (int)$config['num'];
-        }
+        $this->num = (int)$config['num'];
         return true;
     }
     

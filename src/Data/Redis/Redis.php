@@ -18,6 +18,7 @@ namespace Tiny\Data\Redis;
 use Tiny\Data\DataSourceInterface;
 use Tiny\Data\Redis\Schema\Queue;
 use Tiny\Data\Memcached\Counter;
+use Tiny\Data\Redis\Schema\HashTable;
 
 /**
  * redis的操作类

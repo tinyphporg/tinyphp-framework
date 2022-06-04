@@ -20,7 +20,7 @@ use Tiny\Data\Redis\Schema\Counter;
 use Tiny\Data\Redis\Schema\Queue;
 use Tiny\Data\Redis\SortSet;
 use Tiny\Data\Redis\Set;
-use Tiny\Data\Redis\HashTable;
+use Tiny\Data\Redis\Schema\HashTable;
 
 /**
  * Redis的模型类

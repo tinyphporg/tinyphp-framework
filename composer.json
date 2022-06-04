@@ -1,20 +1,21 @@
 {
-    "name": "opensaas/tinyphp-framework",
+    "name": "tinyphporg/tinyphp-framework",
     "description": "A lightweight and high-performance PHP framework.",
     "type" : "library",
     "minimum-stability": "stable",
     "version": "2.0.0",
     "require" :{
     	"php" : ">= 7.0.0",
-    	"opensaas/tinyphp-docs" : ">= 2.0.0",
-    	"opensaas/tinyphp-ui" : ">= 2.0.0",
+    	"tinyphporg/tinyphp-docs" : ">= 2.0.0",
+    	"tinyphporg/tinyphp-ui" : ">= 2.0.0",
     	"smarty/smarty" : ">= 3",
-    	"erusev/parsedown": ">=1.7.4"
+    	"erusev/parsedown": ">=1.7.4",
+        "psr/cache": "^1.0"
     },
     "license": "Apache-2.0", 
     "author" : {
     	"name" : "Da.Jin",
-    	"email" : "da.jin@opensaas.net"
+    	"email" : "tinycn@qq.com"
     },
     "autoload":{
     "psr-4" : { "Tiny\\":"src/"}

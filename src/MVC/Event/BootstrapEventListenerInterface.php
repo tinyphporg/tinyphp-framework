@@ -10,9 +10,8 @@
  * @Function List function_container
  * @History King 2022年2月12日下午4:39:55 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\MVC\Event\Listener;
+namespace Tiny\MVC\Event;
 
-use Tiny\MVC\Event\MvcEvent;
 use Tiny\Event\EventListenerInterface;
 
 /**
@@ -22,7 +21,7 @@ use Tiny\Event\EventListenerInterface;
  * @since 2022年1月19日上午12:19:25
  * @final 2022年1月19日上午12:19:25
  */
-interface BootstrapEventListener extends EventListenerInterface
+interface BootstrapEventListenerInterface extends EventListenerInterface
 {
     /**
      * 引导事件

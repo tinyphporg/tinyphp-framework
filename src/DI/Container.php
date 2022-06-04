@@ -293,7 +293,7 @@ class Container implements ContainerInterface, InvokerInterface
         $entryName = $definition->getName();
         
         if (isset($this->entriesBeingResolved[$entryName])) {
-            // throw new DependencyException("Circular dependency detected while trying to resolve entry '$entryName'");
+             throw new DependencyException("Circular dependency detected while trying to resolve entry '$entryName'");
         }
         
         $this->entriesBeingResolved[$entryName] = true;

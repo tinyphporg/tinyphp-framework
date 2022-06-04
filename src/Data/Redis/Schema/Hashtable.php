@@ -12,7 +12,7 @@
                king 2013-11-30上午04:27:26  1.0  第一次建立该文件
                King 2020年6月1日14:21 stable 1.0 审定
  */
-namespace Tiny\Data\Redis;
+namespace Tiny\Data\Redis\Schema;
 
 use Tiny\Data\Redis\Schema\RedisSchemaBase;
 use Tiny\Data\Redis\Schema\Hashtable\HashTableCounter;
@@ -27,7 +27,9 @@ use Tiny\Data\Redis\Schema\Hashtable\HashTableCounter;
  */
 class HashTable extends RedisSchemaBase
 {
-
+    
+    protected $schemaType = self::SCHEMA_TYPE_HASH;
+    
     /**
      * 删除哈希表里的键
      *

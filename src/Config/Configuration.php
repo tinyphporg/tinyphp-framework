@@ -95,6 +95,13 @@ class Configuration implements \ArrayAccess, ParserInterface
     protected $data = null;
     
     /**
+     * 默认的配置数据
+     * 
+     * @var 
+     */
+    protected $defaultData = null;
+    
+    /**
      * 注册配置解析器映射
      *
      * @param string $ext 文件扩展名
@@ -111,11 +118,14 @@ class Configuration implements \ArrayAccess, ParserInterface
      * @param string $cpath 配置文件或者文件夹路径
      * @return void
      */
-    public function __construct($cpath)
+    public function __construct($cpath, array $data = [])
     {
+        if ($data) {
+            $this->defaultData = $data;
+        }
         if (is_array($cpath)) {
             $this->paths = $cpath;
-        } else {
+        } elseif (is_string($cpath) && $cpath) {
             $this->paths[] = $cpath;
         }
         
@@ -156,7 +166,7 @@ class Configuration implements \ArrayAccess, ParserInterface
         if (!$data) {
             return;
         }
-        $this->data = $data;
+        $this->data = $this->defaultData ? array_merge($this->defaultData, $data) : $data;
     }
     
     /**
@@ -306,7 +316,7 @@ class Configuration implements \ArrayAccess, ParserInterface
      */
     protected function initDataByPath()
     {
-        $this->_data = [];
+        $this->data = $this->defaultData;
         $this->parseAllDataFromPaths($this->paths, $this->data, true);
     }
     

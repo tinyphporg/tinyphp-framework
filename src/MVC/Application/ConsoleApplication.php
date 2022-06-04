@@ -27,16 +27,24 @@ use Tiny\Console\DaemonHandlerInterface;
  */
 class ConsoleApplication extends ApplicationBase implements WorkerHandlerInterface, DaemonHandlerInterface
 {
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \Tiny\Console\Worker\WorkerHandlerInterface::preDispatch()
+     */
+    public function onWorkerPreDispatch($controller, $method, string $module = null,  bool $isMethod = true)
+    {
+        return $this->preDispatch($controller, $method, $module, $isMethod);
+    }
     
     /**
-     * 实现worker接口 回调继续执行application的派发动作
      *
      * {@inheritdoc}
      * @see \Tiny\Console\Worker\WorkerHandlerInterface::onWorkerDispatch()
      */
-    public function onWorkerDispatch($controller, $method, array $args = [], bool $isMethod = true)
+    public function onWorkerDispatch(string $controller, string $method, string $module = null, array $args = [], bool $isMethod = true)
     {
-        return $this->dispatch($controller, $method, $args, $isMethod);
+        return $this->dispatch($controller, $method, $module, $args, $isMethod);
     }
     
     /**

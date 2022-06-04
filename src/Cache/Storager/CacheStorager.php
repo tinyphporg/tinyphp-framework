@@ -22,8 +22,7 @@ use Tiny\Cache\CacheInterface;
  * @final 2022年2月12日下午1:35:55
  */
 abstract class CacheStorager implements \ArrayAccess, CacheInterface
-{
-    
+{ 
     /**
      * 初始化配置
      *

@@ -14,6 +14,7 @@ namespace Tiny\MVC\Controller;
 
 use Tiny\DI\ContainerInterface;
 use Tiny\MVC\Application\ApplicationBase;
+use Tiny\MVC\Module\ModuleManager;
 
 /**
  * 派发器
@@ -61,6 +62,13 @@ class Dispatcher
     protected $controllerClasses = [];
     
     /**
+     * 所有加载的模块配置
+     * 
+     * @var ModuleManager
+     */
+    protected $moduleManager;
+    
+    /**
      * 设置控制器的命名空间
      *
      * @param string $namespace
@@ -81,12 +89,54 @@ class Dispatcher
     }
     
     /**
-     *
-     * @param ApplicationBase $app
+     * 
+     * @param ContainerInterface $container 当前容器实例
+     * @param string $controllerNamespace 当前应用的默认控制器命名空间
+     * @param string $actionSuffix 当前应用的默认动作后缀
      */
-    public function __construct(ContainerInterface $container)
+    public function __construct(ContainerInterface $container, string $controllerNamespace = '', string $actionSuffix = '')
     {
         $this->container = $container;
+        if ($controllerNamespace) {
+            $this->controllerNamespace = $controllerNamespace;
+        }
+        if ($actionSuffix) {
+            $this->actionSuffix = $actionSuffix;
+        }
+    }
+    
+    /**
+     * 派发前前检测
+     * 
+     * @param string $cname
+     * @param string $aname
+     * @param string $mname
+     * @param array $args
+     * @param bool $isMethod
+     * @throws DispatcherException
+     */
+    public function preDispatch(string $cname, string $aname, string $mname = null, bool $isMethod = false)
+    {
+        $controllerClass = $this->getControllerClass($cname, $mname);
+        $controllerInstance = $this->container->get($controllerClass);
+        if (!$controllerInstance instanceof ControllerBase) {
+            throw new DispatcherException(sprintf("Class %s does not implement the interface is named %s!", $controllerClass, ControllerBase::class), E_NOFOUND);
+        }
+        
+        if (!method_exists($controllerInstance, 'onBeginExecute')) {
+            throw new DispatcherException(sprintf("The controller named %s does not have an action named %s", $controllerClass, $actionMethod));
+        }
+        
+        if (!method_exists($controllerInstance, 'onEndExecute')) {
+            throw new DispatcherException(sprintf("The controller named %s does not have an action named %s", $controllerClass, $actionMethod));
+        }
+        
+        // 执行动作函数
+        $actionMethod = $isMethod ? $aname : $this->getActionName($aname);
+        if (!method_exists($controllerInstance, $actionMethod)) {
+            throw new DispatcherException(sprintf("The controller named %s does not have an action named %s", $controllerClass, $actionMethod));
+        }
+        return true;
     }
     
     /**
@@ -99,26 +149,20 @@ class Dispatcher
      * @throws DispatcherException
      * @return void|boolean|mixed
      */
-    public function dispatch(string $cname, string $aname, array $args = [], bool $isMethod = false)
-    {
-        $controllerClass = $this->getControllerClass($cname);
+    public function dispatch(string $cname, string $aname, string $mname = null, array $args = [], bool $isMethod = false)
+    {   
+        $controllerClass = $this->getControllerClass($cname, $mname);
         $controllerInstance = $this->container->get($controllerClass);
-        
         if (!$controllerInstance instanceof ControllerBase) {
             throw new DispatcherException(sprintf("Class %s does not implement the interface is named %s!", $controllerClass, ControllerBase::class), E_NOFOUND);
         }
-        
-        // application
-        $this->container->call([
-            $controllerInstance,
-            'setApplication'
-        ]);
         
         // 执行前置函数 结果为false时不执行动作函数
         $beginRet = $this->container->call([
             $controllerInstance,
             'onBeginExecute'
         ]);
+        
         if (false === $beginRet) {
             return false;
         }
@@ -152,25 +196,43 @@ class Dispatcher
      * @throws \Exception
      * @return string
      */
-    public function getControllerClass(string $cname)
+    public function getControllerClass(string $cname, string $mname = null)
     {
         if (!$cname) {
             throw new DispatcherException('Faild to get controller classname: $cname is null!');
         }
-        if (key_exists($cname, $this->controllerClasses)) {
-            return $this->controllerClasses[$cname];
+        if ($mname && $this->container->has(ModuleManager::class)) {
+            $this->moduleManager = $this->container->get(ModuleManager::class);
+        }
+        if ($mname && (!$this->moduleManager || !$this->moduleManager->has($mname))) {
+            throw new DispatcherException(sprintf('Faild to dispatch: module %s is not exists!', $mname));
+        }
+        
+        $groupKey = $mname ?: '__APPLICATION__NAMESPACES';
+        if (!key_exists($groupKey, $this->controllerClasses))  {
+            $this->controllerClasses[$groupKey] = [];
+        }
+        
+        $groupClasses = &$this->controllerClasses[$groupKey];
+        if (key_exists($cname, $groupClasses)) {
+            return $groupClasses[$cname];
         }
         
         $cparam = preg_replace_callback("/\b\w/", function ($param) {
             return strtoupper($param[0]);
         }, $cname);
-        $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
         
-        $controllerClass = $this->controllerNamespace . $cparam;
-        if (!class_exists($controllerClass)) {
-            throw new DispatcherException("Faild to dispatch: {$controllerClass} does not exists!", E_NOFOUND);
+        $cparam = "\\" . preg_replace("/\/+/", "\\", $cparam);
+        $controllerNamespace = $this->controllerNamespace;
+        
+        if ($mname) {
+            $controllerNamespace = rtrim($this->moduleManager->getControllerNamespace($mname), '\\');
         }
-        $this->controllerClasses[$cname] = $controllerClass;
+        $controllerClass = $controllerNamespace . $cparam;
+        if (!class_exists($controllerClass)) {
+            throw new DispatcherException(sprintf("Faild to dispatch: %s does not exists!", $controllerClass), E_NOFOUND);
+        }
+        $groupClasses[$cname] = $controllerClass;
         return $controllerClass;
     }
     

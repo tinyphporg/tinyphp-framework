@@ -17,7 +17,7 @@ namespace Tiny\MVC\Bootstrap;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\DI\ContainerInterface;
 use Tiny\MVC\Event\MvcEvent;
-use Tiny\MVC\Event\Listener\BootstrapEventListener;
+use Tiny\MVC\Event\BootstrapEventListenerInterface;
 
 /**
  * 引导基类
@@ -26,7 +26,7 @@ use Tiny\MVC\Event\Listener\BootstrapEventListener;
  * @since 2017年3月12日下午5:34:17
  * @final 2017年3月12日下午5:34:17
  */
-abstract class Bootstrap implements BootstrapEventListener
+abstract class Bootstrap implements BootstrapEventListenerInterface
 {
 
     /**

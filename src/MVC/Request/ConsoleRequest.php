@@ -81,17 +81,6 @@ class ConsoleRequest extends Request
             if (!$this->routeContext && preg_match("/^\/?[a-zA-Z][a-zA-Z0-9]+(\/[a-zA-Z][a-zA-Z0-9]+)+$/", $arg)) {
                 $this->routeContext = $arg;
             }
-            $out = '';
-            if (preg_match("/^(\/?([a-zA-Z][a-zA-Z0-9]+\/)+)([a-zA-Z][a-zA-Z0-9]+)(=([0-9]+))?$/", $arg, $out)) {
-                $cname = substr($out[1], 0, -1);
-                $n = intval($out[5]) ?: 1;
-                $argument['daemons'][] = [
-                    'c' => $cname,
-                    'a' => $out[3],
-                    'n' => $n
-                ];
-                continue;
-            }
             if (preg_match('/^-[a-zA-Z0-9]$/', $arg) && ($i < $argc - 1 && $argv[$i + 1][0] != '-')) {
                 $i++;
                 $argument[$arg[1]] = $argv[$i];

@@ -25,13 +25,6 @@ use Tiny\MVC\View\View;
  */
 interface ViewEngineInterface
 {
-    
-    /**
-     * 
-     * @param array $config
-     */
-    public function setViewEngineConfig(View $view, array $config);
-    
     /**
      * 设置模板变量
      *
@@ -42,7 +35,7 @@ interface ViewEngineInterface
      * @return bool
      */
     public function assign($key, $value = null);
-
+    
     /**
      * 输出模板解析后的数据
      *
@@ -52,7 +45,7 @@ interface ViewEngineInterface
      *        是否为绝对路径
      * @return string
      */
-    public function fetch($filepath, $assign = false, $isAbsolute = false);
+    public function fetch($filepath, array $assigns = [], $templateId = null);
     
     /**
      * 设置模板存放路径
@@ -67,14 +60,5 @@ interface ViewEngineInterface
      * @param string $path
      */
     public function setCompileDir($path);
-    
-    /**
-     * 设置模板缓存参数
-     * 
-     * @param string $cacheDir 缓存文件夹
-     * @param int $cacheLifetime 缓存时间
-     */
-    public function setCache($cacheDir, int $cacheLifetime = 120);
-    
 }
 ?>

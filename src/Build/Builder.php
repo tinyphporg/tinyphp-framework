@@ -263,9 +263,9 @@ class Builder
             $cdata[$class] = 'TINY_PHAR_FILE' . '/' . $name;
             printf("    %s => %s\n", $class, $path);
         }
-        $this->properties['autoloader']['namespaces'] = $idata;
-        $this->properties['autoloader']['classes'] = $cdata;
-        $this->properties['autoloader']['is_realpath'] = true;
+       $this->properties['autoloader']['namespaces'] = $idata;
+       $this->properties['autoloader']['classes'] = $cdata;
+       $this->properties['autoloader']['is_realpath'] = true;
     }
     
     /**
@@ -277,8 +277,9 @@ class Builder
             $this->properties['controller']['default'] = trim($this->config['controller']);
         }
         if ($this->config['action']) {
-            $this->properties['action']['default'] = trim($this->config['action']);
+            $this->properties['controller']['action_default'] = trim($this->config['action']);
         }
+        $this->properties['debug']['enabled'] = true;
         $contents = "<?php\n return " . var_export($this->properties, true) . ";\n?>";
         $contents = strtr($contents, [
             "'TINY_PHAR_FILE/application" => "TINY_PHAR_FILE . '/application",
@@ -317,9 +318,10 @@ class Builder
             }
             return;
         }
-        if ($noFile) {
+        if ($noFile || $this->isExclude($fpath)) {
             return;
         }
+        echo "include:" . $path . "\n";
         $this->pharHandler->addFile($path, $name);
     }
     
@@ -333,6 +335,7 @@ class Builder
     {
         foreach ((array)$this->config['exclude'] as $exclude) {
             if (preg_match($exclude, $fpath)) {
+                echo 'exclude:' .  $fpath . "\n";
                 return true;
             }
         }
@@ -403,9 +406,9 @@ class Builder
         EOT;
         
         // index.php stup
-        printf("add default stub file:\n    application/index.php\n");
+        printf("add default stub file:\n    index.php\n");
         $this->pharHandler->addFromString('application/index.php', $indexstring);
-        $stub = $this->pharHandler->createDefaultStub('application/index.php', 'application/index.php');
+        $stub = $this->pharHandler->createDefaultStub('application/index.php', 'index.php');
         if ($this->config['php_path']) {
             $stub = "#!" . $this->config['php_path'] . "\n" . $stub;
         }

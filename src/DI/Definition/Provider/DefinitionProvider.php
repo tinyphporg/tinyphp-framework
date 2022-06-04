@@ -110,7 +110,7 @@ class DefinitionProvider implements DefinitionProviderInterface
     }
     
     /**
-     * 增加一个定义文件
+     * 增加一个定义路径
      *
      * @param mixed $path
      */
@@ -133,13 +133,30 @@ class DefinitionProvider implements DefinitionProviderInterface
             $this->definitionFiles[] = $path;
             return;
         }
-        if ('php' === pathinfo($path, PATHINFO_EXTENSION) && !in_array($path, $this->definitionFiles)) {
-            $definitions = require $path;
+        
+        $this->addDefinitionFromFile($path);
+    }
+    
+    /**
+     * 从文件添加定义
+     * 
+     * @param string $file
+     */
+    public function addDefinitionFromFile($file)
+    {
+        if (is_array($file)) {
+            foreach ($file as $f) {
+                $this->addDefinitionFromFile($f);
+            }
+            return;
+        }
+        if ('php' === pathinfo($file, PATHINFO_EXTENSION) && !in_array($file, $this->definitionFiles)) {
+            $definitions = include $file;
             if (!is_array($definitions)) {
                 return;
             }
             $this->addDefinitionFromArray($definitions);
-            $this->definitionFiles[] = $path;
+            $this->definitionFiles[] = $file;
         }
     }
     
@@ -155,7 +172,7 @@ class DefinitionProvider implements DefinitionProviderInterface
             unset($sourceDefinitions['alias']);
         }
         foreach ($sourceDefinitions as $name => $sourceDefinition) {
-            
+           
             if ($this->resolveSourceDefinitionItem($name, $sourceDefinition)) {
                 continue;
             }
@@ -172,10 +189,10 @@ class DefinitionProvider implements DefinitionProviderInterface
     public function addDefinitionAliasFromArray(array $definitionAlias)
     {
         foreach ($definitionAlias as $name => $aliasName) {
-            $definition = new CallableDefinition($name,
-                function (ContainerInterface $container) use ($aliasName) {
-                    return $container->get($aliasName);
-                });
+            $definition = new CallableDefinition($name, function (ContainerInterface $container, string $aliasName) {
+                        return $container->get($aliasName);
+                }, ['aliasName' => $aliasName]);
+            
             $this->addDefinition($definition);
         }
     }

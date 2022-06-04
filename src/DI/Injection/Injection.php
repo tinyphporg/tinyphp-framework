@@ -75,9 +75,20 @@ class Injection implements InjectionInterface
      * {@inheritDoc}
      * @see \Tiny\DI\Injection\InjectionInterface::injectProperties()
      */
-    public function injectObject(\ReflectionClass $classReflection, $object)
+    public function injectObject(\ReflectionClass $classReflection, $object, array $resolvedParameters = [])
     {
-        return $this->getObjectInjection()->injectObject($classReflection, $object);
+        return $this->getObjectInjection()->injectObject($classReflection, $object, $resolvedParameters);
+    }
+    
+    /**
+     * 是否自动注解并加载类
+     * 
+     * @param string $className
+     * @return bool
+     */
+    public function isAutowiredClass(string $className)
+    {
+        return $this->getObjectInjection()->isAutowiredClass($className);
     }
     
     /**
@@ -89,7 +100,7 @@ class Injection implements InjectionInterface
     {
         if (!$this->parameterInjection)
         {
-            $this->parameterInjection = new ParameterInjection($this->container);
+            $this->parameterInjection = new ParameterInjection($this->container, $this);
         }
         return $this->parameterInjection;
     }

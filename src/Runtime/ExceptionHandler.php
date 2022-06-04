@@ -95,6 +95,7 @@ class ExceptionHandler
     public function __construct(EventManager $eventManager)
     {
         $this->eventManager = $eventManager;
+        
         // @formatter:off
         set_exception_handler([$this, 'onException']);
         set_error_handler([$this, 'onError']);

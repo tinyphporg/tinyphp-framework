@@ -30,6 +30,10 @@ use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Controller\Dispatcher;
 use Tiny\MVC\View\View;
 use Tiny\Event\EventListenerInterface;
+use Tiny\MVC\Module\ModuleManager;
+use Tiny\DI\Definition\ObjectDefinition;
+use Tiny\DI\Definition\Provider\DefinitionProvider;
+use Tiny\Cache\CacheInterface;
 
 /**
  * app实例基类
@@ -56,6 +60,13 @@ abstract class ApplicationBase implements ExceptionEventListener
         'onpostdispatch',
         'onexception'
     ];
+    
+    /**
+     * 当前应用程序的默认命名空间
+     * 
+     * @var string
+     */
+    public $namespace = 'App';
     
     /**
      * APP所在的目录路径
@@ -112,6 +123,20 @@ abstract class ApplicationBase implements ExceptionEventListener
     public $response;
     
     /**
+     * 模块管理器
+     * 
+     * @var ModuleManager
+     */
+    public $moduleManager;
+    
+    /**
+     * 应用缓存
+     * 
+     * @var CacheInterface
+     */
+    protected $applicationCache;
+    
+    /**
      * 事件管理器
      *
      * @var EventManager
@@ -125,22 +150,40 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @param string $path application的工作目录
      * @param string|array $profile 配置文件 为数组时多个配置文件
      */
-    public function __construct(ContainerInterface $container = null, $path, $profile = null)
+    public function __construct(ContainerInterface $container, $path, $profile = null)
     {
         // application workdir
         $this->path = $path;
         
         // container
         $this->container = $container;
-        $this->container->set(self::class, $this);
-        $this->container->set(ApplicationBase::class, $this);
+        $container->set(get_class($this), $this);
+        $container->set(ApplicationBase::class, $this);
         
         // properties
         $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php';
         $this->properties = new Properties($this, $this->profile);
-                
-        // init
-        $this->init();
+        $container->set(Properties::class, $this->properties);
+
+        // container;
+        $provider = $container->get(DefinitionProvider::class);
+        $provider->addDefinitionFromArray([ApplicationProvider::class]);
+        $applicationProvider = $container->get(ApplicationProvider::class);
+        $provider->addDefinitionProivder($applicationProvider);
+        
+        // event manager
+        $this->eventManager = $container->get('app.eventmanager');
+        $this->eventManager->addEventListener($this);
+        
+        // request & response
+        $this->request = $container->get('app.request');      
+        $this->response = $container->get('app.response');
+        
+        // init EventListener
+        $this->initEventListener();
+        
+        // event request begin
+        $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_BEGIN_REQUEST));
     }
     
     /**
@@ -180,7 +223,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function error($id, $errLevel, $message, $extra = [])
     {
-        $logger = $this->get(Logger::class);
+        $logger = $this->get('app.logger');
         return $logger->log($id, $errLevel, $message, $extra);
     }
     
@@ -197,11 +240,12 @@ abstract class ApplicationBase implements ExceptionEventListener
                 $logMsg = $exception['handle'] . ':' . $exception['message'] . ' from ' . $exception['file'] . ' on line ' . $exception['line'];
                 $this->error($logId, $exception['level'], $logMsg);
             }
-            
             if ($exception['isThrow']) {
-                // event postdispatch
-                $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_POST_DISPATCH));
-                $this->response->output();
+                if (!$this->response) {
+                    print_r($exceptions);
+                }
+                $this->end();
+               
             }
     }
     
@@ -219,10 +263,11 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         $this->dispatch();
         
+        
         // event postdispatch
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_POST_DISPATCH));
         
-        // event endrequest
+        // event  request end       
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_END_REQUEST));
         
         $this->response->output();
@@ -231,14 +276,33 @@ abstract class ApplicationBase implements ExceptionEventListener
     /**
      * 从容器中获取实例
      *
-     * @param string $name
+     * @param string $className 类名
      * @return mixed|\Tiny\DI\Container|\Tiny\DI\ContainerInterface
      */
-    public function get(string $name)
+    public function get(string $className)
     {
-        return $this->container->get($name);
+        return $this->container->get($className);
     }
-
+    
+    /**
+     * 容器中是否存在某个类的实例
+     * 
+     * @param string $className 类名
+     * @return boolean
+     */
+    public function has(string $className) 
+    {
+        return $this->container->has($className);
+    }
+    
+    /**
+     * 获取应用缓存
+     */
+    public function getApplicationCache()
+    {
+       return  $this->has('app.cache') ? $this->get('app.cache') : true;
+    }
+    
     /**
      * 获取应用缓存池
      *
@@ -246,7 +310,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getCache()
     {
-        return $this->get(Cache::class);
+        return $this->get('app.cache');
     }
     
     /**
@@ -256,7 +320,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getConfig() 
     {
-        return $this->get(Configuration::class);    
+        return $this->get('app.config');    
     }
     
     /**
@@ -266,7 +330,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getData()
     {
-        return $this->get(Data::class);
+        return $this->get('app.data');
     }
     
     /**
@@ -276,7 +340,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getLogger()
     {
-        return $this->get(Logger::class);
+        return $this->get('app.logger');
     }
     
     /**
@@ -285,7 +349,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getRouter()
     {
-        return $this->get(Router::class);    
+        return $this->get('app.router');    
     }
     
     /**
@@ -295,7 +359,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getView()
     {
-        return $this->container->get(View::class);
+        return $this->container->get('app.view');
     }
     
     /**
@@ -303,7 +367,23 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getDispatcher()
     {
-        return $this->container->get(Dispatcher::class);
+        return $this->container->get('app.dispatcher');
+    }
+    
+    /**
+     * 派发前检测
+     * 
+     * @param string $cname
+     * @param string $aname
+     * @param string $mname
+     * @param bool $isMethod
+     */
+    public function preDispatch(string $cname = null, string $aname = null, string $mname = null, bool $isMethod = false)
+    {
+        $cname = $cname ?: $this->request->getControllerName();
+        $aname = $aname ?: $this->request->getActionName();
+        $mname =$mname ?: $this->request->getModuleName();
+        return $this->getDispatcher()->preDispatch($cname, $aname, $mname, $isMethod);
     }
     
     /**
@@ -316,11 +396,12 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @param bool $isEvent 是否为成员函数本身
      * @return mixed
      */
-    public function dispatch(string $cname = null, string $aname = null, array $args = [], bool $isMethod = false)
+    public function dispatch(string $cname = null, string $aname = null, string $mname = null, array $args = [], bool $isMethod = false)
     {
         $cname = $cname ?: $this->request->getControllerName();
         $aname = $aname ?: $this->request->getActionName();
-        return $this->getDispatcher()->dispatch($cname, $aname, $args, $isMethod);
+        $mname =$mname ?: $this->request->getModuleName();
+        return $this->getDispatcher()->dispatch($cname, $aname, $mname, $args, $isMethod);
     }
     
     /**
@@ -328,30 +409,11 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function end()
     {
-        // event postdispatch
-        $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_POST_DISPATCH));
-        $this->response->end();
-    }
-    
-    /**
-     * 初始化
-     */
-    protected function init()
-    {
-        // event manager
-        $this->eventManager = $this->container->get(EventManager::class);
-        $this->eventManager->addEventListener($this);
-        
-        // request
-        $this->request = $this->container->get(Request::class);
-        $this->response = $this->container->get(Response::class);
-        
-        // init EventListener
-        $this->initEventListener();
-        
-        // event begin resquest
-        $eventBeginRequest = new MvcEvent(MvcEvent::EVENT_BEGIN_REQUEST, []);
-        $this->eventManager->triggerEvent($eventBeginRequest);
+        // event  request end
+        $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_END_REQUEST));
+        if ($this->response) {
+            $this->response->end();
+        }
     }
     
     /**
@@ -379,17 +441,11 @@ abstract class ApplicationBase implements ExceptionEventListener
         if (!$this->properties['bootstrap.enabled']) {
             return;
         }
-        
-        $eventListeners = $this->properties['bootstrap.eventListeners'];
-        if (is_string($eventListeners)) {
-            $eventListeners = [
-                $eventListeners
-            ];
-        }
-        if (!is_array($eventListeners)) {
+        $eventListener = $this->properties['bootstrap.event_listener'];
+        if (!is_string($eventListener) && !is_array($eventListener)) {
             throw new ApplicationException('properties.bootstrap.eventListeners must be an array type or a string type class name');}
         
-        $this->eventManager->addEventListener($eventListeners);
+        $this->eventManager->addEventListener($eventListener);
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_BOOTSTRAP));
     }
     
