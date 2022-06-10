@@ -5,17 +5,16 @@
     "minimum-stability": "stable",
     "version": "2.0.0",
     "require" :{
-    	"php" : ">= 7.0.0",
+    	"php" : ">= 7.3.0",
     	"tinyphporg/tinyphp-docs" : ">= 2.0.0",
     	"tinyphporg/tinyphp-ui" : ">= 2.0.0",
     	"smarty/smarty" : ">= 3",
-    	"erusev/parsedown": ">=1.7.4",
-        "psr/cache": "^1.0"
+    	"erusev/parsedown": ">=1.7.4"
     },
     "license": "Apache-2.0", 
     "author" : {
     	"name" : "Da.Jin",
-    	"email" : "tinycn@qq.com"
+    	"email" : "da.jin@tinyphp.org"
     },
     "autoload":{
     "psr-4" : { "Tiny\\":"src/"}

@@ -34,6 +34,7 @@ use Tiny\DI\Container;
 use Tiny\DI\ContainerInterface;
 use Tiny\DI\Definition\DefinitionInterface;
 use Tiny\MVC\Module\Module;
+use Tiny\MVC\View\Engine\StaticFile;
 
 /**
  * 视图层
@@ -64,7 +65,8 @@ class View implements \ArrayAccess, DefinitionProviderInterface
         PHP::class => ['ext' => ['php'], 'config' => [], 'plugins' => []],
         Smarty::class => ['ext' => ['tpl'], 'config' => [], 'plugins' => []],
         Template::class => ['ext' => ['htm', 'html'], 'config' => [], 'plugins' => []],
-        Markdown::class => [ 'ext' => [ 'md'], 'config' => [], 'plugins' => []]
+        Markdown::class => [ 'ext' => [ 'md'], 'config' => [], 'plugins' => []],
+        StaticFile::class => ['ext' => ['js', 'css', 'jpg', 'gif', 'png'], 'config' => [], 'plugins' => []]
     ];
 
     /**

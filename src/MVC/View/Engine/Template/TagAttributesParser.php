@@ -18,7 +18,7 @@ namespace Tiny\MVC\View\Engine\Template;
 * @since 2022年6月3日下午1:54:51
 * @final 2022年6月3日下午1:54:51
 */
-trait TagParser
+trait TagAttributesParser
 {
     /**
      * 解析成属性对

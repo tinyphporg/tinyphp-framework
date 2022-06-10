@@ -323,6 +323,8 @@ class Properties extends Configuration
         if (!$installConfig || !$installConfig['event_listener']) {
             return;
         }
+        $installDir = $installConfig['install_dir'] ?: 'tinyphp-ui/';
+        $installConfig['install_dir'] = rtrim($this['view.static.basedir'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($installDir, DIRECTORY_SEPARATOR);
         $this['event.listeners.uiinstaller'] = (string)$installConfig['event_listener'];
     }
 }

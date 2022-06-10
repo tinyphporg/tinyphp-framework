@@ -41,6 +41,7 @@ use Tiny\Log\Logger;
 use Tiny\MVC\Web\HttpSession;
 use Tiny\MVC\Web\HttpCookie;
 use Tiny\Event\EventManager;
+use Tiny\MVC\View\Engine\StaticFile;
 
 /**
 * 应用的容器提供源 必须开启
@@ -655,12 +656,27 @@ class ApplicationProvider implements DefinitionProviderInterface
                     $templateThemeDir
                 ];
                 
+                // static
+                $staticConfig = $config['static'];
+                $staticBasedir = $staticConfig['basedir'];
+                $staticPublicPath = $staticConfig['public_path'];
+                $staticMinsize = (int)$staticConfig['minsize'];
+                $staticExts = $staticConfig['exts'];
+                
+                // staticfile
+                $engines[] = [
+                    'engine' => StaticFile::class,
+                    'config' => ['basedir' => $staticBasedir, 'public_path' => $staticPublicPath, 'minsize' => $staticMinsize],
+                    'ext' => $staticExts
+                ];
+                
                 // composer require tinyphp-ui; @formatter:off
                 $uiconfig = $config['ui'];
                 if ($uiconfig['enabled']) {
                     
                     // UI 模板路径
                     if ($uiconfig['template_dirname']) {
+                        echo $uiconfig['template_dirname'];
                         $templateDirs[] = (string)$uiconfig['template_dirname'];
                     }
                     
@@ -673,8 +689,9 @@ class ApplicationProvider implements DefinitionProviderInterface
                     // 注册template的插件
                     $templatePlugin = (string)$uiconfig['template_plugin'];
                     if ($templatePlugin) {
+                        $uiPublicPath = rtrim($staticBasedir, DIRECTORY_SEPARATOR) . ltrim($uiconfig['public_path'], DIRECTORY_SEPARATOR);
                         $templatePluginConfig = [
-                            'public_path' => $uiconfig['public_path'],
+                            'public_path' => $uiPublicPath,
                             'inject' => $uiconfig['inject'],
                             'dev_enabled' => $uiconfig['dev_enabled'],
                             'dev_public_path' => $uiconfig['dev_public_path']
