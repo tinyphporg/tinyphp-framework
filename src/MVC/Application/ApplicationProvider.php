@@ -240,16 +240,13 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getApplicationCacheDefinition()
     {
-        return new CallableDefinition(ApplicationCache::class, function (ContainerInterface $container, Cache $cacheInstance) {
-            if ($container->has(Cache::class)) {
-                $cacheInstance = $container->get(Cache::class);
-                $storagerId = Cache::getStoragerId(SingleCache::class);
-                $cacheInstance->addStorager('application.cache', $storagerId, [
-                    'path' => '',
-                    'key' => 'application.cache'
-                ]);
-                $cacheStorager = $cacheInstance['application.cache'];
+        return new CallableDefinition(ApplicationCache::class, function (ContainerInterface $container) {
+            if (!$container->has(Cache::class)) {
+                return;
             }
+            $cacheInstance = $container->get(Cache::class);
+            // 按照析构顺序
+            $cacheStorager = $cacheInstance['application.cache'];
             return new ApplicationCache($cacheStorager);
         });
     }
@@ -394,11 +391,22 @@ class ApplicationProvider implements DefinitionProviderInterface
             $cacheInstance->setDefaultId($defaultId);
             $cacheInstance->setDefaultTtl($ttl);
             $caches = (array)$config['sources'];
-            $storagerId = Cache::getStoragerId(SingleCache::class);
-            
             foreach ($caches as $cacheConfig) {
                 $cacheInstance->addStorager($cacheConfig['id'], $cacheConfig['storager'], $cacheConfig['options']);
             }
+            
+            $storagerClass = (string)$config['application_storager'] ?: SingleCache::class;
+            $ttl  = (int)$config['application_ttl'];
+            if ($ttl <=0 ) {
+                $ttl = (int)$config['ttl'] ?: 60;
+            }
+            
+            $storagerId = Cache::getStoragerId($storagerClass);
+            $cacheInstance->addStorager('application.cache', $storagerId, [
+                'path' => '',
+                'key' => 'application.cache',
+                'ttl' => $ttl,
+            ]);
             return $cacheInstance;
         }, ['config' => (array)$this->properties['cache']]);
     }
@@ -629,12 +637,11 @@ class ApplicationProvider implements DefinitionProviderInterface
                 $config = (array)$properties['view'];
                 
                 $viewInstance = new View($app);
-                
                 $provider->addDefinitionProivder($viewInstance);
-               
                 $helpers = (array)$config['helpers'];
                 $engines = (array)$config['engines'];
                 $assigns = (array)$config['assign'] ?: [];
+                $paths = is_array($config['paths']) ? $config['paths'] : [(string)$config['paths']];
                 
                 // 如果开启了配置，则注入到视图模板的环境变量
                 if ($properties['config.enabled']) {
@@ -651,10 +658,12 @@ class ApplicationProvider implements DefinitionProviderInterface
                     $assigns['lang'] = $container->get(Lang::class);
                 }
                 
+                // templater dirs;
                 $templateDirs = [
                     $defaultTemplateDir,
                     $templateThemeDir
                 ];
+                $templateDirs = array_merge($templateDirs, $paths);
                 
                 // static
                 $staticConfig = $config['static'];
@@ -674,12 +683,6 @@ class ApplicationProvider implements DefinitionProviderInterface
                 $uiconfig = $config['ui'];
                 if ($uiconfig['enabled']) {
                     
-                    // UI 模板路径
-                    if ($uiconfig['template_dirname']) {
-                        echo $uiconfig['template_dirname'];
-                        $templateDirs[] = (string)$uiconfig['template_dirname'];
-                    }
-                    
                     // UI 助手注册
                     $uiHelperName = (string)$uiconfig['helper'];
                     if ($uiHelperName) {
@@ -689,13 +692,15 @@ class ApplicationProvider implements DefinitionProviderInterface
                     // 注册template的插件
                     $templatePlugin = (string)$uiconfig['template_plugin'];
                     if ($templatePlugin) {
-                        $uiPublicPath = rtrim($staticBasedir, DIRECTORY_SEPARATOR) . ltrim($uiconfig['public_path'], DIRECTORY_SEPARATOR);
+                        
                         $templatePluginConfig = [
-                            'public_path' => $uiPublicPath,
+                            'public_path' => $uiconfig['public_path'],
                             'inject' => $uiconfig['inject'],
                             'dev_enabled' => $uiconfig['dev_enabled'],
-                            'dev_public_path' => $uiconfig['dev_public_path']
+                            'dev_public_path' => $uiconfig['dev_public_path'],
+                            'dev_admin_public_path' => $uiconfig['dev_admin_public_path'],
                         ];
+                        
                         $engines[] = [
                             'engine' => \Tiny\MVC\View\Engine\Template::class,
                             'config' => [],
@@ -760,7 +765,6 @@ class ApplicationProvider implements DefinitionProviderInterface
             return;
         }
         return new CallableDefinition(HttpSession::class, function (Properties $prop) {
-            
             return new HttpSession((array)$prop['session']);
         });
     }

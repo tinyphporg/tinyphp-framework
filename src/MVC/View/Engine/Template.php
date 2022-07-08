@@ -20,6 +20,9 @@ namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
 use Tiny\MVC\Application\ApplicationBase;
+use Tiny\MVC\View\Engine\Template\TagAttributesParser;
+use Tiny\MVC\Response\Response;
+use Tiny\MVC\Router\Router;
 
 define('TINY_IS_IN_VIEW_ENGINE_TEMPLATE', true);
 
@@ -32,17 +35,25 @@ define('TINY_IS_IN_VIEW_ENGINE_TEMPLATE', true);
  */
 class Template extends ViewEngine
 {
+    use TagAttributesParser;
     
     /**
-     * 
+     *
      * @autowired
      * @var ApplicationBase
      */
     protected ApplicationBase $app;
     
     /**
+     *
+     * @autowired
+     * @var Response
+     */
+    protected Response $response;
+    
+    /**
      * 插件实例
-     * 
+     *
      * @var array
      */
     protected $pluginInstances = [];
@@ -52,14 +63,14 @@ class Template extends ViewEngine
      *
      * @var string
      */
-    const REGEXP_VARIABLE = "\@?\\\$[a-zA-Z_]\w*(?:(?:\-\>[a-zA-Z_]\w*)?(?:\[[\w\.\"\'\[\]\$\-]+\])?)*";
+    const REGEXP_VARIABLE = "\@?\\\$[a-zA-Z_\-]\w*(?:(?:\-\>[a-zA-Z_\-]\w*)?(?:\[[\w\.\"\'\[\]\$\-]+\])?)*";
     
     /**
      * 匹配标签里变量标识的正则
      *
      * @var string
      */
-    const REGEXP_VARIABLE_TAG = "\<\?=(\@?\\\$[a-zA-Z_]\w*(?:(?:\-\>[a-zA-Z_]\w*)?(?:\[[\w\.\"\'\[\]\$]+\])?)*)\?\>";
+    const REGEXP_VARIABLE_TAG = "\<\?=(\@?\\\$[a-zA-Z_\-]\w*(?:(?:\-\>[a-zA-Z_\-]\w*)?(?:\[[\w\.\"\'\[\]\$\-]+\])?)*)\?\>";
     
     /**
      * 匹配常量的正则
@@ -67,7 +78,21 @@ class Template extends ViewEngine
      * @var string
      */
     const REGEXP_CONST = "\{((?!else)[\w]+)\}";
-   
+    
+    /**
+     * 解析中的模板标签
+     *
+     * @var array
+     */
+    protected $parsedTemplateTags = [];
+    
+    /**
+     * 存放的模板标签解析内容数组
+     *
+     * @var array
+     */
+    protected $templateTagContents = [];
+    
     /**
      * 获取模板解析后的文件路径
      *
@@ -77,16 +102,19 @@ class Template extends ViewEngine
      */
     public function getCompiledFile($tpath, $templateId = null)
     {
-        $tpath = preg_replace('/\/+/', '/', $tpath);        
-        $tfile = $this->getTemplateRealPath($tpath, $templateId);
-        if (!$tfile) {
-            throw new ViewException(sprintf("viewer error: the template file %s is not exists!", $tpath));
+        $tpath = preg_replace('/\/+/', '/', $tpath);
+        $pathinfo = $this->getTemplateRealPath($tpath, $templateId);
+        if (!$pathinfo) {
+            throw new ViewException(sprintf("viewer error: the template %s is not exists!", $tpath));
         }
+        
+        $tfile = $pathinfo['path'];
+        $tfilemtime = $this->app->isDebug ? filemtime($tfile) : $pathinfo['mtime'];
         
         // 如果开启模板缓存 并且 模板存在且没有更改
         $compilePath = $this->createCompileFilePath($tfile);
-        if (!$this->app->isDebug && file_exists($compilePath) && filemtime($compilePath) > filemtime($tfile)) {
-            return $compilePath;
+        if (((extension_loaded('opcache') && opcache_is_script_cached($compilePath)) || file_exists($compilePath)) && (filemtime($compilePath) > $tfilemtime)) {
+           return $compilePath;
         }
         
         // 读取模板文件
@@ -96,17 +124,26 @@ class Template extends ViewEngine
         }
         
         flock($fh, LOCK_SH);
-        $templateContent = fread($fh, filesize($tfile));
+        $fsize = filesize($tfile);
+        $templateContent =  ($fsize > 0) ? fread($fh, $fsize) : '';
         flock($fh, LOCK_UN);
         fclose($fh);
         
         // 解析模板并写入编译文件
         $compileContent = $this->parseTemplate($templateContent);
         $ret = file_put_contents($compilePath, $compileContent, LOCK_EX);
-        if (!$ret || !is_file($compilePath)) {
+        if (false === $ret || !is_file($compilePath)) {
             throw new ViewException(sprintf("viewer compile error: file_put_contents %s is faild", $compilePath));
         }
         return $compilePath;
+    }
+    
+    public function fetch($tpath, array $assign = [], $templateId = null)
+    {
+        $this->templateTagContents = [];
+        $content = parent::fetch($tpath, $assign, $templateId);
+        $this->fetchedTemplateTagContent($content);
+        return $content;
     }
     
     /**
@@ -129,6 +166,10 @@ class Template extends ViewEngine
      */
     protected function parseTemplate($template)
     {
+        if (!$template) {
+            return '';
+        }
+        
         // 调用解析前事件
         $template = $this->onPreParse($template);
         
@@ -144,11 +185,12 @@ class Template extends ViewEngine
         // 替换<?php标识
         $template = preg_replace("/\<\?(\s{1})/is", "<?php\\1", $template);
         $template = preg_replace("/\<\?\=(.+?)\?\>/is", "<?php echo \\1;?>", $template);
-        
         // 增加template模板标识 避免include访问
         $template = "<? if(!defined('TINY_IS_IN_VIEW_ENGINE_TEMPLATE')) exit('Access Denied');?>\r\n" . $template;
         
         $template = $this->onPostParse($template);
+        
+        // 清理解析的template占位符列表
         return $template;
     }
     
@@ -200,7 +242,7 @@ class Template extends ViewEngine
     protected function parseTag($template)
     {
         $pattents = [
-            "/\{([a-z]+(?:[\.\-_][a-z0-9]+)?)(?:\s+(.*?)(?:\|([^|]*?))?)?\}/is",
+            "/\{([a-z]+(?:[\.\-_][a-z0-9]+)?)(?:\s+(.*?))?(?:(?:\|([^|]*?))?)?\}/is",
             "/\{\/([a-z]+(?:[\.\-_][a-z0-9]+)?)\}/is",
             "/\{(else)\}/"
         ];
@@ -221,6 +263,7 @@ class Template extends ViewEngine
      */
     protected function parseMatchedTag($matchs)
     {
+        
         $tagFullText = $matchs[0];
         $tagName = $matchs[1];
         
@@ -269,11 +312,11 @@ class Template extends ViewEngine
      */
     protected function onPreParse($template)
     {
-            foreach ($this->plugins as $pname) {
-                if (!key_exists($pname, $this->pluginInstances)) {
-                    $this->pluginInstances[$pname] = $this->app->get($pname);
-                }
-                $instance =  $this->pluginInstances[$pname];
+        foreach ($this->plugins as $pname) {
+            if (!key_exists($pname, $this->pluginInstances)) {
+                $this->pluginInstances[$pname] = $this->app->get($pname);
+            }
+            $instance = $this->pluginInstances[$pname];
             $ret = $instance->onPreParse($template);
             if (false !== $ret) {
                 return $ret;
@@ -347,16 +390,21 @@ class Template extends ViewEngine
      */
     protected function onPostParse($template)
     {
+        // 解析template tag占位符
+        $this->onPostParseTemplateTag($template);
+        
+        // plugins
         foreach ($this->plugins as $pname) {
             if (!key_exists($pname, $this->pluginInstances)) {
                 $this->pluginInstances[$pname] = $this->app->get($pname);
             }
-            $instance =  $this->pluginInstances[$pname];
+            $instance = $this->pluginInstances[$pname];
             $ret = $instance->onPostParse($template);
             if (false !== $ret) {
                 return $ret;
             }
         }
+        
         return $template;
     }
     
@@ -374,7 +422,7 @@ class Template extends ViewEngine
             if (!key_exists($pname, $this->pluginInstances)) {
                 $this->pluginInstances[$pname] = $this->app->get($pname);
             }
-            $instance =  $this->pluginInstances[$pname];
+            $instance = $this->pluginInstances[$pname];
             $ret = $instance->onParseCloseTag($tagName);
             if (false !== $ret) {
                 return $ret;
@@ -393,7 +441,7 @@ class Template extends ViewEngine
      */
     protected function onPluginParseTag($tagName, $tagBody, $extra)
     {
-        $regex = '/(' .self::REGEXP_VARIABLE . ')/';
+        $regex = '/(' . self::REGEXP_VARIABLE . ')/';
         $tagBody = preg_replace($regex, '{\\1}', $tagBody);
         $extra = preg_replace($regex, '{\\1}', $extra);
         switch ($tagName) {
@@ -410,8 +458,8 @@ class Template extends ViewEngine
             if (!key_exists($pname, $this->pluginInstances)) {
                 $this->pluginInstances[$pname] = $this->app->get($pname);
             }
-            $instance =  $this->pluginInstances[$pname];
-            $ret =  $instance->onParseTag($tagName, $tagBody, $extra);
+            $instance = $this->pluginInstances[$pname];
+            $ret = $instance->onParseTag($tagName, $tagBody, $extra);
             if (false !== $ret) {
                 return $ret;
             }
@@ -431,8 +479,7 @@ class Template extends ViewEngine
         $tagNodes = explode(' ', $tagBody);
         $nodeNum = count($tagNodes);
         if (2 == $nodeNum || 3 == $nodeNum) {
-            return (3 == $nodeNum) ? sprintf("<? foreach(%s as %s => %s) { ?>", $tagNodes[0], $tagNodes[1],
-                $tagNodes[2]) : sprintf("<? foreach(%s as %s) { ?>", $tagNodes[0], $tagNodes[1]);
+            return (3 == $nodeNum) ? sprintf("<? foreach(%s as %s => %s) { ?>", $tagNodes[0], $tagNodes[1], $tagNodes[2]) : sprintf("<? foreach(%s as %s) { ?>", $tagNodes[0], $tagNodes[1]);
         }
         return false;
     }
@@ -510,15 +557,153 @@ class Template extends ViewEngine
      */
     protected function parseTemplateTag($tagBody, $extra = null)
     {
-        if (!$extra) {
-            $extra = $this->fetchingTemplateId;
-        }
-        $templateId = $extra  === 'true' ? 'true' : "'" . $extra . "'";
+        $content = '';
+        $tfile = $tagBody;
+        $inject = '';
+        $templateId = $extra;
+        $name = '';
         
-        if (strpos($tagBody, '$') !== false) {
-            $tagBody =  preg_replace("/(\\$[a-z][a-z0-9_]*(\[(\"|\')?[a-z][\-a-z0-9]*(\"|\')?\])*(>?->[a-z][a-z0-9_]*(\[(\"|\')?[a-z][\-a-z0-9]*(\"|\')?\])*)*)/i", "{\\1}", $tagBody);
+        // 匹配输出
+        if ($attrs = $this->parseAttr($tagBody)) {
+            $tfile = (string)$attrs['file'];
+            $name = (string)$attrs['name'];
+            $templateId = (string)$attrs['id'] ?: $extra;
+            if ($attrs['inject'] && $attrs['inject'] != 'false') {
+                $inject = ',true';
+            }
         }
-        return sprintf('<? echo $this->view->fetch("%s", $this->fetchingVariables, %s) ?>', $tagBody, $templateId);
+        
+        if (!$name && !$tfile) {
+            return '';
+        }
+        if ($tfile) {
+            $viewEngine = $this->view->getEngineByPath($tfile);
+            if (!$viewEngine) {
+                return '';
+            }
+        }
+        if (!$templateId && $this->fetchingTemplateId) {
+            $templateId = $this->fetchingTemplateId;
+        }
+        
+        if (!$name) {
+            return ($viewEngine instanceof Template)
+            ? sprintf('<?php include  $this->getCompiledFile("%s", "%s");?>', $tfile, $templateId)
+            :  sprintf('<?php echo $this->view->fetch("%s", $this->fetchingVariables, "%s");?>', $tfile, $templateId);
+        }
+
+        // 占位符 一旦没有设置inject参数，则内容输出在此
+        $content = '';
+        if ($name && !in_array($name, $this->parsedTemplateTags)) {    
+            $content = sprintf("<!--template.first.%s-->", $name);
+            $this->parsedTemplateTags[] = $name;
+        }
+        
+        // 如有设置inject参数 则直接输出占位符
+        if ($name && $inject) {
+            $content = sprintf("<!--template.content.%s-->", $name);
+        }
+        
+        if ($tfile) {
+            $isSelf = $viewEngine instanceof Template ? 'true' : 'false';
+            $content .= sprintf('<? echo $this->fetchingTemplateTag("%s", $this->fetchingVariables ,"%s", "%s", %s);?>', $tfile, $templateId, $name,  $isSelf);
+        }
+        return $content;
+    }
+    
+    /**
+     * 解析 template的占位符
+     *
+     * @param string $template 模板内容
+     */
+    protected function onPostParseTemplateTag(&$template)
+    {
+        
+        // 没有带有name属性的templates时 无需处理
+        if (!$this->parsedTemplateTags) {
+            return;
+        }
+        
+        // 当所有具备相同name属性的template tag 都没有设置inject=true属性时，则内容将自动输出在第一个template tag附近
+        foreach ($this->parsedTemplateTags as $name) {
+            $replaceStr = '';
+            $templateTag = sprintf('<!--template.content.%s-->', $name);
+            if (strpos($template, $templateTag) === false) {
+                $replaceStr = $templateTag;
+            }
+            $template = str_replace(sprintf('<!--template.first.%s-->', $name), $replaceStr, $template);
+        }
+        $this->parsedTemplateTags = [];
+    }
+    
+    /**
+     * 解析模板标签
+     *
+     * @param string $tfile 模板
+     * @param string $templateId
+     * @param string $name
+     * @param string $inject
+     * @return string
+     */
+    protected function fetchingTemplateTag($tpath, $assigns, $templateId = null, $name = '', $inject = false)
+    {
+        // content
+        $content = '';
+        if ($tpath) {
+            $viewEngine = $this->view->getEngineByPath($tpath);
+            if ($viewEngine instanceof Template) {
+                $compileFile = $this->getCompiledFile($tpath);
+                $content = $this->fetchCompiledContent($compileFile);
+            } else {
+                $content = $this->view->fetch($tpath, $assigns, $templateId);
+            }
+        }
+        
+        if (!$name) {
+            return $content;
+        }
+        
+        // merge
+        if (!key_exists($name, $this->templateTagContents)) {
+            $this->templateTagContents[$name] = '';
+        }
+        
+        $this->templateTagContents[$name] .= $content;
+        return '';
+    }
+    
+    /**
+     * 全局替换占位符
+     *
+     * @param string $content
+     */
+    public function fetchedTemplateTagContent(&$content)
+    {
+        while (preg_match('/<\!\-\-template\.content\.\w+\-\->/is', $content)) {
+            $content = preg_replace_callback("/<\!\-\-template\.content\.(\w+)\-\->/is", [
+                $this,
+                'onFetchedTemplateTagContent'
+            ], $content);
+        }
+    }
+    
+    /**
+     * 合并输出内容
+     *
+     * @param array $matchs
+     * @return string
+     */
+    protected function onFetchedTemplateTagContent($matchs)
+    {
+        $name = $matchs[1];
+        if (!key_exists($name, $this->templateTagContents)) {
+            return '';
+        }
+        
+        // 输出
+        $content = $this->templateTagContents[$name];
+        unset($this->templateTagContents[$name]);
+        return $content;
     }
     
     /**
@@ -556,7 +741,7 @@ class Template extends ViewEngine
                 $params[$out[1]] = $out[2];
             }
         }
-        $router = \Tiny\Tiny::getApplication()->getRouter();
+        $router = $this->app->get(Router::class);
         if ($router) {
             return $router->rewriteUrl($params, $isRewrite);
         }

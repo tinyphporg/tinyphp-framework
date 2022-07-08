@@ -34,12 +34,12 @@ class PHP extends ViewEngine
      */
     public function getCompiledFile($tpath, $templateId = null)
     {
-        $tfile  = $this->getTemplateRealPath($tpath, $templateId);
-        if (!$tfile)
+        $pathinfo  = $this->getTemplateRealPath($tpath, $templateId);
+        if (!$pathinfo)
         {
-            throw new ViewException(sprintf("viewer error: file %s is not a file", $tfile));
+            throw new ViewException(sprintf("viewer error: file %s is not a file", $tpath));
         }
-        return $tfile;
+        return $pathinfo['path'];
     }
 }
 ?>

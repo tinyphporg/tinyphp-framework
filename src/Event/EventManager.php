@@ -62,19 +62,19 @@ class EventManager
      *
      * @param string $listenerclass the classname of EventListenerInterface
      *        EventListenerInterface $listenerclass 监听接口实例
+     * @param int $priority 优先级
      */
-    public function addEventListener($eventListener)
+    public function addEventListener($eventListener, int $priority = 0)
     {
         if (is_array($eventListener)) {
             foreach ($eventListener as $elistener) {
-                $this->addEventListener($elistener);
+                $this->addEventListener($elistener, $priority);
             }
             return true;
         }
+        
         if ($eventListener instanceof EventListenerInterface) {
-            $className = get_class($eventListener);
-            $this->eventListeners[$className] = $eventListener;
-            return true;
+            return $this->addToListeners(get_class($eventListener), $eventListener, $priority);
         }
         
         if (!is_string($eventListener)) {
@@ -84,9 +84,21 @@ class EventManager
         if (key_exists($eventListener, $this->eventListeners)) {
             return false;
         }
-        
-        $this->eventListeners[$eventListener] = null;
-        // $this->factory($eventListener);
+   
+        return $this->addToListeners($eventListener, null, $priority);
+    }
+    
+    /**
+     * 添加到事件监听器列表里
+     * 
+     * @param string $className
+     * @param EventListenerInterface $instance
+     * @param number $priority
+     */
+    protected function addToListeners($className, $instance = null, $priority = 0)
+    {
+        $this->eventListeners[] = ['class' => $className, 'instance' => $instance, 'priority' => $priority];
+        return true;
     }
     
     /**
@@ -173,16 +185,22 @@ class EventManager
         ];
         
         $eparams['params'] = $params;
-        foreach ($this->eventListeners as $className => & $listener) {
-            if (!$listener) {
-                $listener = $this->factory($className);
+        
+        // foreach
+        array_multisort(array_column($this->eventListeners, 'priority'), $this->eventListeners, SORT_ASC);
+        foreach ($this->eventListeners as & $listener) {
+            $listenerInstance = $listener['instance'];
+            if (!$listenerInstance) {
+                $listenerInstance = $this->factory($listener['class']);
+                $listener['instance'] = $listenerInstance;
             }
-            if (!$listener instanceof $handlerName) {
+            
+            if (!$listenerInstance instanceof $handlerName) {
                 continue;
             }
             foreach ($methods as $methodName) {
                 $this->container->call([
-                    $listener,
+                    $listenerInstance,
                     $methodName
                 ], $eparams);
                 if ($event->propagationIsStopped()) {

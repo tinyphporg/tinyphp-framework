@@ -135,7 +135,7 @@ class Runtime
      */
     public function __construct()
     {
-        $this->startTimeline = $_SERVER['REQUEST_TIME_FLOAT'] ?: microtime(true);
+        $this->startTimeline =  microtime(true);
         
         // default
         $this->env = new Environment();

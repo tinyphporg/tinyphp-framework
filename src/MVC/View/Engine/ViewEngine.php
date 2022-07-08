@@ -14,9 +14,8 @@
  */
 namespace Tiny\MVC\View\Engine;
 
-use Tiny\MVC\View\ViewException;
 use Tiny\MVC\View\View;
-use Tiny\MVC\Module\Module;
+use Tiny\MVC\Application\ApplicationCache;
 
 /**
  * 视图基类
@@ -27,6 +26,11 @@ use Tiny\MVC\Module\Module;
  */
 abstract class ViewEngine implements ViewEngineInterface
 {
+    /**
+     * 视图引擎的在应用缓存的key
+     * @var string
+     */
+    protected const CACHE_KEY = 'app.view.viewengine';
     
     /**
      * 当前的View对象
@@ -35,6 +39,21 @@ abstract class ViewEngine implements ViewEngineInterface
      * @var View
      */
     protected View $view;
+    
+    /**
+     * 应用缓存
+     * 
+     * @autowired
+     * @var ApplicationCache
+     */
+    protected ApplicationCache $cache;
+    
+    /**
+     * 缓存的模板数据列表
+     * 
+     * @var boolean
+     */
+    protected $templateData = false;
     
     /**
      * 视图引擎配置
@@ -183,7 +202,7 @@ abstract class ViewEngine implements ViewEngineInterface
             extract($variables, EXTR_SKIP);
         }
         ob_start();
-        include $compileFile;
+        include($compileFile);
         $content = ob_get_contents();
         ob_end_clean();
         return $content;
@@ -198,24 +217,37 @@ abstract class ViewEngine implements ViewEngineInterface
      */
     protected function getTemplateRealPath($tpath, $templateId = null)
     {
-        if ($tpath[0] === '/' && !$templateId) {
-           // $templateId = true;
+        $pathinfo = $this->getTemplateRealPathinfoFromCache($tpath, $templateId);
+        if ($pathinfo) {
+            $this->view->addTemplateList($tpath, $pathinfo['path'], $this);
+            return $pathinfo;
         }
-        
-        if (true === $templateId) {
-            if (is_file($tpath)) {
-                $this->view->addTemplateList($tpath, $tpath, $this);
-                return $tpath;
-            }
+        $pathinfo = $this->getTemplateRealPathinfo($tpath, $templateId);
+        if (!$pathinfo) {
             return false;
         }
         
+        $this->view->addTemplateList($tpath, $pathinfo['path'], $this);
+        $this->saveToTemplateCache($tpath, $templateId,  $pathinfo);
+        return $pathinfo;
+        
+    }
+    
+    /**
+     * 
+     * @param string $tpath
+     * @param mixed $templateId
+     * @return false|array
+     */
+    protected function getTemplateRealPathinfo($tpath, $templateId) {
+        if (true === $templateId) {
+            return $this->getPathinfo($tpath, $tpath);
+        }
         $templateDirs = (is_array($this->templateDir)) ? $this->templateDir : [(string)$this->templateDir];
         if (key_exists($templateId, $templateDirs)) {
-            $tepath = $templateDirs[$templateId] . $tpath;
-            if (is_file($tepath)) {
-                $this->view->addTemplateList($tpath, $tepath, $this);
-                return $tepath;
+            $tfile = $templateDirs[$templateId] . $tpath;
+            if ($pathinfo = $this->getPathinfo($tfile, $tpath)) {
+                return $pathinfo;
             }
         }
         
@@ -223,12 +255,90 @@ abstract class ViewEngine implements ViewEngineInterface
             if (!is_int($tid)) {
                 continue;
             }
-            $tePath = $tdir . $tpath;
-            if (is_file($tePath)) {
-                $this->view->addTemplateList($tpath, $tePath, $this);
-                return $tePath;
+            $tfile = $tdir . $tpath;
+            if ($pathinfo = $this->getPathinfo($tfile, $tpath)) {
+                return $pathinfo;
             }
         }
+    }
+    
+    /**
+     * 获取文件的路径信息
+     * 
+     * @param string $tfile
+     * @return boolean|mixed
+     */
+    protected function getPathinfo($tfile, $tpath) {
+        if (!is_file($tfile)) {
+            return false;
+        }
+        $pathinfo = pathinfo($tfile);
+        $pathinfo['size'] = filesize($tfile);
+        $pathinfo['mtime'] = filemtime($tfile);
+        $pathinfo['path'] = $tfile;
+        return $pathinfo;
+    }
+    
+    /**
+     * 从缓存里获取模板的真实文件信息
+     * 
+     * @param string $tpath
+     * @param string $templateId
+     * @return boolean|array
+     */
+    protected function getTemplateRealPathinfoFromCache($tpath, $templateId)
+    {
+        $templateKey = $this->getTemplateCacheKey($templateId);
+        $templateData = $this->templateData; 
+        if (!$templateData || !key_exists($templateKey, $templateData)) {
+            return false;
+        }
+        
+        $templatePaths = (array)$templateData[$templateKey];
+        if (!key_exists($tpath, $templatePaths)) {
+            return false;
+        }
+        
+        $pathinfo = (array)$templatePaths[$tpath];
+        if (!$pathinfo) {
+            return false;
+        }
+        return $pathinfo;
+        
+    }
+    
+    /**
+     * 设置模板视图缓存并保存
+     * 
+     * @param string $templateKey 模板ID生成的KEY
+     * @param string $tpath 模板路径
+     * @param array $pathinfo 模板路径的路径信息数组
+     */
+    protected function saveToTemplateCache($tpath, $templateId, array $pathinfo) 
+    {
+        $templateKey = $this->getTemplateCacheKey($templateId);
+        $this->templateData[$templateKey][$tpath] = $pathinfo;
+        $this->cache->set(self::CACHE_KEY, $this->templateData);
+    }
+    
+    /**
+     * 根据模板ID生成模板缓存的key
+     * 
+     * @param mixed $templateId
+     * @return string
+     */
+    protected function getTemplateCacheKey($templateId)
+    {
+        if (false == $this->templateData) {
+            $this->templateData = (array)$this->cache->get(self::CACHE_KEY);
+        }
+        if (true === $templateId ) {
+            return '__tinyphp__true';
+        }
+        if (null == $templateId) {
+            return '__tinyphp_null';
+        }
+        return (string)$templateId;
     }
 }
 ?>

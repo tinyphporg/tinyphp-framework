@@ -113,7 +113,6 @@ class Module implements \ArrayAccess
         $this->isInited = (bool)$mconfig['init'];
         $this->namespace = $mconfig['namespace'];
         $this->namespaces = $mconfig['namespaces'];
-
     }
     
     /**

@@ -15,6 +15,7 @@ namespace Tiny\MVC\Controller;
 use Tiny\DI\ContainerInterface;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\Module\ModuleManager;
+use Tiny\MVC\View\ViewException;
 
 /**
  * 派发器
@@ -151,7 +152,12 @@ class Dispatcher
      */
     public function dispatch(string $cname, string $aname, string $mname = null, array $args = [], bool $isMethod = false)
     {   
-        $controllerClass = $this->getControllerClass($cname, $mname);
+        try {
+            $controllerClass = $this->getControllerClass($cname, $mname);
+        } catch(DispatcherException $e) {
+            throw $e;
+        }
+        
         $controllerInstance = $this->container->get($controllerClass);
         if (!$controllerInstance instanceof ControllerBase) {
             throw new DispatcherException(sprintf("Class %s does not implement the interface is named %s!", $controllerClass, ControllerBase::class), E_NOFOUND);
@@ -199,13 +205,13 @@ class Dispatcher
     public function getControllerClass(string $cname, string $mname = null)
     {
         if (!$cname) {
-            throw new DispatcherException('Faild to get controller classname: $cname is null!');
+            throw new DispatcherException('Faild to get controller classname: cname is null!');
         }
         if ($mname && $this->container->has(ModuleManager::class)) {
             $this->moduleManager = $this->container->get(ModuleManager::class);
         }
         if ($mname && (!$this->moduleManager || !$this->moduleManager->has($mname))) {
-            throw new DispatcherException(sprintf('Faild to dispatch: module %s is not exists!', $mname));
+            throw new DispatcherException(sprintf('Faild to get controller classname: modulename:%s is not exists!', $mname));
         }
         
         $groupKey = $mname ?: '__APPLICATION__NAMESPACES';
@@ -230,7 +236,7 @@ class Dispatcher
         }
         $controllerClass = $controllerNamespace . $cparam;
         if (!class_exists($controllerClass)) {
-            throw new DispatcherException(sprintf("Faild to dispatch: %s does not exists!", $controllerClass), E_NOFOUND);
+            throw new DispatcherException(sprintf('Faild to get controller classname: classname %s is not exists!', $controllerClass));
         }
         $groupClasses[$cname] = $controllerClass;
         return $controllerClass;

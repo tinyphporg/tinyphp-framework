@@ -29,11 +29,8 @@ use Tiny\MVC\View\Engine\ViewEngineInterface;
 use Tiny\MVC\View\Helper\ViewHelperInterface;
 use Tiny\DI\Definition\Provider\DefinitionProviderInterface;
 use Tiny\DI\Definition\ObjectDefinition;
-use Tiny\Event\Event;
 use Tiny\DI\Container;
-use Tiny\DI\ContainerInterface;
 use Tiny\DI\Definition\DefinitionInterface;
-use Tiny\MVC\Module\Module;
 use Tiny\MVC\View\Engine\StaticFile;
 
 /**
@@ -419,10 +416,14 @@ class View implements \ArrayAccess, DefinitionProviderInterface
      */
     public function getEngineByPath($templatePath)
     {
+        if (!$templatePath) {
+            
+            //return false;
+        }
         $ext = pathinfo($templatePath, PATHINFO_EXTENSION);
         $econfig = $this->getEngineConfigByExt($ext);
         if (!$econfig) {
-            throw new ViewException(sprintf('Viewer error: ext"' . $ext . '"is not bind', $templatePath));
+            throw new ViewException(sprintf('Viewer error:%s ext"' . $ext . '"is not bind', $templatePath));
         }
         
         $engineInstance = $this->getEngineInstanceByConfig($econfig);

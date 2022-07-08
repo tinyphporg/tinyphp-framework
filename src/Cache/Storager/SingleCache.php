@@ -126,6 +126,9 @@ class SingleCache extends CacheStorager
     {
         $this->isUpdated = true;
         $this->data[$key] = $value;
+        if ($ttl) {
+            $this->saveTo($this->key, $this->data, $this->ttl);
+        }
     }
     
     /**
@@ -139,6 +142,10 @@ class SingleCache extends CacheStorager
         foreach ((array)$values as $key => $value) {
             $this->data[$key] = $value;
         }
+        if ($ttl) {
+            $this->saveTo($this->key, $this->data, $this->ttl);
+        }
+        return true;
     }
     
     /**
@@ -149,6 +156,7 @@ class SingleCache extends CacheStorager
     public function clear()
     {
         $this->data = [];
+        $this->isUpdated;
     }
     
     /**
@@ -185,10 +193,10 @@ class SingleCache extends CacheStorager
      */
     public function __destruct()
     {
-        if (!$this->isUpdated) {
-            return;
+        if ($this->isUpdated) {
+            $this->saveTo($this->key, $this->data, $this->ttl);
         }
-        $this->saveTo($this->key, $this->data, $this->ttl);
+        
     }
     
     /**

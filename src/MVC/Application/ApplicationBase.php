@@ -170,6 +170,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         $provider->addDefinitionFromArray([ApplicationProvider::class]);
         $applicationProvider = $container->get(ApplicationProvider::class);
         $provider->addDefinitionProivder($applicationProvider);
+
         
         // event manager
         $this->eventManager = $container->get('app.eventmanager');
@@ -192,9 +193,9 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @param EventListenerInterface $eventListener 监听器实例
      * @return boolean
      */
-    public function addEventListener($eventListener)
+    public function addEventListener($eventListener, int $priority = 0)
     {
-        return $this->eventManager->addEventListener($eventListener);
+        return $this->eventManager->addEventListener($eventListener, $priority);
     }
     
     /**
@@ -240,6 +241,7 @@ abstract class ApplicationBase implements ExceptionEventListener
                 $logMsg = $exception['handle'] . ':' . $exception['message'] . ' from ' . $exception['file'] . ' on line ' . $exception['line'];
                 $this->error($logId, $exception['level'], $logMsg);
             }
+            
             if ($exception['isThrow']) {
                 if (!$this->response) {
                     print_r($exceptions);
@@ -266,7 +268,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         // event postdispatch
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_POST_DISPATCH));
-        
+      
         // event  request end       
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_END_REQUEST));
         
@@ -428,7 +430,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         $listeners = (array)$config['listeners'];
         foreach ($listeners as $eventListener) {
-            $this->eventManager->addEventListener($eventListener);
+            $this->eventManager->addEventListener($eventListener, -10000);
         }
     }
     

@@ -88,7 +88,6 @@ class Properties extends Configuration
         $this->initAutoloader();
         $this->initInConsoleApplication();
         $this->initModule();
-        $this->initUI();
     }
     
     /**
@@ -273,21 +272,7 @@ class Properties extends Configuration
     }
     
     /**
-     * 初始化UI库的配置
-     */
-    protected function initUI()
-    {
-        // 视图调试配置
-        if ($this['view.ui.enabled'] && $this['view.ui.dev_enabled'] && $this['view.ui.dev_event_listener']) {
-            $this['event.listeners.ui_dev'] = $this['view.ui.dev_event_listener'];
-        }
-        if ($this->app instanceof ConsoleApplication) {
-            $this->initUIInstaller();
-        }
-    }
-    
-    /**
-     * 初始化命令行下的打包机制
+     * 是否开启命令行下的打包机制
      */
     protected function initBuilder()
     {
@@ -299,7 +284,7 @@ class Properties extends Configuration
     }
     
     /**
-     * 初始化服务守护进程
+     * 是否开启服务守护进程
      */
     protected function initDaemon()
     {
@@ -308,24 +293,6 @@ class Properties extends Configuration
             return;
         }
         $this['event.listeners.daemon'] = $config['event_listener'];
-    }
-    
-    /**
-     * 初始化tinyphp-ui的前端库同步
-     */
-    protected function initUIInstaller()
-    {
-        $config = $this['view.ui'];
-        if (!$config || !$config['enabled']) {
-            return;
-        }
-        $installConfig = (array)$config['installer'];
-        if (!$installConfig || !$installConfig['event_listener']) {
-            return;
-        }
-        $installDir = $installConfig['install_dir'] ?: 'tinyphp-ui/';
-        $installConfig['install_dir'] = rtrim($this['view.static.basedir'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($installDir, DIRECTORY_SEPARATOR);
-        $this['event.listeners.uiinstaller'] = (string)$installConfig['event_listener'];
     }
 }
 ?>

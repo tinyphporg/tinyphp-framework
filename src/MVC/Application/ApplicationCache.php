@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  *
  * @copyright (C), 2013-, King.
@@ -17,17 +17,19 @@ use Tiny\Cache\Storager\CacheStorager;
 use Tiny\Cache\Storager\SingleCache;
 
 /**
-* 应用缓存
-*  
-* @package namespace
-* @since 2022年5月20日下午7:48:24
-* @final 2022年5月20日下午7:48:24
-*/
+ * 应用缓存
+ *
+ * @package namespace
+ * @since 2022年5月20日下午7:48:24
+ * @final 2022年5月20日下午7:48:24
+ */
 class ApplicationCache implements CacheInterface
 {
+    
     /**
-     * 缓存存储器shi'li
-     * @var SingleCache
+     * 缓存存储器
+     *
+     * @var CacheStorager
      */
     protected $cacheStorager;
     
@@ -43,22 +45,24 @@ class ApplicationCache implements CacheInterface
      * @var boolean
      */
     protected $isUpdated = false;
-    
+
     /**
-     *  
+     * 设置缓存存储器
+     * 
      * @param CacheStorager $cacheStorager
      */
-    public function __construct(?SingleCache $cacheStorager)
+    public function __construct(?CacheStorager $cacheStorager = null) 
     {
-        if ($cacheStorager) {
-            $this->cacheStorager = $cacheStorager;
-            $this->data = (array)$cacheStorager->getMultiple([]);
+        if (!$cacheStorager) {
+            return;
         }
+        $this->cacheStorager = $cacheStorager;
+        $this->data = (array)$cacheStorager->getMultiple([]);
     }
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::has()
      */
     public function has($key)
@@ -68,23 +72,20 @@ class ApplicationCache implements CacheInterface
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::get()
      */
-    public function get(string $key, $default = NULL)
+    public function get(string $key, $default = null)
     {
-        if (key_exists($key, $this->data)) {
-            return $this->data[$key];
-        }
-        return [];
+        return key_exists($key, $this->data) ? $this->data[$key] : [];
     }
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::getMultiple()
      */
-    public function getMultiple(array $keys, $default = NULL)
+    public function getMultiple(array $keys, $default = null)
     {
         $res = [];
         foreach ($keys as $key) {
@@ -98,7 +99,7 @@ class ApplicationCache implements CacheInterface
     /**
      * ttl无效
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::set()
      */
     public function set($key, $value, int $ttl = 0)
@@ -109,7 +110,7 @@ class ApplicationCache implements CacheInterface
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::setMultiple()
      */
     public function setMultiple(array $values, int $ttl = 0)
@@ -122,7 +123,7 @@ class ApplicationCache implements CacheInterface
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::clear()
      */
     public function clear()
@@ -132,7 +133,7 @@ class ApplicationCache implements CacheInterface
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::delete()
      */
     public function delete(string $key)
@@ -146,7 +147,7 @@ class ApplicationCache implements CacheInterface
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::deleteMultiple()
      */
     public function deleteMultiple(array $keys)
@@ -154,7 +155,7 @@ class ApplicationCache implements CacheInterface
         foreach ($keys as $key) {
             if (key_exists($key, $this->data)) {
                 unset($this->data[$key]);
-                $this->isUpdated  = true;
+                $this->isUpdated = true;
             }
         }
     }
@@ -164,10 +165,10 @@ class ApplicationCache implements CacheInterface
      */
     public function __destruct()
     {
-        if (!$this->isUpdated || !$this->cacheStorager) {
-            return;
+        if ($this->isUpdated && $this->cacheStorager) {
+            $this->cacheStorager->setMultiple($this->data, 1);
         }
-        $this->cacheStorager->setMultiple($this->data);
+        
     }
 }
 ?>

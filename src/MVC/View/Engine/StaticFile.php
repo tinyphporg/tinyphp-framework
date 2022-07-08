@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  * 静态模板解析类
  * 
@@ -16,44 +16,159 @@ namespace Tiny\MVC\View\Engine;
 use Tiny\MVC\View\ViewException;
 
 /**
-* 
-* @package namespace
-* @since 2022年6月10日上午10:30:25
-* @final 2022年6月10日上午10:30:25
-*/
+ *
+ * @package namespace
+ * @since 2022年6月10日上午10:30:25
+ * @final 2022年6月10日上午10:30:25
+ */
 class StaticFile extends ViewEngine
 {
     
+    protected $template;
+    
+    protected $minsize = 2048;
+    
+    protected $basedir;
+    
+    protected $publicPath;
+    
+    protected $pathinfos = [];
+    
+    /**
+     * 初始化构造函数
+     *
+     * @param Template $template
+     * @param array $config
+     */
+    public function __construct(Template $template, array $config)
+    {
+        $this->template = $template;
+        if (!$config['basedir']) {
+            throw new ViewException('basedir is not set');
+        }
+        if (!$config['public_path']) {
+            throw new ViewException('public is not set');
+        }
+        
+        $this->basedir = $config['basedir'] . 'staticfile/';
+        $this->publicPath = $config['public_path'] . 'staticfile/';
+        $this->minsize = (int)$config['minsize'] ?: 2048;
+    }
+    
     /**
      * \
-     * {@inheritDoc}
+     *
+     * {@inheritdoc}
      * @see \Tiny\MVC\View\Engine\ViewEngine::getCompiledFile()
      */
     public function getCompiledFile($tpath, $templateId = null)
     {
-        $tfile  = $this->getTemplateRealPath($tpath, $templateId);
-        if (!$tfile)
-        {
-            throw new ViewException(sprintf("viewer error: file %s is not a file", $tfile));
+        $pathinfo = $this->getTemplateRealPath($tpath, $templateId);
+        
+        if (!$pathinfo) {
+            return false;
         }
-        return $tfile;
+        $tfile = $pathinfo['path'];
+        $tfilemtime = $this->app->isDebug ? filemtime($tfile) : $pathinfo['mtime'];
+        
+        // 如果开启模板缓存 并且 模板存在且没有更改
+        $compilePath = $this->createCompileFilePath($tfile);
+        if (((extension_loaded('opcache') && opcache_is_script_cached($compilePath)) || file_exists($compilePath)) && (filemtime($compilePath) > $tfilemtime)) {
+            return $compilePath;
+        }
+        
+        $compileContent = $this->parseTemplateFile($pathinfo);
+        file_put_contents($compilePath, $compileContent, LOCK_EX);
+        return $compilePath;
     }
     
     /**
-     * 通过模板文件的真实路径获取文件内容
+     * 解析模板文件
      *
-     * @param string $tfile
-     * @param mixed $assign
+     * @param array $pathinfo 模板的路径信息数组
+     * @throws ViewException
      * @return string
      */
-    protected function fetchCompiledContent($compileFile, $assign = false)
+    protected function parseTemplateFile($pathinfo)
     {
-        $template  = file_get_contents($compileFile);
-        if (!$template)
-        {
-            return '';
+        $tfile = $pathinfo['path'];
+        $size = $pathinfo['size'];
+        $ext = $pathinfo['extension'];
+        
+        $iscopyto = true;
+        // @formatter:off
+        if ($size <= $this->minsize && in_array($ext, ['css', 'js'])) {
+            $iscopyto = true;
         }
-        return $this->parseMarkdown($template);
+        // @formatter:on
+        
+        if (!$iscopyto) {
+            $fh = fopen($tfile, 'rb');
+            if (!$fh) {
+                throw new ViewException("viewer error: fopen $tfile is faild");
+            }
+            flock($fh, LOCK_SH);
+            $filesize = filesize($tfile);
+            $template = $filesize > 0 ? fread($fh, $filesize) : '';
+            flock($fh, LOCK_UN);
+            fclose($fh);
+            return $this->parseJavascriptAndCss($template, $ext);
+        }
+        
+        if (file_exists($this->basedir) && !is_dir($this->basedir)) {
+            throw new ViewException(sprintf("viewer staticfile: basedir %s must be a dir!", $this->basedir));
+        }
+        if (!file_exists($this->basedir)) {
+            mkdir($this->basedir, 0777);
+        }
+        
+        $sourcepath = $pathinfo['path'];
+        $filename = $pathinfo['filename'] . '.' . substr(md5($sourcepath), -8) . '.' . $pathinfo['extension'];
+        $topath = $this->basedir . $filename;
+        if (!copy($sourcepath, $topath)) {
+            throw new ViewException(sprintf("viewer staticfile: copy %s  to %s is error!", $sourcepath, $topath));
+        }
+        
+        $toPublicpath = $this->publicPath . $filename;
+        switch ($ext) {
+            case 'js':
+                return sprintf('<script src="%s" type="text/javascript"></script>', $toPublicpath);
+            case 'css':
+                return sprintf('<link href="%s" rel="stylesheet"/>', $toPublicpath);
+        }
+        // @formatter:off
+        if (in_array($ext, ['jpeg', 'jpg', 'gif', 'png', 'icon', 'ico', 'bmp'])) {
+            return sprintf('<img src="%s" rel="stylesheet"/>', $toPublicpath);
+        }
+        // @formatter:on
+        
+        return $toPublicpath;
+    }
+    
+    /**
+     * 生成一个编译模板文件的文件名
+     *
+     * @param string $tfile 输入的编译模板路径
+     * @return string
+     */
+    protected function createCompileFilePath($tfile)
+    {
+        return $this->compileDir . md5($tfile) . '.static.php';
+    }
+    
+    /**
+     * 解析js和css脚本
+     *
+     * @param array $pathinfo
+     * @param boolean $isCopyto
+     * @return string
+     */
+    protected function parseJavascriptAndCss($template, $ext)
+    {
+        if ('css' == $ext) {
+            return "<style>" . $template . '</style>';
+        }
+        return '<script type="text/javascript">' . $template . '</script>';
     }
 }
 ?>

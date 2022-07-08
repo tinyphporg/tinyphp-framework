@@ -103,9 +103,13 @@ abstract class Response
     /**
      * 将当前所有缓冲的输出发送到客户端，停止该页的执行。
      */
-    public function end()
+    public function end(string $msg = '')
     {
-        die($this->body);
+        if ($msg) {
+            $this->appendBody($msg);
+        }
+        $this->output();
+        die;
     }
     
     /**

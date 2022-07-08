@@ -369,21 +369,33 @@ class Configuration implements \ArrayAccess, ParserInterface
             $fpath = $parentPath . $fname;
             $pathinfo = pathinfo($fpath);
             $node = $pathinfo['filename'];
-            if (is_file($fpath) && key_exists($pathinfo['extension'], $this->parsers)) {
-                
-                $paths[$node][0] = [
-                    $fpath,
-                    $pathinfo['extension']
-                ];
+            if (key_exists($pathinfo['extension'], $this->parsers)) {
+                if ($this->isfile($fpath, $pathinfo['extension'])) {
+                    $paths[$node][0] = [
+                        $fpath,
+                        $pathinfo['extension']
+                    ];
+                }
             }
-            if (is_dir($fpath)) {
-                
+            else if (is_dir($fpath)) {
                 $paths[$node][1] = $fpath . '/';
             }
         }
         return $paths;
     }
     
+    /**
+     * 是否文件
+     * @param  string $fpath
+     * @param string $ext
+     * @return boolean
+     */
+    protected function isfile($fpath, $ext) 
+    {
+        if (($ext == 'php' && extension_loaded('opcache') && opcache_is_script_cached($fpath)) || is_file($fpath)) {
+            return true;
+        }
+    }
     /**
      * 从文件加载配置数据
      *

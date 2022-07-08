@@ -22,6 +22,7 @@ use Tiny\MVC\Controller\Dispatcher;
 use Tiny\Runtime\ExceptionHandler;
 use Tiny\MVC\Request\Request;
 use Tiny\MVC\Response\Response;
+use Tiny\MVC\Controller\DispatcherException;
 
 
 class DebugEventListener implements RequestEventListenerInterface, RouteEventListenerInterface
@@ -163,6 +164,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
      */
     public function onEndRequest(MvcEvent $event, array $params)
     {
+        $debugInterval = $this->runtime->getRuntimeTotal();
         $this->request = $this->app->request;
         $this->response = $this->app->response;
         
@@ -174,7 +176,9 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         if (!$this->app->isDebug) {
             return;
         }
-        $debugInterval = $this->runtime->getRuntimeTotal();
+        $debugIncludeFiles = get_included_files();
+        
+       
         
         $debugMemory = number_format(memory_get_peak_usage(true) / 1024 / 1024, 4);
         
@@ -200,7 +204,14 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         // 加载的控制器信息
         $controllerName = $this->request->getControllerName();
         $moduleName = $this->request->getModuleName();
-        $controllerClass = $this->dispatcher->getControllerClass($controllerName, $moduleName);
+        if ($controllerName && $moduleName) {
+            try {
+                $controllerClass = $this->dispatcher->getControllerClass($controllerName, $moduleName);
+            } catch(DispatcherException $e) {
+                $controllerClass = '';
+            }
+        }
+        
         $actionName = $this->request->getActionName();
         $actionMethod  = $this->dispatcher->getActionName($actionName);
         
@@ -239,7 +250,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
             $body = $this->getConsoleDebugBody($debugs);
             return $this->app->response->appendBody($body);
         }
-        
+  
         // web debug输出到console
         if ((bool)$this->app->properties['debug.console']) {
             return $this->outputConsoleDebug($debugs);
@@ -256,13 +267,14 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         $debugs['debugConstants'] = get_defined_constants(true);
         //$debugs['debugRequestData'] = $this->request->getRequestData();
         $debugs['debugExts'] = get_loaded_extensions();
-        $debugs['debugIncludeFiles'] = get_included_files();
+        $debugs['debugIncludeFiles'] = $debugIncludeFiles;
         $debugs['debugIncludePaths'] = get_include_path() ?: $this->request->server['PATH'];
         $debugs['debugFirstException'] = $this->getFirstException($debugExceptions[0]);
         
         // 附加debug信息到输出
       //  print_r( array_keys($debugs));
         $body = $this->view->fetch('debug/web.htm', $debugs);
+      
         return $this->app->response->appendBody($body);
     }
     
@@ -349,7 +361,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         }
         $content = $this->view->fetch($docpath, [], true);
         $content = preg_replace_callback(
-            "/href=\"(?:https\:\/\/github.com\/opensaasnet\/tinyphp\/blob\/master\/docs\/(.+?)\.md)\"/i",
+            "/href=\"(?:https\:\/\/github.com\/tinyphporg\/tinyphp\/blob\/master\/docs\/(.+?)\.md)\"/i",
             [
                 $this,
                 'parseGithubHref'

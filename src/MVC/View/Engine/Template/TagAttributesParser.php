@@ -26,10 +26,10 @@ trait TagAttributesParser
      */
     protected static function parseAttr($content)
     {
-        if (!preg_match("/([a-z][a-z0-0]*)\s*=\s*(('.*?')|(\".*?\")|([0-9]+))(,\s+([a-z][a-z0-0]*)\s*=\s*(('.*?')|(\".*?\")|([0-9]+)))*/", $content)) {
+        if (!preg_match("/([a-z][a-z0-9]*)\s*=\s*(('.*?')|(\".*?\")|([0-9]+))(,\s+([a-z][a-z0-9]*)\s*=\s*(('.*?')|(\".*?\")|([0-9]+)))*/", $content)) {
             return false;
         }
-        if (!preg_match_all("/([a-z][a-z0-0]*)\s*=\s*(('.*?')|(\".*?\")|([0-9]+))*/", $content, $matchs, PREG_SET_ORDER)) {
+        if (!preg_match_all("/([a-z][a-z0-9]*)\s*=\s*(('.*?')|(\".*?\")|([0-9]+))*/", $content, $matchs, PREG_SET_ORDER)) {
             return false;
         }
         $attrs = [];

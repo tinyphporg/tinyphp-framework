@@ -24,6 +24,8 @@ use Tiny\MVC\Application\WebApplication;
 use Tiny\DI\Definition\Provider\DefinitionProviderInterface;
 use Tiny\DI\Definition\Provider\DefinitionProvider;
 use Tiny\DI\Definition\ObjectDefinition;
+use Tiny\Cache\CacheInterface;
+use Tiny\UI\UIException;
 
 /**
  * 模块事件监听类
@@ -32,7 +34,7 @@ use Tiny\DI\Definition\ObjectDefinition;
  * @since 2022年3月28日下午1:46:43
  * @final 2022年3月28日下午1:46:43
  */
-class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, BootstrapEventListenerInterface, DefinitionProviderInterface
+class ModuleManager implements \ArrayAccess,\Iterator,\Countable, RequestEventListenerInterface, BootstrapEventListenerInterface, DefinitionProviderInterface
 {
     
     /**
@@ -48,19 +50,14 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
         'ACTION_SUFFIX' => 'Action',
         'CONFIG_PATH' => 'config/',
         'LANG_PATH' => 'lang/',
-        'CONTROLLER_PATH' => 'controllers/',
+        'CONTROLLER_PATH' => 'controllers/web/',
         'CONTROLLER_CONSOLE_PATH' => 'controllers/console/',
         'MODEL_PATH' => 'models/',
         'EVENT_PATH' => 'events/',
+        'LIBRARY_PATH' => 'librarys/',
+        'LIBRARY_GLOBAL_PATH' => '/librarys/global',
         'VIEW_PATH' => 'views/',
     ];
-    
-    /**
-     * 容器定义源
-     *
-     * @var DefinitionProvider
-     */
-    protected $provider;
     
     /**
      * 当前运行时实例
@@ -84,11 +81,24 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
     protected $properties;
     
     /**
+     * 缓存实例
+     * 
+     * @var CacheInterface
+     */
+    protected $cacheInstance;
+    
+    /**
      * 缓存KEY
      *
      * @var string
      */
     protected $cacheKey = 'application.module';
+    
+    /**
+     * 是否需要更新缓存
+     * @var boolean
+     */
+    protected $isUpdateCache = false;
     
     /**
      * module 模块数组
@@ -103,6 +113,13 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
      * @var array
      */
     protected $activatedModules = [];
+    
+    /**
+     * 禁止的模块列表
+     * 
+     * @var array
+     */
+    protected $disabledModules = [];
     
     /**
      * 启用模块的所有命名空间
@@ -131,6 +148,8 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
      */
     protected $viewPaths = [];
     
+
+    
     /**
      * 初始化
      *
@@ -140,7 +159,7 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
     {
         $this->app = $app;
         $this->properties = $app->properties;
-        $this->provider = $provider;
+        $provider->addDefinitionProivder($this);
         $this->runtime = $runtime;
     }
     
@@ -157,6 +176,10 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
         foreach($this->activateNamespaces as $namespace => $moduleName) {
             if (strpos($name, $namespace) !== 0) {
                 continue;
+            }
+            $moduleConfig = $this->modules[$moduleName];
+            if (in_array($name, $moduleConfig['ignores'])) {
+                continue;    
             }
             return new ObjectDefinition($name, $name, [
                 self::class => $this,
@@ -183,9 +206,10 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
      */
     public function onBeginRequest(MvcEvent $event, array $params)
     {
+        $this->disabledModules = (array)$this->properties['module.disabled_modules'];
+        
         // 非调试模式下读取缓存
-        $cacheInstance = $this->app->get('app.application.cache');
-       // $this->modules = (array)$cacheInstance->get($this->cacheKey);
+        $this->modules = (array)$this->getCacheInstance()->get($this->cacheKey);
         
         if (!$this->modules) {
             $modulePath = $this->properties['module.path'];
@@ -196,19 +220,17 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
             if (!$this->modules) {
                 return;
             }
+            $this->isUpdateCache = true;
         }
-        // 非调试模式下读取缓存
-        $cacheInstance->set($this->cacheKey, $this->modules);
-        
         // 预加载启用的模块配置
         foreach ($this->modules as $moduleName => $moduleConfig) {
             if ($moduleConfig['init']) {
                 $this->activatedModules[$moduleName] = &$this->modules[$moduleName];
             }
         }
-        
         // init modules
         foreach ($this->modules as $moduleName => &$moduleConfig) {
+            
             if (!$moduleConfig['init']) {
                 continue;
             }
@@ -255,20 +277,13 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
             }
             $this->initModule($moduleName);
         }
-        
-        // view
-        $viewPaths = [];
-        foreach ($this->activatedModules as $mname => $mconfig) {
-            if ($mconfig['path']['view']) {
-                $viewPaths[$mname] = $mconfig['path']['view'];
-            }
-        }
-        $defaultViewPaths = (array)$this->properties['view.paths'];
-        $this->properties['view.paths'] = array_merge($defaultViewPaths, $viewPaths);
         $this->properties['view.assign.modules'] = $this;
         
-        // definition provider
-        $this->provider->addDefinitionProivder($this);
+        // 非调试模式下读取缓存
+        if ($this->isUpdateCache) {
+            $this->getCacheInstance()->set($this->cacheKey, $this->modules);
+        }
+        
     }
     
     /**
@@ -416,17 +431,90 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
     }
     
     /**
+     * 
+     * {@inheritDoc}
+     * @see \Countable::count()
+     */
+    public function count()
+    {
+        return count($this->activatedModules);
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \Iterator::current()
+     */
+    public function current()
+    {
+        return current($this->moduleInstances);
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \Iterator::next()
+     */
+    public function next()
+    {
+        return next($this->moduleInstances);
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \Iterator::key()
+     */
+    public function key()
+    {
+        return key($this->moduleInstances);
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \Iterator::rewind()
+     */
+    public function rewind()
+    {
+        return reset($this->moduleInstances);
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \Iterator::valid()
+     */
+    public function valid()
+    {
+        return $this->key() !== null;
+    }
+    
+    /**
+     * 返回当前缓存操作实例
+     * 
+     * @return \Tiny\Cache\CacheInterface
+     */
+    protected function getCacheInstance()
+    {
+        if (!$this->cacheInstance) {
+            $this->cacheInstance = $this->app->get('app.application.cache');
+        }
+        return $this->cacheInstance;
+    }
+    
+    /**
      *
      * @param string $moduleName
      * @param string $defaultModule
      */
     protected function initModule($moduleName)
     {
-        
+       
         if (!key_exists($moduleName, $this->modules)) {
             return;
         }
-        $moduleConfig = $this->modules[$moduleName];
+        $moduleConfig = & $this->modules[$moduleName];
         if (!$moduleConfig) {
             return;
         }
@@ -434,13 +522,23 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
         
         // autoloader
         foreach ($moduleConfig['namespaces'] as $namespace => $path) {
-            $this->activateNamespaces[$namespace] = $moduleName;
             $this->runtime->addToNamespacePathMap($namespace, $path);
+            if ($namespace == '*') {
+                continue;
+            }
+            $this->activateNamespaces[$namespace] = $moduleName;
         }
         
         // event listener
         $eventListener = $moduleConfig['eventlistener'];
-        if ($eventListener) {
+        if (is_array($eventListener)) {
+            foreach ($eventListener as $el) {
+                if (is_array($el) && key_exists('class', $el)) {
+                    $priority = key_exists('priority', $el) ? (int)$el['priority'] :0;
+                    $this->app->addEventListener($el['class'], $priority);
+                }
+            }     
+        } elseif (is_string($eventListener)) {
             $this->app->addEventListener($eventListener);
         }
         
@@ -454,7 +552,89 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
         
         // view
         if ($moduleConfig['path']['view']) {
-            $this->viewPaths[$moduleName] = $moduleConfig['path']['view'];
+            $viewNode = sprintf('view.paths.%s', $moduleName);
+            $this->properties[$viewNode] = $moduleConfig['path']['view'];
+        }
+     
+        //static
+        $sconfig = $moduleConfig['static'];
+        if ($this->initStatic($sconfig)) {
+            $moduleConfig['static']['completed'] = true;
+            $this->isUpdateCache = true;
+        }
+        
+        //
+       return  $this->getModule($moduleName);
+    }
+    
+    /**
+     * 初始化静态
+     * 
+     * @param array $sconfig
+     */
+    protected function initStatic($sconfig)
+    {
+        if (!$sconfig || !$sconfig['enabled'] || $sconfig['completed']) {
+            return;
+        }
+        if (!$sconfig['web'] && $this->app instanceof  WebApplication) {
+            return;
+        }
+        foreach((array)$sconfig['paths'] as $path) {
+            $this->copytoStaticDir($path['from'], $path['to'], $path['exclude']);
+        }
+        return true;
+    }
+    
+    /**
+     * 复制文件夹去安装路径
+     *
+     * @param string $sourcePath 源文件路径
+     * @param string $installPath 安装路径
+     * @throws UIException
+     * @return void|boolean
+     */
+    protected function copytoStaticDir($sourcePath, $toPath, $exclude = false)
+    {
+        if (!is_dir($sourcePath)) {
+            return false;
+        }
+        if (preg_match("/^(|\*|\/|\/(usr|home|root|lib|lib64|etc|var)\/?|)$/i", $toPath)) {
+            return;
+        }
+                
+        if (file_exists($toPath) && !is_dir($toPath)) {
+                throw new UIException(sprintf('%s is a file!', $toPath));
+        }
+        if (!file_exists($toPath)) {
+            mkdir($toPath, 0777, TRUE);
+        }
+        
+        $files = scandir($sourcePath);
+        foreach ($files as $file) {
+            if ($file == '.' || $file == '..') {
+                continue;
+            }
+            $filename = $sourcePath . '/' . $file;
+            $tofilename = $toPath . '/' . $file;
+            
+            if (is_dir($filename)) {
+                $this->copytoStaticDir($filename, $tofilename, $exclude);
+                continue;
+            }
+            
+            // 更新最新文件
+            if (is_file($tofilename) && filemtime($tofilename) >= filemtime($filename)) {
+                return;
+            }
+            if ($exclude && preg_match($exclude, $filename)) {
+                return;
+            }
+            
+            $ret = copy($filename, $tofilename);
+            if (!$ret) {
+                throw new UIException(sprintf('copy failed: %s to %s', $filename, $tofilename));
+            }
         }
     }
     
@@ -521,11 +701,6 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
             return;
         }
         
-        $moduleConfig['profile'] = $profile;
-        $moduleConfig['disabled'] = (bool)$profile['disabled'];
-        if ($moduleConfig['disabled']) {
-            return;
-        }
         
         // module name
         $name = (string)$profile['name'];
@@ -533,18 +708,41 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
             return;
         }
         
+        $moduleConfig['profile'] = $profile;
+        $moduleConfig['desc'] = (string)$profile['desc'];
+        $moduleConfig['disabled'] = (bool)$profile['disabled'];
+        if (in_array($name, $this->disabledModules)) {
+            $moduleConfig['disabled'] = true;
+        }
+        if ($moduleConfig['disabled']) {
+            return;
+        }
+
+        
         // module namespace;
         $namespace = (string)$profile['namespace'];
         if (!preg_match('/[A-Z][a-z]+/', $namespace)) {
             return;
         }
+
+        // profile setting
+        $mconfig = (array)$this->properties['module'];
+        if (key_exists($name, $mconfig)) {
+            $mconfig = (array)$mconfig[$name];
+            if ($mconfig) {
+                $moduleConfig['profile']['setting'] = array_replace_recursive((array)$profile['setting'], $mconfig);
+            }
+        }
         
         // module version
         $moduleConfig['name'] = $name;
         $moduleConfig['basedir'] = dirname($path) . DIRECTORY_SEPARATOR;
+        $moduleConfig['index'] = (string)$profile['index'];
         $moduleConfig['namespace'] = $namespace;
+        $moduleConfig['eventlistener'] = $profile['eventlistener'];
         $moduleConfig['version'] = (string)$profile['version'];
         $moduleConfig['init'] = (bool)$profile['init'];
+        $moduleConfig['ignores'] = (array)$profile['autoloader']['ignores'];
         $moduleConfig['errormsg'] = '';
         $moduleConfig['lang'] = [];
         
@@ -566,13 +764,16 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
         // namespaces
         $this->parseNamespaces($moduleConfig);
         
+        // static
+        $this->parseStatic($moduleConfig);
+        
         // 命名空间唯一性
         $namespace = $moduleConfig['namespace'];
         if (in_array($namespace, $this->parsedNamespaces)) {
             return;
         }
         $this->parsedNamespaces[] = $namespace;
-        
+
         $this->modules[$name] = $moduleConfig;
         return $moduleConfig;
     }
@@ -587,6 +788,8 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
     {
         $name = $moduleConfig['name'];
         $basedir = $moduleConfig['basedir'];
+        $index = $moduleConfig['index'];
+        $indexdir = $index ? $this->properties->path($index, [], $basedir) : $basedir;
         $paths = [
             'config' => self::DEFAULT_SETTINGS['CONFIG_PATH'],
             'lang' => self::DEFAULT_SETTINGS['LANG_PATH'],
@@ -595,16 +798,18 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
             'model' => self::DEFAULT_SETTINGS['MODEL_PATH'],
             'event' => self::DEFAULT_SETTINGS['EVENT_PATH'],
             'view' => self::DEFAULT_SETTINGS['VIEW_PATH'],
-            'library' => self::DEFAULT_SETTINGS['LIBRARY_PATH']
+            'library' => self::DEFAULT_SETTINGS['LIBRARY_PATH'],
+            'global' => self::DEFAULT_SETTINGS['LIBRARY_GLOBAL_PATH']
         ];
         
         $parsedPaths = [];
         foreach ($paths as $key => &$value) {
-            $value = $basedir . $value;
+            $value = $indexdir. $value;
             $parsedPaths['module.' . $name . '.' . $key] = $value;
         }
         $paths['profile'] = $basedir;
         $paths['basedir'] = $basedir;
+        $paths['indexdir'] = $indexdir;
         
         // view
         if (!is_dir($paths['view'])) {
@@ -641,13 +846,12 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
     {
         $profile = $moduleConfig['profile'];
         $paths = $moduleConfig['path'];
+        $moduleConfig['config'] = [];
         if ($profile['config'] && is_dir($paths['config'])) {
             $configData = is_array($profile['config']) ? $profile['config'] : [];
             $configInstance = new Configuration($paths['config']);
             $configData = array_merge($configData, $configInstance->get());
             $moduleConfig['config'] = $configData;
-        } else {
-            $moduleConfig['config'] = [];
         }
     }
     
@@ -707,7 +911,9 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
         $name = $moduleConfig['name'];
         $profile = $moduleConfig['profile'];
         $basedir = $moduleConfig['basedir'];
+        
         $paths = $moduleConfig['path'];
+        $indexdir = $paths['indexdir'];
         $parsedPaths = $moduleConfig['parsedPaths'];
         
         // root namespace
@@ -720,7 +926,6 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
         $modelNamespace = $namespace . self::DEFAULT_SETTINGS['NAMESPACE_MODEL'];
         $eventNamespace = $namespace . self::DEFAULT_SETTINGS['NAMESPACE_EVENT'];
         
-        // 
         $defaultNamespaces = [
             $namespace => $paths['library'],
             $controllerNamespace => $paths['controller'],
@@ -728,14 +933,76 @@ class ModuleManager implements \ArrayAccess, RequestEventListenerInterface, Boot
             $modelNamespace => $paths['model'],
             $eventNamespace => $paths['event'],
         ];
-        
+
         // 格式化命名空间
         $moduleConfig['controllerNamespace'] = $this->app instanceof WebApplication ? $controllerNamespace : $consoleControllerNamespace;
         $namespaces = array_merge($defaultNamespaces, (array)$profile['autoloader']['namespaces']);
         $moduleConfig['namespaces'] = $this->formatNamespaces($namespace, $namespaces);
-        foreach ($moduleConfig['namespaces'] as &$npath) {
-            $npath = $this->properties->path($npath, $parsedPaths, $basedir);
+        foreach ($moduleConfig['namespaces'] as &$npath) {        
+            $npath = $this->properties->path($npath, $parsedPaths, $indexdir);
         }
+        
+        //global
+        $globalPath = (string)$profile['autoloader']['global'];
+        $globalPath = $this->properties->path($globalPath ?: $paths['global'], $parsedPaths, $indexdir);
+        if ($globalPath) {
+            $moduleConfig['namespaces']['*'] = $globalPath;
+        }
+    }
+    
+    /**
+     * 解析配置的静态文件复制信息
+     * 
+     * @param array $moduleConfig
+     */
+    protected function parseStatic(&$moduleConfig)
+    {
+        $name = $moduleConfig['name'];
+        $profile = $moduleConfig['profile'];
+        $basedir = $moduleConfig['basedir'];
+        $paths = $moduleConfig['path'];
+        $parsedPaths = $moduleConfig['parsedPaths'];
+        
+        // 静态资源存放目录
+        $toStaticDir = $this->properties['view.static.basedir'] . $name . DIRECTORY_SEPARATOR;
+        $toPublicPath = $this->properties['view.static.public_path'] . $name . DIRECTORY_SEPARATOR;
+        // 格式化静态资源配置
+        $staticConfig = (array)$profile['autoloader']['static'];
+        $static = ['enabled' => true, 'completed' => false, 'web' => true];
+        if (array_key_exists('web', $staticConfig) && !$staticConfig['web']) {
+            $static['web'] = false;
+        }
+        
+        $staticPaths = [];
+        $paths = (array)$staticConfig['paths'];
+        foreach ($paths as $path) {
+            if (is_string($path)) {
+                $from = $this->properties->path($path, $parsedPaths, $basedir);
+                $to = $toStaticDir;
+                $staticPaths[] = ['from' => $from, 'to' => $to, 'exclude' => false];
+                continue;
+            }
+            if (is_array($path)) {
+                if (!key_exists('from', $path)) {
+                    continue;
+                }
+                $from = $this->properties->path($path['from'], $parsedPaths, $basedir);
+                $to = key_exists('to', $path) ? $this->properties->path($path['to'], [], $toStaticDir) : $toStaticDir;
+                $exclude = (string)$path['exclude'] ?? false;
+                $staticPaths[] = ['from' => $from, 'to' => $to, 'exclude' => $exclude];
+            }
+        }
+        
+        $static['paths'] = $staticPaths;
+        if (!$staticPaths) {
+            $static['enabled'] = false;
+            $static['completed'] = true;
+        }
+        
+        //update moduleconfig
+        $moduleConfig['static'] = $static;
+        $moduleConfig['profile']['setting']['public_path'] = $toPublicPath;
+        
     }
     
     /**
