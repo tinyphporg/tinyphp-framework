@@ -108,7 +108,6 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         }
         
         // 注入环境变量
-        $_ENV = $env;
         $this->envdata = $env;
     }
     

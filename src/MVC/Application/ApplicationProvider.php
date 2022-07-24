@@ -240,15 +240,37 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getApplicationCacheDefinition()
     {
-        return new CallableDefinition(ApplicationCache::class, function (ContainerInterface $container) {
+        // 获取profile.php的配置 是否允许cache实例化
+        if (!$this->properties['cache.enabled']) {
+            return;
+        }
+        
+        return new CallableDefinition(ApplicationCache::class, function (ContainerInterface $container, array $config) {
             if (!$container->has(Cache::class)) {
                 return;
             }
+            
             $cacheInstance = $container->get(Cache::class);
+            
+            // 获取profile.php的应用缓存配置
+            $storagerClass = (string)$config['application_storager'] ?: SingleCache::class;
+            $ttl  = (int)$config['application_ttl'];
+            if ($ttl <=0 ) {
+                $ttl = (int)$config['ttl'] ?: 60;
+            }
+            
+            // 添加application的cache存储
+            $storagerId = Cache::getStoragerId($storagerClass);
+            $cacheInstance->addStorager('application.cache', $storagerId, [
+                'path' => '',
+                'key' => 'application.cache',
+                'ttl' => $ttl,
+            ]);
+            
             // 按照析构顺序
             $cacheStorager = $cacheInstance['application.cache'];
             return new ApplicationCache($cacheStorager);
-        });
+        }, ['config' => (array)$this->properties['cache']]);
     }
     
     /**
@@ -323,23 +345,26 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getRouterDefinition()
     {
+        // profile.php router.enabled 开启路由实例化
         if (!$this->properties['router.enabled']) {
             return;
         }
         
         return new CallableDefinition(Router::class, function (Request $request, array $config) {
+           
             // router config
             $config['routes'] = (array)$config['routers'];
             $config['rules'] = (array)$config['rules'];
             
+            // 创建
             $routerInstance = new Router($request);
             
-            // 注册路由
+            // 注册新的路由
             foreach ($config['routes'] as $routerName => $routerclass) {
                 $routerInstance->addRoute($routerName, $routerclass);
             }
             
-            // 注册路由规则
+            // 注册新的路由规则
             foreach ($config['rules'] as $rule) {
                 $rule = (array)$rule;
                 $routerInstance->addRouteRule($rule);
@@ -370,13 +395,14 @@ class ApplicationProvider implements DefinitionProviderInterface
     protected function getCacheDefinition()
     {
         
+        // 获取profile.php的配置 是否允许cache实例化
         if (!$this->properties['cache.enabled']) {
             return;
         }
         
         return new CallableDefinition(Cache::class, function (array $config) {
             
-            // 存储器映射
+            // 添加缓存存储器
             $storagers = (array)$config['storagers'];
             foreach ($storagers as $storagerId => $storagerClass) {
                 Cache::regStorager($storagerId, $storagerClass);
@@ -386,27 +412,23 @@ class ApplicationProvider implements DefinitionProviderInterface
             $ttl = (int)$config['ttl'];
             $path = (string)$config['dir'];
             
+            // 创建实例
             $cacheInstance = new Cache();
+            
+            // 设置默认的文件缓存路径  默认为runtime/cache
             $cacheInstance->setDefaultPath($path);
+            
+            // 默认的缓存调用source id
             $cacheInstance->setDefaultId($defaultId);
+            
+            // 默认的缓存周期
             $cacheInstance->setDefaultTtl($ttl);
+            
+            // 添加缓存池的源配置
             $caches = (array)$config['sources'];
             foreach ($caches as $cacheConfig) {
                 $cacheInstance->addStorager($cacheConfig['id'], $cacheConfig['storager'], $cacheConfig['options']);
             }
-            
-            $storagerClass = (string)$config['application_storager'] ?: SingleCache::class;
-            $ttl  = (int)$config['application_ttl'];
-            if ($ttl <=0 ) {
-                $ttl = (int)$config['ttl'] ?: 60;
-            }
-            
-            $storagerId = Cache::getStoragerId($storagerClass);
-            $cacheInstance->addStorager('application.cache', $storagerId, [
-                'path' => '',
-                'key' => 'application.cache',
-                'ttl' => $ttl,
-            ]);
             return $cacheInstance;
         }, ['config' => (array)$this->properties['cache']]);
     }
@@ -440,19 +462,28 @@ class ApplicationProvider implements DefinitionProviderInterface
     protected function getConfigDefinition()
     {
         $config = (array)$this->properties['config'];
+        
+        // 配置是否开启
         if (!$config['enabled']) {
             return;
         }
+        
         return new CallableDefinition(Configuration::class, function (ContainerInterface $container, array $config) {
+            
+            // 检测配置路径
             if (!$config['path']) {
                 throw new ApplicationException("properties.config.path is not allow null!");
             }
             
+            // 实例化
             $configInstance = new Configuration($config['path']);
+           
+            // 是否开启缓存
             if (!$config['cache']['enabled']) {
                 return $configInstance;
             }
             
+            // 缓存实例存在则从缓存加载或写入配置数据
             if ($container->has('app.application.cache')) {
                 $cacheInstance = $container->get('app.application.cache');
                 $configData = $cacheInstance->get('application.config');
@@ -475,27 +506,28 @@ class ApplicationProvider implements DefinitionProviderInterface
     protected function getDataDefinition()
     {
         $config = (array)$this->properties['data'];
+        
+        // 配置是否开启data实例化
         if (!$config['enabled']) {
             return;
         }
+        
         return new CallableDefinition(Data::class, function (ApplicationBase $app, array $config) {
             
-            // 驱动
-            foreach ((array)$config['drvers'] as $id => $className) {
+            // 通过配置节点profile.php data.drivers 添加数据源驱动
+            foreach ((array)$config['drivers'] as $id => $className) {
                 Data::regDataSourceDriver($id, $className);
             }
-            // 
-            $dataInstance = new Data();
             
-            // 编码
-            $charset = $config['charset'] ?: 'utf8';
+            // 实例化 
+            $dataInstance = new Data();
             
             // 添加数据源
             foreach ((array)$config['sources'] as $sourceConfig) {
-                $sourceConfig['def_charset'] = $charset;
                 $sourceConfig['is_record'] = (bool)$app->isDebug;
                 $dataInstance->addDataSource($sourceConfig);
             }
+            
             return $dataInstance;
         }, ['config' => $config]);
     }
@@ -506,14 +538,21 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getFilterDefinition()
     {
+        // 是否开启过滤实例化
         $config = (array)$this->properties['filter'];
         if (!$config['enabled']) {
             return false;
         }
         
         return new CallableDefinition(Filter::class, function (ApplicationBase $app, array $config) {
+            
+            // 创建实例
             $filterInstance = new Filter();    
+            
+            // web和console下调用不同的过滤器
             $filterClass = ($app instanceof WebApplication) ? $config['web'] : $config['console'];
+            
+            // 添加过滤器
             if ($filterClass && is_array($filterClass)) {
                 foreach ($filterClass as $fclass) {
                     $filterInstance->addFilter($fclass);
@@ -522,6 +561,7 @@ class ApplicationProvider implements DefinitionProviderInterface
                 $filterInstance->addFilter($filterClass);
             }
             
+            // 添加通用的过滤器
             foreach ((array)$config['filters'] as $fname) {
                 $filterInstance->addFilter($fname);
             }
@@ -577,21 +617,28 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getLoggerDefinition()
     {
+        // 配置是否开启日志收集器
         $config = (array)$this->properties['log'];
         if (!$config['enabled']) {
             return;
         }
         
         return new CallableDefinition(Logger::class, function (array $config) {
-            $logger = new Logger();
+
+            // 加载日志驱动
             foreach ((array)$config['drivers'] as $type => $className) {
                 Logger::regLogWriter($type, $className);
             }
             
+            // 创建实例
+            $logger = new Logger();
+            
+            // 文件型日志写入器的配置
             $writerConfig = ('file' === $config['writer']) ? [
                 'path' => $config['path'],
             ] : [];
             
+            // 添加日志写入器
             $logger->addLogWriter($config['writer'], $writerConfig);
             return $logger;
         }, ['config' => $config]);
@@ -744,11 +791,14 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getCookieDefinition()
     {
+        // 只允许在WebApplication下实例化
         if (!$this->app instanceof WebApplication) {
             return;
         }
         return new CallableDefinition(HttpCookie::class, function (Properties $prop) {
             $config = (array)$prop['cookie'];
+           
+            // 引入全局变量$_COOKIE进行初始化。
             $config['data'] = $_COOKIE;
             return new HttpCookie($config);
         });
@@ -761,9 +811,11 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getSessionDefinition()
     {
+        // 只允许在WebApplication下实例化
         if (!$this->app instanceof WebApplication) {
             return;
         }
+        // 引入profile.php下的session配置
         return new CallableDefinition(HttpSession::class, function (Properties $prop) {
             return new HttpSession((array)$prop['session']);
         });

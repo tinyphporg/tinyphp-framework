@@ -34,6 +34,8 @@ use Tiny\MVC\Module\ModuleManager;
 use Tiny\DI\Definition\ObjectDefinition;
 use Tiny\DI\Definition\Provider\DefinitionProvider;
 use Tiny\Cache\CacheInterface;
+use Tiny\Runtime\Runtime;
+use Tiny\Runtime\Autoloader;
 
 /**
  * app实例基类
@@ -170,12 +172,14 @@ abstract class ApplicationBase implements ExceptionEventListener
         $provider->addDefinitionFromArray([ApplicationProvider::class]);
         $applicationProvider = $container->get(ApplicationProvider::class);
         $provider->addDefinitionProivder($applicationProvider);
-
+        
+        //init autoloader
+        $this->initAutoloader($container);
         
         // event manager
         $this->eventManager = $container->get('app.eventmanager');
         $this->eventManager->addEventListener($this);
-        
+                
         // request & response
         $this->request = $container->get('app.request');      
         $this->response = $container->get('app.response');
@@ -235,17 +239,23 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @param array $exceptions 所有异常
      */
     public function onException(array $exception, array $exceptions)
-    {
+    {       
+            // 配置异常通过日志方式输出
+            
             if ($this->properties['exception.log']) {
                 $logId = $this->properties['exception.logid'];
                 $logMsg = $exception['handle'] . ':' . $exception['message'] . ' from ' . $exception['file'] . ' on line ' . $exception['line'];
                 $this->error($logId, $exception['level'], $logMsg);
             }
             
-            if ($exception['isThrow']) {
+            // 如果是需要抛出的异常级别，则直接输出
+            if ($exception['isThrow']) { 
+                // 在response没有实例化前，直接输出。否则通过debug模块输出异常信息
                 if (!$this->response) {
                     print_r($exceptions);
                 }
+                
+                // 终止执行
                 $this->end();
                
             }
@@ -271,6 +281,9 @@ abstract class ApplicationBase implements ExceptionEventListener
       
         // event  request end       
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_END_REQUEST));
+        
+        // 保存已加载的类路径映射到应用缓存
+        $this->saveToAutoloaderClasses();
         
         $this->response->output();
     }
@@ -419,6 +432,58 @@ abstract class ApplicationBase implements ExceptionEventListener
     }
     
     /**
+     * 初始化应用程序的自动加载
+     */
+    protected function initAutoloader(ContainerInterface $container)
+    {
+        $autoloader = $container->get(Autoloader::class);
+        
+        // 添加命名空间
+        $namespaces = (array)$this->properties['autoloader.namespaces'];
+        foreach ($namespaces as $ns => $path) {
+            $autoloader->addToNamespacePathMap($ns, $path);
+        }
+        
+        // 获取缓存实例
+        $applicationCache = $container->get(ApplicationCache::class);
+       
+        // 合并
+        $classes = (array)$this->properties['autoloader.classes']; 
+        $classes += (array)$applicationCache->get('application.autoloader.classes');
+        
+        // 添加类路径映射
+        foreach ($classes as $className => $classPath) {
+            $autoloader->addToClassPathMap($className, $classPath);
+        }
+    }
+    
+    /**
+     * 保存已经加载的类路径映射到缓存
+     */
+    protected function saveToAutoloaderClasses()
+    {
+        $applicationCache = $this->get(ApplicationCache::class);
+        
+        // 自动加载实例
+        $autoloader = $this->get(Autoloader::class);
+        $loadedClasses  = (array)$autoloader->getLoadedClassMap();
+        
+        // 已经缓存的数据
+        $classes = (array)$applicationCache->get('application.autoloader.classes');
+        
+        // 需要更新到缓存的类映射
+        $updateClasses = [];
+        foreach ($loadedClasses as $className => $path) {
+            if (!key_exists($className, $classes)) {
+                $updateClasses[$className] = $path;
+            }
+        }
+        if ($updateClasses) {
+            $applicationCache->set('application.autoloader.classes', array_merge($classes, $updateClasses));
+        }
+    }
+    
+    /**
      * 初始化事件监听器
      */
     protected function initEventListener()
@@ -439,15 +504,20 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     protected function bootstrap()
     {
-        // bootstrap
+        // 判断是否进行引导类加载和触发引导事件
         if (!$this->properties['bootstrap.enabled']) {
             return;
         }
+        
+        // 获取配置的引导类class
         $eventListener = $this->properties['bootstrap.event_listener'];
         if (!is_string($eventListener) && !is_array($eventListener)) {
             throw new ApplicationException('properties.bootstrap.eventListeners must be an array type or a string type class name');}
         
+        // 加入监听onBootstrap事件
         $this->eventManager->addEventListener($eventListener);
+        
+        // 触发onBootstrap事件
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_BOOTSTRAP));
     }
     

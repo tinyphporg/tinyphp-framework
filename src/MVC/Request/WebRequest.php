@@ -195,9 +195,7 @@ class WebRequest extends Request
     {
         $this->param->merge($_REQUEST);
         $this->get = new Get($_GET);
-        $this->post = new Post($_POST);
-        unset($_REQUEST, $_GET,$_POST);
-        
+        $this->post = new Post($_POST); 
         
         // SCRIPT
         $server = $this->server;

@@ -44,6 +44,13 @@ class Autoloader
     protected $gloablPaths = [];
     
     /**
+     * 已经加载的class路径映射列表
+     * 
+     * @var array
+     */
+    protected $loadedClassMap = [];
+    
+    /**
      * 构造函数，主动自动加载类
      *
      * @param void
@@ -51,7 +58,23 @@ class Autoloader
      */
     public function __construct()
     {
-        $this->registerAutoloadHandler();
+        $autoloadFunctions = spl_autoload_functions();
+        if (!$autoloadFunctions) {
+            // @formatter:off
+            return spl_autoload_register([$this, 'loadClass']);
+        }
+        
+        // 多个autoloader情况下，tinyphp首先加载
+        foreach ($autoloadFunctions as $afunc) {
+            spl_autoload_unregister($afunc);
+        }
+        
+        array_unshift($autoloadFunctions, [$this, 'loadClass']);
+        
+        // @formatter:on
+        foreach ($autoloadFunctions as $afunc) {
+            spl_autoload_register($afunc);
+        }
     }
     
     /**
@@ -140,6 +163,9 @@ class Autoloader
                 $gclassfile = $gpath . DIRECTORY_SEPARATOR . $classfile;
                 if ($this->classFileExists($gclassfile)) {
                     include_once($gclassfile);
+                    if (class_exists($className, false)) {
+                        $this->loadedClassMap[$className] = $gclassfile;
+                    }
                     return;
                 }
             }
@@ -155,18 +181,26 @@ class Autoloader
                 join('/', array_slice($classNodes, $i))
             ];
         }
-        
         // namespaces
         foreach ($namespaceClassMap as $node) {
             list($namespace, $pathSuffix) = $node;
             if (!key_exists($namespace, $this->namspacePathMap)) {
                 continue;
             }
-            
             if ($this->loadClassFromPath($namespace, $pathSuffix, $className)) {
                 break;
             }
         }
+    }
+    
+    /**
+     * 获取已经加载的class文件路径映射列表
+     * 
+     * @return array
+     */
+    public function getLoadedClassMap()
+    {
+        return $this->loadedClassMap;
     }
     
     /**
@@ -177,14 +211,18 @@ class Autoloader
      * @param string $cname 类名
      * @return bool false加载失败 || true成功
      */
-    protected function loadClassFromPath($namespace, $pathSuffix, $classname)
+    protected function loadClassFromPath($namespace, $pathSuffix, $className)
     {
         $paths = $this->namspacePathMap[$namespace];
         foreach ($paths as $ipath) {
-            $classfile = $ipath . $pathSuffix . '.php';
-            if ($this->classFileExists($classfile)) {
-                include_once ($classfile);
-                return true;
+            $classFile = $ipath . $pathSuffix . '.php';
+            if ($this->classFileExists($classFile)) {
+                include_once ($classFile);
+                if (class_exists($className, false)) {
+                    $this->loadedClassMap[$className] = $classFile;
+                    return true;
+                }
+                return;
             }
         }
     }
@@ -198,32 +236,6 @@ class Autoloader
     protected function classFileExists($file)
     {
         return (extension_loaded('opcache') && opcache_is_script_cached($file)) || file_exists($file);
-    }
-    
-    /**
-     * 注册自动加载句柄
-     *
-     * @return boolean
-     */
-    protected function registerAutoloadHandler()
-    {
-        $autoloadFunctions = spl_autoload_functions();
-        if (!$autoloadFunctions) {
-            // @formatter:off
-            return spl_autoload_register([$this, 'loadClass']);
-        }
-        
-        // 多个autoloader情况下，tinyphp首先加载
-        foreach ($autoloadFunctions as $afunc) {
-            spl_autoload_unregister($afunc);
-        }
-        
-        array_unshift($autoloadFunctions, [$this, 'loadClass']);
-        
-        // @formatter:on
-        foreach ($autoloadFunctions as $afunc) {
-            spl_autoload_register($afunc);
-        }
     }
 }
 ?>

@@ -55,17 +55,17 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
     protected $session;
     
     /**
-     * 注册session驱动类
+     * 注册session适配器
      *
-     * @param string $id 驱动ID
-     * @param string $className 类名
+     * @param string $adapterId 驱动ID
+     * @param string $adapterClass 类名
      */
-    public static function registerSessionAdpater($sessionId, $sessionClass)
+    public static function registerSessionAdapter($adapterId, $adapterClass)
     {
-        if (key_exists($sessionId, self::$sessionAdapterMap)) {
-            throw new SessionException('Failed to register the session adapter %s into the map: session id already exists!', $sessionClass);
+        if (key_exists($adapterId, self::$sessionAdapterMap)) {
+            throw new SessionException('Failed to register the session adapter %s into the map: session id already exists!', $adapterClass);
         }
-        self::$sessionAdapterMap[$sessionId] = $sessionClass;
+        self::$sessionAdapterMap[$adapterId] = $adapterClass;
     }
     
     /**
@@ -319,28 +319,35 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
      */
     protected function parseConfig(array $config)
     {
-        // cookie
+        // SESSIONID的cookie配置
         $domain = (string)$config['domain'] ?: '';
         $expires = intval($config['expires']);
         $path = $config['path'] ?: '/';
         session_set_cookie_params($expires, $path, $domain);
         
-        // adpater
+        // 注册新的session驱动
+        $adapters = (array)$config['adapters'];
+        foreach($adapters as $adapterId => $adapterClass) {
+            self::registerSessionAdpater($adapterId, $adapterClass);
+        }
+        
+        // SESSION的适配器adpater配置
         $adapter = (string)$config['adapter'];
         if (!$config['adapter']) {
             throw new SessionException('Initialization failed, profile.session.adapter is required!');
         }
         
-        //
+        // 适配器不存在则抛出异常
         if (!key_exists($adapter, self::$sessionAdapterMap)) {
             throw new SessionException(sprintf("Initialization failed, %s is not registered ", $adapter));
         }
         
-        // class
+        // 配置指定的SESSION适配器
         $config['class'] = self::$sessionAdapterMap[$adapter];
         session_set_save_handler($this, true);
         return $config;
     }
+    
     /**
      * 获取实例
      *
@@ -349,11 +356,16 @@ class HttpSession implements \ArrayAccess, \Iterator,\Countable, SessionAdapterI
     protected function getSession()
     {
         if (!$this->session) {
+            
+            // 通过引入data的外部数据库作为SESSION适配器的存储。
             $config = [
                 'expires' => $this->config['expires'],
                 'dataid' => $this->config['dataid']
             ];
+            
             $sessionClass = $this->config['class'];
+            
+            // 实例化SESSION适配器
             $this->session = new $sessionClass($config);
             if (!$this->session instanceof SessionAdapterInterface) {
                 throw new SessionException(sprintf('Failed to instantiate class %s: does not implement %s', $sessionClass, SessionAdapterInterface::class));

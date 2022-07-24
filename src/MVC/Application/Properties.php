@@ -86,6 +86,8 @@ class Properties extends Configuration
         $this->initNamespace();
         $this->initPath();
         $this->initAutoloader();
+        
+        // 执行命令行应用的一些初始化配置
         $this->initInConsoleApplication();
         $this->initModule();
     }
@@ -228,8 +230,7 @@ class Properties extends Configuration
      */
     protected function initAutoloader()
     {
-        $runtime = $this->app->get(Runtime::class);
-        
+
         // app
         $isRealpath = (bool)$this['autoloader.is_realpath'];
         
@@ -238,15 +239,15 @@ class Properties extends Configuration
         foreach ($namespaces as $ns => $p) {
             $path = $isRealpath ? $p : $this[$p];
             $this['autoloader.namespaces.' . $ns] = $path;
-            $runtime->addToNamespacePathMap($ns, $path);
         }
+       
         // classes
         $classes = (array)$this['autoloader.classes'];
         foreach ($classes as $class => $p) {
-            $path = $isRealpath ? $p : $this[$p];
-            $runtime->addToClassPathMap($class, $path);
+            $path = $isRealpath ? $p : $this[$p];  
             $this['autoloader.classes.' . $class] = $path;
         }
+        
     }
     
     /**
@@ -257,7 +258,10 @@ class Properties extends Configuration
         if (!$this->app instanceof ConsoleApplication) {
             return;
         }
+        // 初始化打包器配置
         $this->initBuilder();
+        
+        // 初始化守护进程配置
         $this->initDaemon();
     }
     
@@ -277,9 +281,13 @@ class Properties extends Configuration
     protected function initBuilder()
     {
         $config = $this['builder'];
+        
+        // 配置是否开启打包器
         if (!$config || !$config['enabled'] || !$config['event_listener']) {
             return;
         }
+        
+        // 注册事件监听器
         $this['event.listeners.builder'] = $config['event_listener'];
     }
     
@@ -289,9 +297,13 @@ class Properties extends Configuration
     protected function initDaemon()
     {
         $config = $this['daemon'];
+        
+        // 配置是否开启守护进程
         if (!$config || !$config['enabled'] || !$config['event_listener']) {
             return;
         }
+        
+        // 注册守护进程的事件监听器
         $this['event.listeners.daemon'] = $config['event_listener'];
     }
 }

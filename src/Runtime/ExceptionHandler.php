@@ -168,7 +168,7 @@ class ExceptionHandler
             'exception' => $exception,
             'exceptions' => $this->exceptions
         ]);
-        
+        print_r($exception);
         $this->eventManager->triggerEvent($event);
     }
     

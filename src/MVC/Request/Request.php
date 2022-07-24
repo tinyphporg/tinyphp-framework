@@ -113,7 +113,7 @@ abstract class Request
     protected $routeContext;
     
     /**
-     * 设置当前应用实例
+     * 引入当前应用实例
      *
      * @param ApplicationBase $app
      */

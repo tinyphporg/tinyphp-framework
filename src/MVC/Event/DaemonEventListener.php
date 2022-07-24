@@ -129,11 +129,11 @@ class DaemonEventListener implements DispatchEventListenerInterface
         }
         
         // Daemon
-        $daemonInstance = new Daemon($id, $options);
-        $daemonInstance->addWorkersByConfig($workers, $this->app);
-        $daemonInstance->setDaemonHandler($this->app);
-        $daemonInstance->run();
-        $this->response->end();
+        $daemonInstance = new Daemon($id, $options);  // 创建实例
+        $daemonInstance->addWorkersByConfig($workers, $this->app);  // 设置子进程
+        $daemonInstance->setDaemonHandler($this->app);  // 设置子进程执行守护的委托句柄
+        $daemonInstance->run();   // 执行守护
+        $this->response->end();  // 终止
     }
     
     /**
