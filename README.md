@@ -45,8 +45,11 @@ application/config/profile.php
 ``` 
 核心组件
 ====
+### tinyphp v2.0 
++ 框架地址：   [https://github.com/tinyphporg/tinyphp](https://github.com/tinyphporg/tinyphp)    
 
-### tinyphp-framwork v2.0 
+
+### tinyphp-framework v2.0 
 + 框架地址：   [https://github.com/tinyphporg/tinyphp-framework](https://github.com/tinyphporg/tinyphp-framework)    
 
 ### tinyphp-docs
