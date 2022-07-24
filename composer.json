@@ -1,6 +1,6 @@
 {
     "name": "tinyphporg/tinyphp-framework",
-    "description": "A lightweight and high-performance PHP framework.",
+    "description": "A lightweight PHP MVC framework for Full Stack Developer/一款面向PHP全栈工程师的轻量级高性能MVC PHP框架。",
     "type" : "library",
     "minimum-stability": "stable",
     "version": "2.0.0",
