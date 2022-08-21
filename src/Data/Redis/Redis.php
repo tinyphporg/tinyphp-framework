@@ -45,6 +45,12 @@ class Redis implements DataSourceInterface
     protected $servers;
     
     /**
+     * db索引
+     * @var int
+     */
+    protected $dbIndex;
+    
+    /**
      * redis连接的选项数组
      *
      * @var array
@@ -73,6 +79,10 @@ class Redis implements DataSourceInterface
                 'port' => $port
             ];
         }
+        
+        // select db index
+        $this->dbIndex = (int)$config['db'];
+        
         if (!$servers) {
             throw new RedisException('Initialization failure: DataSource.redis.servers must be an array!');
         }
@@ -83,6 +93,20 @@ class Redis implements DataSourceInterface
         if ($options) {
             $this->options = array_merge($this->options, $options);
         }
+    }
+    
+    /**
+     * 选择数据库
+     * 
+     * @param int $dbIndex
+     * @return bool
+     */
+    public function select(int $dbIndex) {
+        if ($dbIndex < 0 || $dbIndex > 15) {
+            $dbIndex = 0;
+        }
+        $this->dbIndex = $dbIndex;
+        return $this->getConnector()->select($dbIndex);
     }
     
     /**
@@ -98,6 +122,10 @@ class Redis implements DataSourceInterface
             // 是否启用IGB
             if (defined('\Redis::SERIALIZER_IGBINARY')) {
                $this->connector->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_IGBINARY);
+            }
+            
+            if ($this->dbIndex > 0) {
+                $this->connector->select($this->dbIndex);
             }
         }
         return $this->connector;

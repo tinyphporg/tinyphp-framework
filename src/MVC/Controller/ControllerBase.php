@@ -134,7 +134,7 @@ abstract class ControllerBase
     public function display($viewPath, array $assigns = [], $templateId = null)
     {
         if ($this->module) {
-            $templateId =  $templateId ?: $this->module->name;
+            $templateId =  $templateId ?: $this->module->getName();
             $assigns['module'] = $this->module;
         }
         return $this->application->getView()->display($viewPath, $assigns, $templateId);
@@ -148,7 +148,7 @@ abstract class ControllerBase
     public function fetch($viewPath, array $assigns = [], $templateId = null)
     {
         if ($this->module) {
-            $templateId =  $templateId ?: $this->module->name;
+            $templateId =  $templateId ?: $this->module->getName();
             $assigns['module'] = $this->module;
         }
         return $this->application->getView()->fetch($viewPath, $assigns, $templateId);
@@ -160,9 +160,9 @@ abstract class ControllerBase
      * @param string $cName 控制器名称
      * @param string $aName 动作名称
      */
-    public function dispathch($cName, $aName, string $mname = null)
+    public function dispatch($cName, $aName, string $mname = null)
     {
-        $mname = $mname ?: $this->moduleName;
+        $mname = $mname ?: $this->module->getName();
         return $this->application->dispatch($cName, $aName, $mname);
     }
     

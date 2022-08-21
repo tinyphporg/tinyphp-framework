@@ -12,6 +12,8 @@
  */
 namespace Tiny\Event;
 
+use Tiny\Runtime\ExceptionHandler;
+
 /**
  * 事件监听句柄接口
  *
@@ -28,6 +30,6 @@ interface ExceptionEventListener extends EventListenerInterface
      * @param Event $event
      * @param array $params
      */
-    public function onException(array $exception, array $exceptions);
+    public function onException(Event $event, \Throwable $exception, ExceptionHandler $handler);
 }
 ?>

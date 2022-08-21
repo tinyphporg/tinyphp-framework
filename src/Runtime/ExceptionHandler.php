@@ -11,32 +11,26 @@
  * @History King 2022年2月12日下午9:26:46 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
 namespace Tiny\Runtime;
+
 use Tiny\Event\EventManager;
 use Tiny\Event\Event;
 use Tiny\Event\ExceptionEventListener;
 
-/**
- * 页面无法找到错误定义
- *
- * @var int
- */
-define('E_NOFOUND', 99);
+// web下页面无法找到的错误定义
+define('E_NOFOUND', 404);
 
 /**
- * MVC异常处理
+ * Runtime异常处理句柄
  *
  * @package Tiny.Runtime
  * @since : 2013-3-22上午06:15:37
  * @final : 2017-3-22上午06:15:37
  */
-class ExceptionHandler
+class ExceptionHandler implements ExceptionEventListener
 {
     
     /**
-     * error ID与名称映射列表
-     *
-     * @var array
-     *
+     * code与名称映射表
      */
     const EXCEPTION_NAMES = [
         0 => 'Fatal error',
@@ -58,9 +52,6 @@ class ExceptionHandler
     
     /**
      * 需要抛出异常的错误集合
-     *
-     * @var array
-     *
      */
     const THROW_EXCEPTIONS = [
         E_ERROR,
@@ -73,6 +64,11 @@ class ExceptionHandler
     ];
     
     /**
+     * 所有异常情况集合
+     */
+    protected array $exceptions = [];
+    
+    /**
      * 事件管理器
      *
      * @var EventManager
@@ -80,15 +76,7 @@ class ExceptionHandler
     protected $eventManager;
     
     /**
-     * 所有异常情况集合
-     *
-     * @var array
-     *
-     */
-    protected $exceptions = [];
-    
-    /**
-     * 初始化异常捕获句柄
+     * 注册异常捕获句柄
      *
      * @param EventManager $eventManager 事件管理器
      */
@@ -97,41 +85,53 @@ class ExceptionHandler
         $this->eventManager = $eventManager;
         
         // @formatter:off
-        set_exception_handler([$this, 'onException']);
-        set_error_handler([$this, 'onError']);
+        set_exception_handler([$this, 'onThrowException']);
+        set_error_handler([$this, 'onThrowError']);
         // @formatter:on
+        
+        // default exception Listener
+        $eventManager->addEventListener($this);
+    }
+    
+    /**
+     * 默认的异常输出处理接口
+     *
+     * {@inheritdoc}
+     * @see \Tiny\Event\ExceptionEventListener::onException()
+     */
+    public function onException(Event $event, \Throwable $exception, ExceptionHandler $handler)
+    {
+        // 配置异常通过日志方式输出
+        echo "bbb";
+        echo $exception->getTraceAsString();
+        $code = $exception->getCode();
+        if ($handler->isThrow($code)) {
+            die();
+        }
     }
     
     /**
      * 触发错误的事件处理函数
-     * 
+     *
      * @param int $errno 错误代码
      * @param string $errstr 错误内容
      * @param string $errfile 错误文件
      * @param int $errline 错误行
      */
-    public function onError($errno, $errstr, $errfile, $errline)
+    public function onThrowError($errno, $errstr, $errfile, $errline)
     {
         // 屏蔽通知和编码不严格警告
         if ($errno == E_NOTICE || $errno == E_STRICT) {
             return;
         }
         
-        $exception = [
-            'level' => $errno,
-            'type' => $this->getExceptionNameByLevel($errno),
-            'message' => $errstr,
-            'file' => $errfile,
-            'line' => $errline,
-            'handler' => 'Error',
-            'isThrow' => $this->isThrowException($errno)
-        ];
+        $exception = new \ErrorException($errstr, $errno, $errno, $errfile, $errline);
         $this->exceptions[] = $exception;
         
         // 触发onexception事件
         $event = new Event(Event::EVENT_ONEXCEPTION, [
-            'exception' => $exception,
-            'exceptions' => $this->exceptions
+            \Throwable::class => $exception,
+            self::class => $this,
         ]);
         $this->eventManager->triggerEvent($event);
     }
@@ -142,33 +142,21 @@ class ExceptionHandler
      *
      * @param \Exception $e 异常对象
      */
-    public function onException($e)
+    public function onThrowException($exception)
     {
-        $level = $e->getCode();
+        $code = $exception->getCode();
         
-        // 屏蔽通知和编码不严格警告
-        if ($level == E_NOTICE || $level == E_STRICT) {
+        // 屏蔽不重要的
+        if ($code == E_NOTICE || $code == E_STRICT) {
             return;
         }
-        
-        $exception = [
-            'level' => $level,
-            'type' => $this->getExceptionNameByLevel($e->getCode()),
-            'message' => $e->getMessage(),
-            'handler' => get_class($e),
-            'line' => $e->getLine(),
-            'file' => $e->getFile(),
-            'traceString' => $e->getTraceAsString(),
-            'isThrow' => $this->isThrowException($level)
-        ];
         $this->exceptions[] = $exception;
         
-        // 触发onexception事件
+        // onexception
         $event = new Event(Event::EVENT_ONEXCEPTION, [
-            'exception' => $exception,
-            'exceptions' => $this->exceptions
+            \Throwable::class => $exception,
+            self::class => $this,
         ]);
-        print_r($exception);
         $this->eventManager->triggerEvent($event);
     }
     
@@ -189,7 +177,7 @@ class ExceptionHandler
      * @param int $level 错误级别
      * @return string
      */
-    public function getExceptionNameByLevel($level)
+    public function getExceptionName($level)
     {
         if (!key_exists($level, self::EXCEPTION_NAMES)) {
             $level = 0;
@@ -203,7 +191,7 @@ class ExceptionHandler
      * @param int $errno 错误级别
      * @return bool
      */
-    public function isThrowException($errno)
+    public function isThrow($errno)
     {
         return in_array($errno, self::THROW_EXCEPTIONS);
     }

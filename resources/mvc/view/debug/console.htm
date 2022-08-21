@@ -16,9 +16,6 @@ DbQueryTimeTotal : {$debugDbTimeTotal} S;
 {/if} 
 --------------------------
 {loop $debugExceptions $e}
-{$e['handler']}: {$e['message']}
-In  {$e['file']} on Line: {$e['line']}, 
-TraceString : {$e['traceString']}
-
+{$e}
 {/loop}
 

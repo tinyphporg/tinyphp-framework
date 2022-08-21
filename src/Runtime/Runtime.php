@@ -151,7 +151,7 @@ class Runtime
         // eventmanager
         $eventManager = new EventManager($this->container);
         $this->container->set(EventManager::class, $eventManager);
-        
+
         // exception handler
         $this->exceptionHandler = new ExceptionHandler($eventManager);
         

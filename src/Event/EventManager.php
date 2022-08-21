@@ -84,20 +84,24 @@ class EventManager
         if (key_exists($eventListener, $this->eventListeners)) {
             return false;
         }
-   
+        
         return $this->addToListeners($eventListener, null, $priority);
     }
     
     /**
      * 添加到事件监听器列表里
-     * 
+     *
      * @param string $className
      * @param EventListenerInterface $instance
      * @param number $priority
      */
-    protected function addToListeners($className, $instance = null, $priority = 0)
+    protected function addToListeners($className, $instance = null, int $priority = 0)
     {
-        $this->eventListeners[] = ['class' => $className, 'instance' => $instance, 'priority' => $priority];
+        $this->eventListeners[] = [
+            'class' => $className,
+            'instance' => $instance,
+            'priority' => $priority
+        ];
         return true;
     }
     
@@ -187,8 +191,8 @@ class EventManager
         $eparams['params'] = $params;
         
         // foreach
-        array_multisort(array_column($this->eventListeners, 'priority'), $this->eventListeners, SORT_ASC);
-        foreach ($this->eventListeners as & $listener) {
+        array_multisort(array_column($this->eventListeners, 'priority'), $this->eventListeners, SORT_ASC, SORT_NUMERIC);
+        foreach ($this->eventListeners as &$listener) {
             $listenerInstance = $listener['instance'];
             if (!$listenerInstance) {
                 $listenerInstance = $this->factory($listener['class']);
@@ -204,7 +208,7 @@ class EventManager
                     $methodName
                 ], $eparams);
                 if ($event->propagationIsStopped()) {
-                    break;
+                    return;
                 }
             }
         }

@@ -36,6 +36,8 @@ use Tiny\DI\Definition\Provider\DefinitionProvider;
 use Tiny\Cache\CacheInterface;
 use Tiny\Runtime\Runtime;
 use Tiny\Runtime\Autoloader;
+use Tiny\Event\Event;
+use Tiny\Runtime\ExceptionHandler;
 
 /**
  * app实例基类
@@ -125,13 +127,6 @@ abstract class ApplicationBase implements ExceptionEventListener
     public $response;
     
     /**
-     * 模块管理器
-     * 
-     * @var ModuleManager
-     */
-    public $moduleManager;
-    
-    /**
      * 应用缓存
      * 
      * @var CacheInterface
@@ -177,13 +172,14 @@ abstract class ApplicationBase implements ExceptionEventListener
         $this->initAutoloader($container);
         
         // event manager
-        $this->eventManager = $container->get('app.eventmanager');
-        $this->eventManager->addEventListener($this);
-                
+        $this->eventManager = $container->get(EventManager::class);
+        $this->eventManager->addEventListener($this, -1);
+         
+
         // request & response
         $this->request = $container->get('app.request');      
         $this->response = $container->get('app.response');
-        
+       
         // init EventListener
         $this->initEventListener();
         
@@ -238,27 +234,22 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @param array $exception 异常
      * @param array $exceptions 所有异常
      */
-    public function onException(array $exception, array $exceptions)
+    public function onException(Event $event, \Throwable $exception, ExceptionHandler $handler)
     {       
             // 配置异常通过日志方式输出
-            
+            $code = $exception->getCode();
             if ($this->properties['exception.log']) {
                 $logId = $this->properties['exception.logid'];
-                $logMsg = $exception['handle'] . ':' . $exception['message'] . ' from ' . $exception['file'] . ' on line ' . $exception['line'];
-                $this->error($logId, $exception['level'], $logMsg);
+                $this->error($logId,$code, $exception->getTraceAsString());
             }
             
-            // 如果是需要抛出的异常级别，则直接输出
-            if ($exception['isThrow']) { 
-                // 在response没有实例化前，直接输出。否则通过debug模块输出异常信息
-                if (!$this->response) {
-                    print_r($exceptions);
-                }
-                
-                // 终止执行
-                $this->end();
-               
+            // 在response没有实例化前
+            if (!$this->response) {
+                return;
             }
+            // 停止事件继续冒泡
+            $event->stopPropagation(true);
+                $this->end();
     }
     
     /**
@@ -272,7 +263,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         // event predispatch
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_PRE_DISPATCH));
-        
+       
         $this->dispatch();
         
         
@@ -284,7 +275,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         // 保存已加载的类路径映射到应用缓存
         $this->saveToAutoloaderClasses();
-        
+
         $this->response->output();
     }
     
@@ -508,12 +499,12 @@ abstract class ApplicationBase implements ExceptionEventListener
         if (!$this->properties['bootstrap.enabled']) {
             return;
         }
-        
+       
         // 获取配置的引导类class
         $eventListener = $this->properties['bootstrap.event_listener'];
         if (!is_string($eventListener) && !is_array($eventListener)) {
-            throw new ApplicationException('properties.bootstrap.eventListeners must be an array type or a string type class name');}
-        
+            throw new ApplicationException('properties.bootstrap.eventListeners must be an array type or a string type class name');
+        }
         // 加入监听onBootstrap事件
         $this->eventManager->addEventListener($eventListener);
         

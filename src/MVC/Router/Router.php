@@ -142,20 +142,21 @@ class Router
      *        damain array 可通配匹配的域名 默认为空
      * @return boolean
      */
-    public function addRouteRule(array $rule)
+    public function addRouteRule(array $rule, int $priority = 0)
     {
         $routeNname = (string)$rule['route'];
         if (!key_exists($routeNname, $this->routeFactoryConfig)) {
             return false;
         }
         
-        $ruleConfig = (key_exists('rule', $rule) && is_array($rule['rule'])) ? $rule['rule'] : [];
+        $ruleConfig = (key_exists('rule', $rule) && is_array($rule['rule'])) ? $rule['rule'] : []; 
         $routeRule = [];
         $routeRule['name'] = $routeNname;
         $routeRule['class'] = $this->routeFactoryConfig[$routeNname];
         $routeRule['rule'] = $ruleConfig;
+        $routeRule['priority'] = ($priority != 0) ? $priority : (int)$ruleConfig['priority'];
+        unset($ruleConfig['priority']);
         $this->routeChain[] = $routeRule;
-        //array_unshift($this->routeChain,$routeRule);
         return true;
     }
     
@@ -248,7 +249,9 @@ class Router
      */
     protected function matchRoute($routeString)
     {
-        foreach (array_reverse($this->routeChain) as $routeConfig) {
+        $routeChain = array_reverse($this->routeChain);
+        array_multisort(array_column($routeChain, 'priority'), $routeChain, SORT_ASC, SORT_NUMERIC);
+        foreach ($routeChain as $routeConfig) {
             
             $matchedParams = [];
             // web application

@@ -14,6 +14,8 @@ namespace Tiny\MVC\Application;
 
 use Tiny\MVC\Web\HttpCookie;
 use Tiny\MVC\Web\HttpSession;
+use Tiny\Event\Event;
+use Tiny\Runtime\ExceptionHandler;
 
 /**
  * 命令行应用实例
@@ -29,13 +31,16 @@ class WebApplication extends ApplicationBase
      * {@inheritdoc}
      * @see \Tiny\MVC\Application\ApplicationBase::onException()
      */
-    public function onException(array $exception, array $exceptions)
+    public function onException(Event $event, \Throwable $exception, ExceptionHandler $handler)
     {
-        if ($exception['isThrow']) {
-            $statusCode = ($exception['level'] === E_NOFOUND) ? 404 : 500;
-              $this->response->setStatusCode($statusCode);
+        // 输出404
+        $code = $exception->getCode();
+        if ($this->response) {
+            if ($code === E_NOFOUND) {
+              $this->response->setStatusCode(E_NOFOUND);
+            }
         }
-        parent::onException($exception, $exceptions);
+        parent::onException($event, $exception, $handler);
     }
 }
 ?>

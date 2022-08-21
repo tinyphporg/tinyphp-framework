@@ -207,10 +207,8 @@ class Dispatcher
         if (!$cname) {
             throw new DispatcherException('Faild to get controller classname: cname is null!');
         }
-        if ($mname && $this->container->has(ModuleManager::class)) {
-            $this->moduleManager = $this->container->get(ModuleManager::class);
-        }
-        if ($mname && (!$this->moduleManager || !$this->moduleManager->has($mname))) {
+        
+        if ($mname && !$this->container->has('app.module.' . $mname)) {
             throw new DispatcherException(sprintf('Faild to get controller classname: modulename:%s is not exists!', $mname));
         }
         
@@ -232,7 +230,8 @@ class Dispatcher
         $controllerNamespace = $this->controllerNamespace;
         
         if ($mname) {
-            $controllerNamespace = rtrim($this->moduleManager->getControllerNamespace($mname), '\\');
+            $moduleInstance = $this->container->get('app.module.' . $mname);          
+            $controllerNamespace = $moduleInstance->getControllerNamespace();
         }
         $controllerClass = $controllerNamespace . $cparam;
         if (!class_exists($controllerClass)) {

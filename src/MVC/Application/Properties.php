@@ -112,7 +112,7 @@ class Properties extends Configuration
             }
         }, $path);
         
-        if ($rpath['0'] !== '/') {
+        if (!($rpath['0'] === '/' || preg_match('/^[C-Z]:/', $rpath))) {
             $rpath = ($defpath ? $defpath : $this->app->path) . $rpath;
         }
         return $this->getAbsolutePath($rpath);
