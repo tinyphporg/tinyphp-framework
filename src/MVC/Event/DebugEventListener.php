@@ -336,26 +336,28 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         if (!$firstE) {
             return false;
         }
-        
-        $fileLines = file($firstE->getFile());
-        $currentLine = $firstE->getLine();
-        $totalLine = count($fileLines);
-        $startLine = $currentLine - 7;
-        $endLine = $currentLine + 5;
-        if ($startLine < 0) {
-            $startLine = 0;
-        }
-        if ($endLine >= $totalLine) {
-            $endLine = $totalLine - 1;
-        }
-        
+        $filePath = $firstE->getFile();
         $codes = [];
-        for ($i = $startLine; $i <= $endLine; $i++) {
-            $codes[] = [
-                $i + 1,
-                $fileLines[$i],
-                ($currentLine == $i + 1)
-            ];
+        if (is_file($filePath)) {
+            $fileLines = file($firstE->getFile());
+            $currentLine = $firstE->getLine();
+            $totalLine = count($fileLines);
+            $startLine = $currentLine - 7;
+            $endLine = $currentLine + 5;
+            if ($startLine < 0) {
+                $startLine = 0;
+            }
+            if ($endLine >= $totalLine) {
+                $endLine = $totalLine - 1;
+            }
+            
+            for ($i = $startLine; $i <= $endLine; $i++) {
+                $codes[] = [
+                    $i + 1,
+                    $fileLines[$i],
+                    ($currentLine == $i + 1)
+                ];
+            }
         }
         $exception = [];
         $exception['type'] = $exceptionHandler->getExceptionName($firstE->getCode());
