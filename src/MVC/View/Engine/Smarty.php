@@ -14,7 +14,6 @@
  */
 namespace Tiny\MVC\View\Engine;
 
-use Tiny\MVC\View\View;
 use \Smarty as SmartyBase;
 /**
  * smarty的模板引擎本地化扩展
@@ -31,15 +30,9 @@ class Smarty extends SmartyBase implements ViewEngineInterface
      * 当前的View对象
      * 
      * @autowired
-     * @var View
+     * @var \Tiny\MVC\View\View
      */
-    protected View $view;
-    
-    /**
-     * @autowired
-     * @var array
-     */
-    protected array $viewEngineConfig;
+    protected $view;
     
     /**
      * 

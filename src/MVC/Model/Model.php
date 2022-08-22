@@ -15,8 +15,6 @@
  */
 namespace Tiny\MVC\Model;
 
-use Tiny\Data\Data;
-use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\Module\Module;
 
 /**
@@ -33,25 +31,25 @@ abstract class Model
      * 当前应用实例
      *
      * @autowired
-     * @var ApplicationBase
+     * @var \Tiny\MVC\Application\ApplicationBase
      */
-    protected ApplicationBase $app;
+    protected $app;
     
     /**
      * 数据池实例
      *
      * @autowired
      * 
-     * @var Data
+     * @var \Tiny\Data\Data
      */
-    protected Data $data;
+    protected $data;
     
     /**
      * @autowired
      * 
-     * @var Module
+     * @var \Tiny\MVC\Module\Module
      */
-    protected Module $module;
+    protected $module;
     /**
      * 数据ID
      *

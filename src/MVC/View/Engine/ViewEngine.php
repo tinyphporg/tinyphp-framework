@@ -15,7 +15,6 @@
 namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\View;
-use Tiny\MVC\Application\ApplicationCache;
 
 /**
  * 视图基类
@@ -36,17 +35,17 @@ abstract class ViewEngine implements ViewEngineInterface
      * 当前的View对象
      *
      * @autowired
-     * @var View
+     * @var \Tiny\MVC\View\View
      */
-    protected View $view;
+    protected $view;
     
     /**
      * 应用缓存
      * 
      * @autowired
-     * @var ApplicationCache
+     * @var \Tiny\MVC\Application\ApplicationCache
      */
-    protected ApplicationCache $cache;
+    protected $cache;
     
     /**
      * 缓存的模板数据列表
@@ -61,7 +60,7 @@ abstract class ViewEngine implements ViewEngineInterface
      * @autowired
      * @var array
      */
-    protected array $config = [];
+    protected $config = [];
     
     /**
      * 插件配置数组
@@ -69,7 +68,7 @@ abstract class ViewEngine implements ViewEngineInterface
      * @autowired
      * @var array
      */
-    protected array $plugins = [];
+    protected $plugins = [];
     
     /**
      * 模板目录

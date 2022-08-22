@@ -19,9 +19,7 @@
 namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
-use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\View\Engine\Template\TagAttributesParser;
-use Tiny\MVC\Response\Response;
 use Tiny\MVC\Router\Router;
 
 define('TINY_IS_IN_VIEW_ENGINE_TEMPLATE', true);
@@ -40,16 +38,16 @@ class Template extends ViewEngine
     /**
      *
      * @autowired
-     * @var ApplicationBase
+     * @var \Tiny\MVC\Application\ApplicationBase
      */
-    protected ApplicationBase $app;
+    protected $app;
     
     /**
      *
      * @autowired
-     * @var Response
+     * @var \Tiny\MVC\Response\Response
      */
-    protected Response $response;
+    protected $response;
     
     /**
      * 插件实例

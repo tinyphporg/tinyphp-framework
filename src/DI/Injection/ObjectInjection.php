@@ -163,17 +163,29 @@ class ObjectInjection
     protected function readPropertyFromAnnotation(\ReflectionProperty $property, string $propertyComment, array $resolvedParameters = [])
     {
         $namespace = $property->getDeclaringClass()->getNamespaceName();
-        if (! preg_match('/\s*\*\s+@var\s+([\\\\\w]+)/i', $propertyComment, $out)) {
-            return;
+        
+        // 注解匹配
+        $propertyType = '';
+        if (preg_match('/\s*\*\s+@var\s+([\\\\\w]+)/i', $propertyComment, $out)) {
+            $propertyType = $out[1];
         }
-        $propertyClass = $out[1];
-        if (strpos($propertyClass, "\\") === false) {
-            $propertyClass = $namespace . '\\' . $propertyClass;
-        } elseif ($propertyClass[0] == '\\') {
-            
-            $propertyClass = substr($propertyClass, 1);
+
+        // 默认类型
+        $propertyName = $property->getName();
+        if ((!$propertyType || in_array($propertyType, ['int', 'bool', 'string', 'array'])) && key_exists($propertyName, $resolvedParameters)) {
+            return $resolvedParameters[$propertyName];
         }
         
+        // class
+        if (strpos($propertyType, "\\") === false) {
+            $propertyClass = $namespace . '\\' . $propertyType;
+        } elseif ($propertyType[0] == '\\') {
+            $propertyClass = substr($propertyType, 1);
+        }
+        
+        if (!$propertyClass) {
+            return false;
+        }
         return $this->readPropertyFromContainer($propertyClass, $resolvedParameters);
     }
     
@@ -184,6 +196,11 @@ class ObjectInjection
      */
     protected function readPropertyFromPHPType(\ReflectionProperty $property, array $resolvedParameters = [])
     {
+        // php version > 7.4
+        if (!method_exists($property, 'getType')) {
+            return false;
+        }
+        
         $propertyType = $property->getType();
         if (! $propertyType) {
             return false;
@@ -243,6 +260,7 @@ class ObjectInjection
      */
     public function isAutowiredClass(string $className)
     {
+
         if (!class_exists($className)) {
             return false;
         }

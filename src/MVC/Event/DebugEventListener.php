@@ -378,7 +378,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
      */
     protected function getConsoleDebugBody($debugs)
     {
-        return $this->view->fetch('debug/console.htm', $debugs);
+        return $this->app->getView()->fetch('debug/console.htm', $debugs);
     }
 }
 ?>

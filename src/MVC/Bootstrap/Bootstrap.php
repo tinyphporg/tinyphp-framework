@@ -14,8 +14,6 @@
  */
 namespace Tiny\MVC\Bootstrap;
 
-use Tiny\MVC\Application\ApplicationBase;
-use Tiny\DI\ContainerInterface;
 use Tiny\MVC\Event\MvcEvent;
 use Tiny\MVC\Event\BootstrapEventListenerInterface;
 
@@ -33,17 +31,17 @@ abstract class Bootstrap implements BootstrapEventListenerInterface
      * 当前App运行实例
      *
      * @autowired
-     * @var ApplicationBase
+     * @var \Tiny\MVC\Application\ApplicationBase
      */
-    protected ApplicationBase $app;
+    protected $app;
     
     /**
      * 容器实例
      * 
      * @autowired
-     * @var ContainerInterface
+     * @var \Tiny\DI\ContainerInterface
      */
-    protected ContainerInterface $container;
+    protected $container;
 
     /**
      * 执行初始化数组

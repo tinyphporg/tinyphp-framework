@@ -66,7 +66,7 @@ class ExceptionHandler implements ExceptionEventListener
     /**
      * 所有异常情况集合
      */
-    protected array $exceptions = [];
+    protected $exceptions = [];
     
     /**
      * 事件管理器

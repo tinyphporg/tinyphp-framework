@@ -15,8 +15,6 @@ namespace Tiny\MVC\Controller;
 use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\Request\Request;
-use Tiny\MVC\Module\Module;
-use Tiny\MVC\View\View;
 
 /**
  * 控制器积类
@@ -53,9 +51,9 @@ abstract class ControllerBase
      * 模块设置数组
      * 
      * @autowired
-     * @var Module
+     * @var \Tiny\MVC\Module\Module
      */
-    protected ?Module $module = null;
+    protected $module = null;
     
     /**
      * 通过应用实例初始化
