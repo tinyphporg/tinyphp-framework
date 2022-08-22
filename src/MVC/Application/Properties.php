@@ -49,7 +49,7 @@ class Properties extends Configuration
      * 模型的默认命名空间
      * @var string
      */
-    protected const NEMSPACE_MODEL = 'Model';
+    protected const NAMESPACE_MODEL = 'Model';
     
     /**
      * 当前应用实例
@@ -142,7 +142,7 @@ class Properties extends Configuration
         if ($timezone !== date_default_timezone_get()) {
             date_default_timezone_set($timezone);
         }
-        
+        adads();
         // app namespace
         $appNamespace = (string)$this['namespace'] ?: self::NAMESPACE_APPLICATION;
         

@@ -102,10 +102,15 @@ class ExceptionHandler implements ExceptionEventListener
     public function onException(Event $event, \Throwable $exception, ExceptionHandler $handler)
     {
         // 配置异常通过日志方式输出
-        echo "bbb";
-        echo $exception->getTraceAsString();
+        $exceptioninfo = [];
         $code = $exception->getCode();
-        if ($handler->isThrow($code)) {
+        $exceptioninfo[] = $this->getExceptionName($code);
+        $exceptioninfo[] = 'file:' . $exception->getFile();
+        $exceptioninfo[] = 'line:' . $exception->getLine();
+        $exceptioninfo[] = 'message:' . $exception->getMessage();
+        $exceptioninfo[] = 'traceAsString:' . $exception->getTraceAsString();
+        print join('cli' == php_sapi_name() ? "\n" : "<br>\n", $exceptioninfo);
+        if ($handler->isThrow($exception->getCode())) {
             die();
         }
     }
