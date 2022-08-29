@@ -15,7 +15,7 @@
 namespace Tiny\Data\Redis\Schema;
 
 use Tiny\Data\Redis\Schema\RedisSchemaBase;
-use Tiny\Data\Redis\Schema\Hashtable\HashTableCounter;
+use Tiny\Data\Redis\Schema\HashTable\HashTableCounter;
 
 /**
  * 哈希表映射结构

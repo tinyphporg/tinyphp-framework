@@ -13,7 +13,7 @@
  *          king 2013-11-30下午01:51:04 1.0 第一次建立该文件
  *          King 2020年6月1日14:21 stable 1.0 审定
  */
-namespace Tiny\Data\Redis\Schema\Hashtable;
+namespace Tiny\Data\Redis\Schema\HashTable;
 
 
 use Tiny\Data\Redis\Schema\HashTable;
@@ -25,7 +25,7 @@ use Tiny\Data\Redis\Schema\HashTable;
  * @since 2013-11-30下午01:51:35
  * @final 2013-11-30下午01:51:35
  */
-class HashtableCounter
+class HashTableCounter
 {
     
     /**
