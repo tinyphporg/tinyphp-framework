@@ -32,6 +32,7 @@ use Tiny\DI\Definition\ObjectDefinition;
 use Tiny\DI\Container;
 use Tiny\DI\Definition\DefinitionInterface;
 use Tiny\MVC\View\Engine\StaticFile;
+use Tiny\MVC\Module\ModuleManager;
 
 /**
  * 视图层
@@ -357,9 +358,9 @@ class View implements \ArrayAccess, DefinitionProviderInterface
      *
      * @return array
      */
-    public function getVariables()
+    public function getVariables($key = null)
     {
-        return $this->variables;
+        return ($key && key_exists($key, $this->variables)) ? $this->variables[$key] : $this->variables;
     }
     
     /**
@@ -405,6 +406,12 @@ class View implements \ArrayAccess, DefinitionProviderInterface
      */
     public function fetch($tpath, $assign = false, $templateId = null)
     {
+        if ($templateId && $templateId !== true && !key_exists('module', $assign)) {
+            $moduleManager = $this->container->get(ModuleManager::class);
+            if ($moduleManager->has($templateId)) {
+                $assign['module'] = $moduleManager->get($templateId);
+            }
+        }
         return $this->getEngineByPath($tpath)->fetch($tpath, $assign, $templateId);
     }
     
@@ -418,7 +425,7 @@ class View implements \ArrayAccess, DefinitionProviderInterface
     {
         if (!$templatePath) {
             
-            //return false;
+            return false;
         }
         $ext = pathinfo($templatePath, PATHINFO_EXTENSION);
         $econfig = $this->getEngineConfigByExt($ext);

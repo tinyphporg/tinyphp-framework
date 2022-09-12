@@ -121,7 +121,7 @@ abstract class ApplicationBase implements ExceptionEventListener
     /**
      * 当前响应实例
      *
-     * @var string WebResponse
+     * @var Response
      *     
      */
     public $response;
