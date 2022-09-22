@@ -52,6 +52,22 @@ class Lang implements \ArrayAccess
     protected $config;
     
     /**
+     * 初始化语言包的路径或初始数据
+     * 
+     * @param  string|array $path 语言包配置路径
+     * @param null|array $data
+     */
+    public function __construct($path = null, array $data  = null)
+    {
+        if ($path) {
+            $this->setPath($path);
+        }
+        if ($data && is_array($data)) {
+            $this->setData($data);
+        }
+    }
+    
+    /**
      * 设置语言数据文件夹路径
      *
      * @param string $path 文件夹路径
@@ -61,6 +77,26 @@ class Lang implements \ArrayAccess
     {
         $this->path = $path;
         return $this;
+    }
+    
+    /**
+     * 获取语言包路径
+     * 
+     * @return string
+     */
+    public function getPath()
+    {
+        return $this->path;
+    }
+    
+    /**
+     * 获取语言编码
+     *
+     * @return string
+     */
+    public function getLocale()
+    {
+        return $this->locale;
     }
     
     /**

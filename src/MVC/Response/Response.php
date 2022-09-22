@@ -156,7 +156,7 @@ abstract class Response
       $this->application->isDebug = false;
         if (!$this->formatJSONConfig) {
             $config = $this->application->get(Lang::class);
-            $configId = $this->application->properies['response']['formatJsonConfigId'] ?: 'status';
+            $configId = $this->application->properties['response']['formatJsonConfigId'] ?: 'status';
             $this->formatJSONConfig = $config->translate($configId);
         }
         

@@ -14,6 +14,7 @@ namespace Tiny\MVC\Module;
 
 use Tiny\Lang\Lang;
 use Tiny\Config\Configuration;
+use Tiny\MVC\Application\Properties;
 
 /**
  * 模块实例
@@ -93,7 +94,7 @@ class Module implements \ArrayAccess
      *
      * @param array $config
      */
-    public function __construct(ModuleManager $moduleManager, array $mconfig = [])
+    public function __construct(ModuleManager $moduleManager, Properties $properties, array $mconfig = [])
     {
         $this->setting = $mconfig;
         $this->modules = $moduleManager;
@@ -104,6 +105,7 @@ class Module implements \ArrayAccess
         }
         if ($mconfig['lang']) {
             $this->lang = new Lang(null, $mconfig['lang']);
+            $this->lang->setLocale($properties['lang.locale']);
         }
         $this->version = $mconfig['version'];
     }
