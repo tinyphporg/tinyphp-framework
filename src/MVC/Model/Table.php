@@ -83,7 +83,6 @@ abstract class Table extends Model
         if (!$this->tableName) {
             throw new ModelException('Model.Table实例化失败，必须设置tableName');
         }
-        $this->tableName = (string)$tableName;
     }
     
     /**
