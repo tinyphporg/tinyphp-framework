@@ -706,11 +706,12 @@ class ApplicationProvider implements DefinitionProviderInterface
                 }
                 
                 // templater dirs;
-                $templateDirs = [
-                    $defaultTemplateDir,
-                    $templateThemeDir
-                ];
-                $templateDirs = array_merge($templateDirs, $paths);
+                $templateDirs = $paths;
+                $templateDirs[] = $defaultTemplateDir;
+                array_unshift($templateDirs, $templateThemeDir);
+                
+                // 设置模板搜索目录
+                $viewInstance->setTemplateDir($templateDirs);
                 
                 // static
                 $staticConfig = $config['static'];
@@ -727,47 +728,8 @@ class ApplicationProvider implements DefinitionProviderInterface
                 ];
                 
                 // composer require tinyphp-ui; @formatter:off
-                $uiconfig = $config['ui'];
-                if ($uiconfig['enabled']) {
-                    
-                    // UI 助手注册
-                    $uiHelperName = (string)$uiconfig['helper'];
-                    if ($uiHelperName) {
-                        $helpers[] = [ 'helper' => $uiHelperName];
-                    }
-                    
-                    // 注册template的插件
-                    $templatePlugin = (string)$uiconfig['template_plugin'];
-                    if ($templatePlugin) {
-                        
-                        $templatePluginConfig = [
-                            'public_path' => $uiconfig['public_path'],
-                            'inject' => $uiconfig['inject'],
-                            'dev_enabled' => $uiconfig['dev_enabled'],
-                            'dev_public_path' => $uiconfig['dev_public_path'],
-                            'dev_admin_public_path' => $uiconfig['dev_admin_public_path'],
-                        ];
-                        
-                        $engines[] = [
-                            'engine' => \Tiny\MVC\View\Engine\Template::class,
-                            'config' => [],
-                            'plugins' => [[ 'plugin' => $templatePlugin, 'config' => $templatePluginConfig ]]
-                        ];
-                        
-                    }
-                }
-                foreach ((array)$config['paths'] as $tid => $path) {
-                    if (!is_string($tid)) {
-                        $tid = count($templateDirs);
-                    }
-                    $templateDirs[$tid] = $path;
-                }
                 
                 // @formatter:on
-                // 设置模板搜索目录
-                $templateDirs = array_reverse($templateDirs);
-                $viewInstance->setTemplateDir($templateDirs);
-                
                 // engine初始化
                 foreach ($engines as $econfig) {
                     $viewInstance->bindEngine($econfig);
