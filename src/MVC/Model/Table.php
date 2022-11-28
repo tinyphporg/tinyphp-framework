@@ -73,11 +73,14 @@ abstract class Table extends Model
      * @param string|array $readId 读数据库的Data ID
      * @return void
      */
-    public function __construct(string $tableName = null, string $writeId = 'default', $readId = null)
+    public function __construct(string $tableName = '', string $writeId = 'default', $readId = '')
     {
         $this->writeId = $writeId;
         $this->readId = $readId;
-        if (!$tableName) {
+        if ($tableName) {
+            $this->tableName = $tableName;
+        }
+        if (!$this->tableName) {
             throw new ModelException('Model.Table实例化失败，必须设置tableName');
         }
         $this->tableName = (string)$tableName;
