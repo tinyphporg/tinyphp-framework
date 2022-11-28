@@ -35,7 +35,7 @@ abstract class Table extends Model
      *
      * @var string
      */
-    protected $tableName;
+    protected $tableName = '';
     
     /**
      * 默认的写数据库实例Id
