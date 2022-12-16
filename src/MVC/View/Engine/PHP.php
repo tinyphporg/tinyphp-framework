@@ -26,6 +26,13 @@ use Tiny\MVC\View\ViewException;
 class PHP extends ViewEngine
 {
     /**
+     * 支持匹配解析的扩展名文件
+     *
+     * @var array
+     */
+    protected $extendNames = ['php'];
+    
+    /**
      * 
      * @param string $tpath
      * @param boolean $isAbsolute

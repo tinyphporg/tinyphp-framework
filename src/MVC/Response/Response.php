@@ -168,7 +168,6 @@ abstract class Response
         $popId = count($param) - 1;
         $data = ($param && is_array($param[$popId])) ? array_pop($param) : [];
         if ($param && $msg && strpos($msg, '%') !== false) {
-            
             $msg = sprintf($msg, ...$param);
         }
         $this->write(json_encode([

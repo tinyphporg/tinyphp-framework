@@ -24,15 +24,14 @@ use Tiny\MVC\View\View;
  * @final 2021年10月22日下午5:25:07
  *
  */
-interface ViewHelperInterface
+interface HelperInterface
 {
-    
     /**
      * 是否支持指定的helper名检索
      * 
-     * @param string $hname
+     * @param string $helperName 助手名称
      */
-    public function matchHelperByName($hname);
+    public function matchHelperName(string $helperName);
 }
 
 ?>

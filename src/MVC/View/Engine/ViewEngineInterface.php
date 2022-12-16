@@ -26,12 +26,27 @@ use Tiny\MVC\View\View;
 interface ViewEngineInterface
 {
     /**
+     * 增加匹配的扩展名
+     *
+     * @param string|array $extendName
+     */
+    public function addExtendName($extendName);
+    
+    /**
+     * 是否匹配对应的扩展名
+     *
+     * @param string $extendName 扩展名
+     *
+     * @return boolean true 匹配|false 不匹配
+     */
+    public function matchExtendName(string $extendName);
+    
+    
+    /**
      * 设置模板变量
      *
-     * @param string $key
-     *        键名 为Array时可设置多个参数名
-     * @param mixed $value
-     *        值
+     * @param string $key 键名 为Array时可设置多个参数名
+     * @param mixed $value 值
      * @return bool
      */
     public function assign($key, $value = null);
@@ -39,24 +54,22 @@ interface ViewEngineInterface
     /**
      * 输出模板解析后的数据
      *
-     * @param string $file
-     *        文件路径
-     * @param bool $isAbsolute
-     *        是否为绝对路径
+     * @param string $file 文件路径
+     * @param bool $isAbsolute 是否为绝对路径
      * @return string
      */
     public function fetch($filepath, array $assigns = [], $templateId = null);
     
     /**
      * 设置模板存放路径
-     * 
+     *
      * @param string $path
      */
     public function setTemplateDir($path);
     
     /**
      * 设置模板编译后的存放路径
-     * 
+     *
      * @param string $path
      */
     public function setCompileDir($path);

@@ -141,6 +141,23 @@ class Dispatcher
     }
     
     /**
+     *
+     * @param string $path 相对uri
+     * @param array $params
+     */
+    public function dispatchByPath($path, array $params = [], bool $isMethod = false)
+    {
+        $matchs = [];
+        if (!preg_match('/(?:([a-z][\-a-z0-9]*)\:)?(?:\/)?((?:[a-z][\+a-z0-9]*\/)*)([a-z][\-a-z0-9]*)/i', $path, $matchs)) {
+            return '';
+        }
+        $moduleName = trim($matchs[1]);
+        $controllerName = rtrim($matchs[2], '/') ?: 'main';
+        $actionName = trim($matchs[3]) ?: 'index';
+        return $this->dispatch($controllerName, $actionName, $moduleName, $params);
+    }
+    
+    /**
      * 执行派发
      *
      * @param string $cname 控制器名称
@@ -185,7 +202,7 @@ class Dispatcher
         $result = $this->container->call([
             $controllerInstance,
             $actionMethod
-        ]);
+        ], $args);
         
         // 执行后触发动作
         $this->container->call([

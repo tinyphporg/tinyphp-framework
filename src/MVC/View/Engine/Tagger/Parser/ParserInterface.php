@@ -2,30 +2,25 @@
 /**
  *
  * @copyright (C), 2013-, King.
- * @name IPlugin.php
+ * @name ParserInterface.php
  * @author King
- * @version stable 1.0
- * @Date 2017年3月12日下午2:05:36
- * @Class List
- * @Function List
- * @History King 2021年10月19日下午5:28:32 0 第一次建立该文件
- *          King 2021年10月19日下午5:28:32 1 修改
- *          King 2021年10月19日下午5:28:32 stable 1.0 审定
+ * @version stable 2.0
+ * @Date 2022年12月6日下午4:20:40
+ * @Class List class
+ * @Function List function_container
+ * @History King 2022年12月6日下午4:20:40 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\MVC\View\Engine\Template;
-
-use Tiny\MVC\View\Engine\Template;
+namespace Tiny\MVC\View\Engine\Tagger\Parser;
 
 /**
- * Template Engine 的插件接口类
- * 
- * @package Tiny.MVC.View.Engine.Template
- * @since  2021年10月19日下午5:28:32
- * @final  2021年10月19日下午5:28:32
- *
- */
-interface TemplatePluginInterface
-{    
+* 解析器接口
+* 
+* @package namespace
+* @since 2022年12月6日下午4:28:32
+* @final 2022年12月6日下午4:28:32
+*/
+interface ParserInterface 
+{
     /**
      * 解析前发生
      *
@@ -36,11 +31,11 @@ interface TemplatePluginInterface
     
     /**
      * 调用插件事件解析闭合标签
-     * 
+     *
      * @param string $tagName
      * @return string|false
      */
-    public function onParseCloseTag($tagName);
+    public function onParseCloseTag($tagName, $namespace = '');
     
     /**
      * 调用插件事件解析tag
@@ -50,7 +45,7 @@ interface TemplatePluginInterface
      * @param string $extra 附加信息
      * @return string|boolean 返回解析成功的字符串  false时没有找到解析成功的插件 或者解析失败
      */
-    public function onParseTag($tagName, $tagBody, $extra = null);
+    public function onParseTag($tagName, $namespace = '', array $params = []);
     
     /**
      * 解析完成后发生
@@ -60,4 +55,5 @@ interface TemplatePluginInterface
      */
     public function onPostParse($template);
 }
+
 ?>

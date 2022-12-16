@@ -59,7 +59,7 @@ class ModuleProvider implements DefinitionProviderInterface
     public function __construct(ModuleManager $moduleManager, ContainerInterface $container)
     {
         $provider = $container->get(DefinitionProvider::class);
-        $provider->addDefinitionProivder($this);
+        $provider->addDefinitionProvider($this);
         $this->moduleManager = $moduleManager;
         $this->container = $container;
     }

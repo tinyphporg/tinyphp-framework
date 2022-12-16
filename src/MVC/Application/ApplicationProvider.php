@@ -42,15 +42,16 @@ use Tiny\MVC\Web\HttpSession;
 use Tiny\MVC\Web\HttpCookie;
 use Tiny\Event\EventManager;
 use Tiny\MVC\View\Engine\StaticFile;
+use Tiny\MVC\View\ViewManager;
 
 /**
-* 应用的容器提供源 必须开启
-* 
-* @package Tiny.MVC.Application
-* 
-* @since 2022年5月22日下午3:11:51
-* @final 2022年5月22日下午3:11:51
-*/
+ * 应用的容器提供源 必须开启
+ *
+ * @package Tiny.MVC.Application
+ *         
+ * @since 2022年5月22日下午3:11:51
+ * @final 2022年5月22日下午3:11:51
+ */
 class ApplicationProvider implements DefinitionProviderInterface
 {
     
@@ -91,7 +92,7 @@ class ApplicationProvider implements DefinitionProviderInterface
         'app.properties' => Properties::class,
         'app.config' => Configuration::class,
         'app.lang' => Lang::class,
-        'app.view' => View::class,
+        // 'app.view' => View::class,
         'app.application.cache' => ApplicationCache::class,
         'app.cache' => Cache::class,
         'app.request' => Request::class,
@@ -128,7 +129,7 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function initSourceDefinitions(DefinitionProvider $provider, Properties $properties)
     {
-        $provider->addDefinitionProivder($this);
+        $provider->addDefinitionProvider($this);
         
         $config = (array)$properties['container'];
         
@@ -158,7 +159,6 @@ class ApplicationProvider implements DefinitionProviderInterface
         if ($this->app->has('app.application.cache')) {
             $cacheInstance = $this->app->get('app.application.cache');
             $files = $cacheInstance->get('application.containers.files');
-            
             
             // load files
             if (!is_array($files)) {
@@ -254,8 +254,8 @@ class ApplicationProvider implements DefinitionProviderInterface
             
             // 获取profile.php的应用缓存配置
             $storagerClass = (string)$config['application_storager'] ?: SingleCache::class;
-            $ttl  = (int)$config['application_ttl'];
-            if ($ttl <=0 ) {
+            $ttl = (int)$config['application_ttl'];
+            if ($ttl <= 0) {
                 $ttl = (int)$config['ttl'] ?: 60;
             }
             
@@ -270,7 +270,9 @@ class ApplicationProvider implements DefinitionProviderInterface
             // 按照析构顺序
             $cacheStorager = $cacheInstance['application.cache'];
             return new ApplicationCache($cacheStorager);
-        }, ['config' => (array)$this->properties['cache']]);
+        }, [
+            'config' => (array)$this->properties['cache']
+        ]);
     }
     
     /**
@@ -679,21 +681,16 @@ class ApplicationProvider implements DefinitionProviderInterface
      */
     protected function getViewDefinition()
     {
-        return new CallableDefinition(View::class,
-            function (ContainerInterface $container, DefinitionProvider $provider, ApplicationBase $app,Properties $properties) {
+        return new CallableDefinition(View::class, function (ApplicationBase $app, Properties $properties) {
+                // parse config
                 $config = (array)$properties['view'];
-                
-                $viewInstance = new View($app);
-                $provider->addDefinitionProivder($viewInstance);
                 $helpers = (array)$config['helpers'];
                 $engines = (array)$config['engines'];
-                $assigns = (array)$config['assign'] ?: [];
+                $assigns = (array)$config['assign'];
+                $widgets = (array)$config['widgets'];
                 $paths = is_array($config['paths']) ? $config['paths'] : [(string)$config['paths']];
                 
-                // 如果开启了配置，则注入到视图模板的环境变量
-                if ($properties['config.enabled']) {
-                    $assigns['config'] = $container->get(Configuration::class);
-                }
+ 
                 
                 // 默认为框架文件下的resource/mvc/view
                 $defaultTemplateDir = TINY_FRAMEWORK_RESOURCE_PATH . 'mvc/view/';
@@ -701,17 +698,19 @@ class ApplicationProvider implements DefinitionProviderInterface
                 // application目录下为 application/views/default
                 $templateTheme = $config['theme'] ?: 'default';
                 $templateThemeDir = $config['basedir'] . $templateTheme . DIRECTORY_SEPARATOR;
+                
+                // 如果开启了配置，则注入到视图模板的环境变量
+                if ($properties['config.enabled']) {
+                    $assigns['config'] = $app->get(Configuration::class);
+                }
                 if ($properties['lang.enabled']) {
-                    $assigns['lang'] = $container->get(Lang::class);
+                    $assigns['lang'] = $app->get(Lang::class);
                 }
                 
                 // templater dirs;
                 $templateDirs = $paths;
                 $templateDirs[] = $defaultTemplateDir;
                 array_unshift($templateDirs, $templateThemeDir);
-                
-                // 设置模板搜索目录
-                $viewInstance->setTemplateDir($templateDirs);
                 
                 // static
                 $staticConfig = $config['static'];
@@ -727,21 +726,45 @@ class ApplicationProvider implements DefinitionProviderInterface
                     'ext' => $staticExts
                 ];
                 
-                // composer require tinyphp-ui; @formatter:off
-                
-                // @formatter:on
-                // engine初始化
-                foreach ($engines as $econfig) {
-                    $viewInstance->bindEngine($econfig);
-                }
-                
-                // helper初始化
-                foreach ($helpers as $econfig) {
-                    $viewInstance->bindHelper($econfig);
-                }
-                
+                // 视图实例
+                $viewInstance = new View($app);
+                $viewInstance->setTemplateDir($templateDirs);
                 $viewInstance->setCompileDir($config['compile']);
                 $viewInstance->assign($assigns);
+                
+                $viewManager = $viewInstance->getViewManager();
+                
+                // 解析视图助手配置
+                foreach($helpers as $helper) {
+                    if (is_array($helper) && !key_exists('helper', $helper)) {
+                        continue;
+                    }
+                    if (!is_array($helper)) {
+                        $helper = ['helper' => (string)$helper, 'config' => []];
+                    }
+                    $viewManager->bindHelper($helper['helper'], (array)$helper['config']);
+                }
+                
+                // 解析视图引擎配置
+                foreach($engines as $engine) {
+                    if (!is_array($engine) || !key_exists('engine', $engine)) {
+                        continue;
+                    }
+                    $exts = is_array($engine['ext']) ? $engine['ext'] : [(string)$engine['ext']];
+                    $viewManager->bindEngine($engine['engine'], $exts, $engine['config']);
+                }
+                
+                // 解析视图小部件的配置
+                foreach ($widgets as $widget) {
+                    if (is_array($widget) && !key_exists('widget', $widget)) {
+                        continue;
+                    }
+                    
+                    if (!is_array($widget)) {
+                        $widget = ['widget' => (string)$widget, 'config' => []];
+                    }
+                    $viewManager->bindWidget($widget['widget'], (array)$widget['config'], (string)$widget['alias']);
+                }
                 return $viewInstance;
             });
     }

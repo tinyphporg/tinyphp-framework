@@ -172,7 +172,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         $debugMemory = number_format(memory_get_peak_usage(true) / 1024 / 1024, 4);
         
         // 视图
-        $viewPaths = $view->getTemplateList();
+        $viewPaths = $view->getParsedTemplates();
         $viewAssign = $view->getVariables();
         
         // DB

@@ -27,14 +27,10 @@ use Tiny\Event\EventManager;
 use Tiny\DI\Container;
 use Tiny\Event\ExceptionEventListener;
 use Tiny\MVC\Event\MvcEvent;
-use Tiny\MVC\Controller\Dispatcher;
 use Tiny\MVC\View\View;
 use Tiny\Event\EventListenerInterface;
-use Tiny\MVC\Module\ModuleManager;
-use Tiny\DI\Definition\ObjectDefinition;
 use Tiny\DI\Definition\Provider\DefinitionProvider;
 use Tiny\Cache\CacheInterface;
-use Tiny\Runtime\Runtime;
 use Tiny\Runtime\Autoloader;
 use Tiny\Event\Event;
 use Tiny\Runtime\ExceptionHandler;
@@ -67,7 +63,7 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 当前应用程序的默认命名空间
-     * 
+     *
      * @var string
      */
     public $namespace = 'App';
@@ -122,13 +118,13 @@ abstract class ApplicationBase implements ExceptionEventListener
      * 当前响应实例
      *
      * @var Response
-     *     
+     *
      */
     public $response;
     
     /**
      * 应用缓存
-     * 
+     *
      * @var CacheInterface
      */
     protected $applicationCache;
@@ -139,7 +135,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @var EventManager
      */
     protected $eventManager;
-
+    
     /**
      * 初始化应用实例
      *
@@ -161,25 +157,26 @@ abstract class ApplicationBase implements ExceptionEventListener
         $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php';
         $this->properties = new Properties($this, $this->profile);
         $container->set(Properties::class, $this->properties);
-
+        
         // container;
         $provider = $container->get(DefinitionProvider::class);
-        $provider->addDefinitionFromArray([ApplicationProvider::class]);
+        $provider->addDefinitionFromArray([
+            ApplicationProvider::class
+        ]);
         $applicationProvider = $container->get(ApplicationProvider::class);
-        $provider->addDefinitionProivder($applicationProvider);
+        $provider->addDefinitionProvider($applicationProvider);
         
-        //init autoloader
+        // init autoloader
         $this->initAutoloader($container);
         
         // event manager
         $this->eventManager = $container->get(EventManager::class);
         $this->eventManager->addEventListener($this, -1);
-         
-
+        
         // request & response
-        $this->request = $container->get('app.request');      
+        $this->request = $container->get('app.request');
         $this->response = $container->get('app.response');
-       
+        
         // init EventListener
         $this->initEventListener();
         
@@ -235,21 +232,21 @@ abstract class ApplicationBase implements ExceptionEventListener
      * @param array $exceptions 所有异常
      */
     public function onException(Event $event, \Throwable $exception, ExceptionHandler $handler)
-    {       
-            // 配置异常通过日志方式输出
-            $code = $exception->getCode();
-            if ($this->properties['exception.log']) {
-                $logId = $this->properties['exception.logid'];
-                $this->error($logId,$code, $exception->getTraceAsString());
-            }
-            
-            // 在response没有实例化前
-            if (!$this->response) {
-                return;
-            }
-            // 停止事件继续冒泡
-            $event->stopPropagation(true);
-                $this->end();
+    {
+        // 配置异常通过日志方式输出
+        $code = $exception->getCode();
+        if ($this->properties['exception.log']) {
+            $logId = $this->properties['exception.logid'];
+            $this->error($logId, $code, $exception->getTraceAsString());
+        }
+        
+        // 在response没有实例化前
+        if (!$this->response) {
+            return;
+        }
+        // 停止事件继续冒泡
+        $event->stopPropagation(true);
+        $this->end();
     }
     
     /**
@@ -263,19 +260,18 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         // event predispatch
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_PRE_DISPATCH));
-       
-        $this->dispatch();
         
+        $this->dispatch();
         
         // event postdispatch
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_POST_DISPATCH));
-      
-        // event  request end       
+        
+        // event request end
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_END_REQUEST));
         
         // 保存已加载的类路径映射到应用缓存
         $this->saveToAutoloaderClasses();
-
+        
         $this->response->output();
     }
     
@@ -292,11 +288,11 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 容器中是否存在某个类的实例
-     * 
+     *
      * @param string $className 类名
      * @return boolean
      */
-    public function has(string $className) 
+    public function has(string $className)
     {
         return $this->container->has($className);
     }
@@ -306,7 +302,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getApplicationCache()
     {
-       return  $this->has('app.cache') ? $this->get('app.cache') : true;
+        return $this->has('app.cache') ? $this->get('app.cache') : true;
     }
     
     /**
@@ -321,12 +317,12 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 获取配置实例
-     * 
+     *
      * @return Configuration
      */
-    public function getConfig() 
+    public function getConfig()
     {
-        return $this->get('app.config');    
+        return $this->get('app.config');
     }
     
     /**
@@ -351,11 +347,12 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 获取路由实例
+     *
      * @return Router
      */
     public function getRouter()
     {
-        return $this->get('app.router');    
+        return $this->get('app.router');
     }
     
     /**
@@ -365,7 +362,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function getView()
     {
-        return $this->container->get('app.view');
+        return $this->container->get(View::class);
     }
     
     /**
@@ -378,7 +375,7 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 派发前检测
-     * 
+     *
      * @param string $cname
      * @param string $aname
      * @param string $mname
@@ -388,7 +385,7 @@ abstract class ApplicationBase implements ExceptionEventListener
     {
         $cname = $cname ?: $this->request->getControllerName();
         $aname = $aname ?: $this->request->getActionName();
-        $mname =$mname ?: $this->request->getModuleName();
+        $mname = $mname ?: $this->request->getModuleName();
         return $this->getDispatcher()->preDispatch($cname, $aname, $mname, $isMethod);
     }
     
@@ -406,7 +403,7 @@ abstract class ApplicationBase implements ExceptionEventListener
     {
         $cname = $cname ?: $this->request->getControllerName();
         $aname = $aname ?: $this->request->getActionName();
-        $mname =$mname ?: $this->request->getModuleName();
+        $mname = $mname ?: $this->request->getModuleName();
         return $this->getDispatcher()->dispatch($cname, $aname, $mname, $args, $isMethod);
     }
     
@@ -415,7 +412,7 @@ abstract class ApplicationBase implements ExceptionEventListener
      */
     public function end()
     {
-        // event  request end
+        // event request end
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_END_REQUEST));
         if ($this->response) {
             $this->response->end();
@@ -437,9 +434,9 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         // 获取缓存实例
         $applicationCache = $container->get(ApplicationCache::class);
-       
+        
         // 合并
-        $classes = (array)$this->properties['autoloader.classes']; 
+        $classes = (array)$this->properties['autoloader.classes'];
         $classes += (array)$applicationCache->get('application.autoloader.classes');
         
         // 添加类路径映射
@@ -457,7 +454,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         
         // 自动加载实例
         $autoloader = $this->get(Autoloader::class);
-        $loadedClasses  = (array)$autoloader->getLoadedClassMap();
+        $loadedClasses = (array)$autoloader->getLoadedClassMap();
         
         // 已经缓存的数据
         $classes = (array)$applicationCache->get('application.autoloader.classes');
@@ -499,7 +496,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         if (!$this->properties['bootstrap.enabled']) {
             return;
         }
-       
+        
         // 获取配置的引导类class
         $eventListener = $this->properties['bootstrap.event_listener'];
         if (!is_string($eventListener) && !is_array($eventListener)) {
@@ -514,7 +511,6 @@ abstract class ApplicationBase implements ExceptionEventListener
     
     /**
      * 执行路由n
-     *
      */
     protected function route()
     {
@@ -529,10 +525,9 @@ abstract class ApplicationBase implements ExceptionEventListener
         $matchedRoute = $routerInstance->route();
         
         // event shutdown
-        $this->eventManager->triggerEvent(
-            new MvcEvent(MvcEvent::EVENT_ROUTER_SHUTDOWN, [
-                'matchedRoute' => $matchedRoute
-            ]));
+        $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_ROUTER_SHUTDOWN, [
+            'matchedRoute' => $matchedRoute
+        ]));
         return $matchedRoute;
     }
 }

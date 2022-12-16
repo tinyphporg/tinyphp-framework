@@ -26,6 +26,14 @@ use \Smarty as SmartyBase;
  */
 class Smarty extends SmartyBase implements ViewEngineInterface
 {
+
+    /**
+     * 支持匹配解析的扩展名文件
+     *
+     * @var array
+     */
+    protected $extendNames = ['tpl'];
+    
     /**
      * 当前的View对象
      * 
@@ -33,6 +41,35 @@ class Smarty extends SmartyBase implements ViewEngineInterface
      * @var \Tiny\MVC\View\View
      */
     protected $view;
+    
+    /**
+     * 增加匹配的扩展名
+     *
+     * @param string|array $extendName
+     */
+    public function addExtendName($extendName)
+    {
+        if (is_array($extendName)) {
+            $this->extendNames = array_merge($this->extendNames, $extendName);
+        } elseif(is_string($extendName)) {
+            if (!in_array($extendName, $this->extendNames)) {
+                $this->extendNames[] = $extendName;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * 是否匹配对应的扩展名
+     *
+     * @param string $extendName 扩展名
+     *
+     * @return boolean true 匹配|false 不匹配
+     */
+    public function matchExtendName(string $extendName)
+    {
+        return in_array($extendName, $this->extendNames);
+    }
     
     /**
      * 

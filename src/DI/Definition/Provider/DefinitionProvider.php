@@ -63,7 +63,7 @@ class DefinitionProvider implements DefinitionProviderInterface
      *
      * @param DefinitionProviderInterface $proivder
      */
-    public function addDefinitionProivder(DefinitionProviderInterface $proivder)
+    public function addDefinitionProvider(DefinitionProviderInterface $proivder)
     {
         $this->definitionProivders[] = $proivder;
     }

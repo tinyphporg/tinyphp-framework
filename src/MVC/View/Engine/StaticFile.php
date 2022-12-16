@@ -14,6 +14,7 @@
 namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
+use Tiny\MVC\View\Engine\Template\Template;
 
 /**
  *
@@ -23,6 +24,12 @@ use Tiny\MVC\View\ViewException;
  */
 class StaticFile extends ViewEngine
 {
+    /**
+     * 支持匹配解析的扩展名文件
+     * 
+     * @var array
+     */
+    protected $extendNames = ['js', 'css', 'jpg', 'gif', 'png'];
     
     protected $template;
     

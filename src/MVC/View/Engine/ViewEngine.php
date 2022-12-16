@@ -25,8 +25,17 @@ use Tiny\MVC\View\View;
  */
 abstract class ViewEngine implements ViewEngineInterface
 {
+    
+    /**
+     * 支持的扩展名数组
+     *
+     * @var array
+     */
+    protected $extendNames = [];
+    
     /**
      * 视图引擎的在应用缓存的key
+     *
      * @var string
      */
     protected const CACHE_KEY = 'app.view.viewengine';
@@ -41,7 +50,7 @@ abstract class ViewEngine implements ViewEngineInterface
     
     /**
      * 应用缓存
-     * 
+     *
      * @autowired
      * @var \Tiny\MVC\Application\ApplicationCache
      */
@@ -49,7 +58,7 @@ abstract class ViewEngine implements ViewEngineInterface
     
     /**
      * 缓存的模板数据列表
-     * 
+     *
      * @var boolean
      */
     protected $templateData = false;
@@ -61,14 +70,6 @@ abstract class ViewEngine implements ViewEngineInterface
      * @var array
      */
     protected $config = [];
-    
-    /**
-     * 插件配置数组
-     * 
-     * @autowired
-     * @var array
-     */
-    protected $plugins = [];
     
     /**
      * 模板目录
@@ -91,7 +92,6 @@ abstract class ViewEngine implements ViewEngineInterface
      */
     protected $variables = [];
     
- 
     /**
      * 正在解析时的templateId
      *
@@ -105,7 +105,36 @@ abstract class ViewEngine implements ViewEngineInterface
      * @var array
      */
     protected $fetchingVariables = [];
-
+    
+    /**
+     * 增加匹配的扩展名
+     *
+     * @param string|array $extendName
+     */
+    public function addExtendName($extendName)
+    {
+        if (is_array($extendName)) {
+            $this->extendNames = array_merge($this->extendNames, $extendName);
+        } elseif(is_string($extendName)) {
+            if (!in_array($extendName, $this->extendNames)) {
+                $this->extendNames[] = $extendName;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * 是否匹配对应的扩展名
+     *
+     * @param string $extendName 扩展名
+     *       
+     * @return boolean true 匹配|false 不匹配
+     */
+    public function matchExtendName(string $extendName)
+    {
+        return in_array($extendName, $this->extendNames);
+    }
+    
     /**
      * 设置模板引擎的模板文件夹
      *
@@ -155,7 +184,7 @@ abstract class ViewEngine implements ViewEngineInterface
      *
      * @param string $key 变量分配的键
      * @param mixed $value 分配的值
-     *
+     *       
      */
     public function assign($key, $value = null)
     {
@@ -163,7 +192,6 @@ abstract class ViewEngine implements ViewEngineInterface
             $this->variables = array_merge($this->variables, $key);
             return;
         }
-        $this->assign($key, $value);
     }
     
     /**
@@ -201,7 +229,7 @@ abstract class ViewEngine implements ViewEngineInterface
             extract($variables, EXTR_SKIP);
         }
         ob_start();
-        include($compileFile);
+        include ($compileFile);
         $content = ob_get_contents();
         ob_end_clean();
         return $content;
@@ -218,7 +246,7 @@ abstract class ViewEngine implements ViewEngineInterface
     {
         $pathinfo = $this->getTemplateRealPathinfoFromCache($tpath, $templateId);
         if ($pathinfo) {
-            $this->view->addTemplateList($tpath, $pathinfo['path'], $this);
+            $this->view->addParsedTemplate($tpath, $pathinfo['path'], $this);
             return $pathinfo;
         }
         $pathinfo = $this->getTemplateRealPathinfo($tpath, $templateId);
@@ -226,23 +254,25 @@ abstract class ViewEngine implements ViewEngineInterface
             return false;
         }
         
-        $this->view->addTemplateList($tpath, $pathinfo['path'], $this);
-        $this->saveToTemplateCache($tpath, $templateId,  $pathinfo);
+        $this->view->addParsedTemplate($tpath, $pathinfo['path'], $this);
+        $this->saveToTemplateCache($tpath, $templateId, $pathinfo);
         return $pathinfo;
-        
     }
     
     /**
-     * 
+     *
      * @param string $tpath
      * @param mixed $templateId
      * @return false|array
      */
-    protected function getTemplateRealPathinfo($tpath, $templateId) {
+    protected function getTemplateRealPathinfo($tpath, $templateId)
+    {
         if (true === $templateId) {
             return $this->getPathinfo($tpath, $tpath);
         }
-        $templateDirs = (is_array($this->templateDir)) ? $this->templateDir : [(string)$this->templateDir];
+        $templateDirs = (is_array($this->templateDir)) ? $this->templateDir : [
+            (string)$this->templateDir
+        ];
         if (key_exists($templateId, $templateDirs)) {
             $tfile = $templateDirs[$templateId] . $tpath;
             if ($pathinfo = $this->getPathinfo($tfile, $tpath)) {
@@ -263,11 +293,12 @@ abstract class ViewEngine implements ViewEngineInterface
     
     /**
      * 获取文件的路径信息
-     * 
+     *
      * @param string $tfile
      * @return boolean|mixed
      */
-    protected function getPathinfo($tfile, $tpath) {
+    protected function getPathinfo($tfile, $tpath)
+    {
         if (!is_file($tfile)) {
             return false;
         }
@@ -280,7 +311,7 @@ abstract class ViewEngine implements ViewEngineInterface
     
     /**
      * 从缓存里获取模板的真实文件信息
-     * 
+     *
      * @param string $tpath
      * @param string $templateId
      * @return boolean|array
@@ -288,7 +319,7 @@ abstract class ViewEngine implements ViewEngineInterface
     protected function getTemplateRealPathinfoFromCache($tpath, $templateId)
     {
         $templateKey = $this->getTemplateCacheKey($templateId);
-        $templateData = $this->templateData; 
+        $templateData = $this->templateData;
         if (!$templateData || !key_exists($templateKey, $templateData)) {
             return false;
         }
@@ -303,17 +334,16 @@ abstract class ViewEngine implements ViewEngineInterface
             return false;
         }
         return $pathinfo;
-        
     }
     
     /**
      * 设置模板视图缓存并保存
-     * 
+     *
      * @param string $templateKey 模板ID生成的KEY
      * @param string $tpath 模板路径
      * @param array $pathinfo 模板路径的路径信息数组
      */
-    protected function saveToTemplateCache($tpath, $templateId, array $pathinfo) 
+    protected function saveToTemplateCache($tpath, $templateId, array $pathinfo)
     {
         $templateKey = $this->getTemplateCacheKey($templateId);
         $this->templateData[$templateKey][$tpath] = $pathinfo;
@@ -322,7 +352,7 @@ abstract class ViewEngine implements ViewEngineInterface
     
     /**
      * 根据模板ID生成模板缓存的key
-     * 
+     *
      * @param mixed $templateId
      * @return string
      */
@@ -331,7 +361,7 @@ abstract class ViewEngine implements ViewEngineInterface
         if (false == $this->templateData) {
             $this->templateData = (array)$this->cache->get(self::CACHE_KEY);
         }
-        if (true === $templateId ) {
+        if (true === $templateId) {
             return '__tinyphp__true';
         }
         if (null == $templateId) {
