@@ -50,13 +50,6 @@ abstract class Response
     protected $body;
     
     /**
-     * 格式化输出JSON的配置ID
-     *
-     * @var string
-     */
-    protected $formatJSONConfigId;
-    
-    /**
      * 格式化输出JSON的数组
      *
      * @var array
@@ -134,16 +127,6 @@ abstract class Response
     }
     
     /**
-     * 设置格式化输出JSON的配置实例
-     *
-     * @param Configuration $config 配置实例
-     */
-    public function setFormatJSONConfigId($configId = false)
-    {
-        $this->formatJSONConfigId = $configId;
-    }
-    
-    /**
      * 输出格式化
      *
      * @param int $status 状态码
@@ -151,30 +134,62 @@ abstract class Response
      * @example $this->response->formatJSON(0, 'msg1', 'msg2', ['aaa', 'aaaa']);
      *          {"status":0,"msg":"msg1msg2","data":["aaa","aaaa"]}
      */
-    public function outFormatJSON($status = 0, ...$param)
+    public function outFormatJSON($status = 0, ...$params)
     {
+      // 关闭调试信息输出
       $this->application->isDebug = false;
+      
+      // 获取格式化的状态码
+      if (!$this->formatJSONConfig) {
+          $lang = $this->application->get(Lang::class);
+          $configId = $this->application->properties['response.formatJsonConfigId'] ?: 'status';
+          $this->formatJSONConfig = $lang->translate($configId);
+      }
+      
+      // 状态码
+      if (is_int($status) || (is_string($status) && preg_match('/\d+/', $status))) {
+          $msg = (string)$this->formatJSONConfig[$status];
+      }
+      
+      $messageBox =  [
+          'status' => $status,
+          'message' => $msg,
+          'data' => [],
+      ];
+      
+      // data 
+      $popId = count($params) - 1;
+      if ($params && $popId >=0 && is_array($params[$popId])) {
+          $messageBox['data'] = array_pop($params);
+      }
+      
+      // 附加数组输出
+      $popId--;
+      if ($params && $popId >= 0 && is_array($params[$popId])) {
+          $messageBox = array_merge($messageBox, array_pop($params));
+      }
+      
+      // 替换状态信息
+      if ($params && $msg && strpos($msg, '%') !== false) {
+            $messageBox['message'] = sprintf($msg, ...$params);
+      }
+        $this->write(json_encode($messageBox));
+    }
+    
+    
+    /**
+     * 获取格式化的状态码信息数组
+     * 
+     * @return array
+     */
+    protected  function getFormatStatus()
+    {
         if (!$this->formatJSONConfig) {
-            $config = $this->application->get(Lang::class);
-            $configId = $this->application->properties['response']['formatJsonConfigId'] ?: 'status';
-            $this->formatJSONConfig = $config->translate($configId);
+            $lang = $this->application->get(Lang::class);
+            $configId = $this->application->properties['response.formatJsonConfigId'] ?: 'status';
+            $this->formatJSONConfig = $lang->translate($configId);
         }
-        
-        if (!isset($this->formatJSONConfig[$status])) {
-            $msg = (count($param) && !is_array($param[0])) ? array_shift($param) : '';
-        } else {
-            $msg = $this->formatJSONConfig[$status];
-        }
-        $popId = count($param) - 1;
-        $data = ($param && is_array($param[$popId])) ? array_pop($param) : [];
-        if ($param && $msg && strpos($msg, '%') !== false) {
-            $msg = sprintf($msg, ...$param);
-        }
-        $this->write(json_encode([
-            'status' => $status,
-            'msg' => $msg,
-            'data' => $data
-        ]));
+        return $this->formatJSONConfig;
     }
     
     /**

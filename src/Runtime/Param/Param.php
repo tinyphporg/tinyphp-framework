@@ -232,9 +232,9 @@ class Param implements \ArrayAccess, \Iterator, \Countable
         }
         if ($args) {
             $key = $args[0];
-            $args[0] = $this->data[$key];
+            $args[0] = $this->get($key);
         } else {
-            $args[0] = $this->data;
+            $args[0] = $this->get();
         }
         return call_user_func_array([
             $filter,

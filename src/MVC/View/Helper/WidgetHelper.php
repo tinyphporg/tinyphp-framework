@@ -115,7 +115,7 @@ class WidgetHelper implements HelperInterface, ParserInterface
         }
         
         // 命名空间需要<widget: />
-        if (!self::WIDGET_ID == $namespace) {
+        if (!self::ALIAS_NAME == $namespace) {
             return false;
         }
         
@@ -142,20 +142,7 @@ class WidgetHelper implements HelperInterface, ParserInterface
         if ($namespace == '' && $tagName == 'widget') {
             return '';
         }
-        
-        if (!self::ALIAS_NAME == $namespace) {
-            return false;
-        }
-        
-        foreach ($this->alias as $widgetClass => $alias) {
-            if (!$alias || !is_array($alias)) {
-                continue;
-            }
-            if (in_array($tagName, $alias)) {
-                return $this->viewManager->getWidget($widgetClass)->parseCloseTag();
-            }
-        }
-        return false;
+        return (self::ALIAS_NAME == $namespace) ? '' : false;
     }
     
     /**
@@ -208,6 +195,7 @@ class WidgetHelper implements HelperInterface, ParserInterface
         if (!$path) {
             return false;
         }
+        // 
         $path = $params['path'];
         unset($params[0], $params['path'], $params[1]);
         $paramText = var_export($params, true);

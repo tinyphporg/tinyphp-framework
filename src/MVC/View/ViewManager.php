@@ -351,7 +351,7 @@ class ViewManager
             }
             
             // 匹配助手名
-            $matchRet = $helperInstance->matchHelper($helperName);
+            $matchRet = $helperInstance->matchHelperName($helperName);
             if ($matchRet) {
                 return $matchRet;
             }

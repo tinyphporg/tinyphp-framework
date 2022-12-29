@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  *
  * @copyright (C), 2013-, King.
@@ -13,27 +13,20 @@
 namespace Tiny\MVC\View\Widget;
 
 /**
-* 视图部件接口
-* 
-* @package Tiny.MVC.View.Widget
-* @since 2022年12月12日下午12:12:23
-* @final 2022年12月12日下午12:12:23
-*/
+ * 视图部件接口
+ *
+ * @package Tiny.MVC.View.Widget
+ * @since 2022年12月12日下午12:12:23
+ * @final 2022年12月12日下午12:12:23
+ */
 interface WidgetInterface
-{    
-    /**
-     * 解析部件标签
-     * @param string $tagName
-     * @param array $params
-     */
-    public function parseTag(array $params = []);
+{
     
     /**
-     * 解析部件的闭合标签
-     * 
-     * @param string $tagName
-     * @param array $params
+     * 解析部件标签
+     *
+     * @param array $params 传递的参数
      */
-    public function parseCloseTag();
+    public function parseTag(array $params = []);
 }
 ?>
