@@ -13,7 +13,6 @@
 namespace Tiny\MVC\View\Engine\Tagger;
 
 use Tiny\MVC\View\ViewManager;
-use Tiny\MVC\View\Engine\Tagger\Parser\BasicParser;
 use Tiny\MVC\View\Engine\Tagger\Parser\SyntaxParser;
 use Tiny\MVC\View\Helper\WidgetHelper;
 
@@ -192,8 +191,8 @@ class ParserManager
     protected function parseTag($template)
     {
         $pattents = [
-            "/{([a-z][a-z\-]*)?\:([a-z]+(?:\-[a-z0-9]+)*)(?:\s+(.*?)\s*)?(?<![\?\\\\\-])(\/)?\}/is",
-            "/\{(\/)([a-z][a-z\-]*)?\:([a-z]+(?:\-[a-z0-9]+)*)(?<![\?\\\\\-])\}/is",
+            "/{([a-z][a-z\-]*\:)?([a-z]+(?:\-[a-z0-9]+)*)(?:\s+(.*?)\s*)?(?<![\?\\\\\-])(\/)?\}/is",
+            "/\{(\/)([a-z][a-z\-]*\:)?([a-z]+(?:\-[a-z0-9]+)*)(?<![\?\\\\\-])\}/is",
             "/\<([a-z][a-z\-]*)?\:([a-z]+(?:\-[a-z0-9]+)*)(?:\s+(.*?)\s*)?(?<![\?\\\\\-])(\/)?\>/is",
             "/\<(\/)([a-z][a-z\-]*)?\:([a-z]+(?:\-[a-z0-9]+)*)(?<![\?\\\\\-])\>/is",
         ];
