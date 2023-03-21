@@ -163,7 +163,9 @@ class ParserManager
         
         // 变量
         $template = preg_replace($patterns, "<?=\\1?>", $template);
-        $template = preg_replace("/" . self::REGEXP_CONST . "/", "<?=  defined(\"\\1\") ? constant(\"\\1\") : \"\\1\"; ?>", $template); // {}包裹的常量
+        /*
+       $template = preg_replace("/" . self::REGEXP_CONST . "/", "<?=  defined(\"\\1\") ? constant(\"\\1\") : \"\\1\"; ?>", $template); // {}包裹的常量
+        */
         return $template;
     }
     
@@ -191,7 +193,7 @@ class ParserManager
     protected function parseTag($template)
     {
         $pattents = [
-            "/{([a-z][a-z\-]*\:)?([a-z]+(?:\-[a-z0-9]+)*)(?:\s+(.*?)\s*)?(?<![\?\\\\\-])(\/)?\}/is",
+            "/{(?:([a-z][a-z\-]*)[\:\.])?([a-z]+(?:\-[a-z0-9]+)*)(?:\s+(.*?)\s*)?(?<![\?\\\\\-])(\/)?\}/is",
             "/\{(\/)([a-z][a-z\-]*\:)?([a-z]+(?:\-[a-z0-9]+)*)(?<![\?\\\\\-])\}/is",
             "/\<([a-z][a-z\-]*)?\:([a-z]+(?:\-[a-z0-9]+)*)(?:\s+(.*?)\s*)?(?<![\?\\\\\-])(\/)?\>/is",
             "/\<(\/)([a-z][a-z\-]*)?\:([a-z]+(?:\-[a-z0-9]+)*)(?<![\?\\\\\-])\>/is",
@@ -330,9 +332,9 @@ class ParserManager
      * @return string|boolean 返回解析成功的字符串 false为解析失败
      */
     protected function onParseTag($nameSpace, $tagName, array $params = [])
-    {
+    {  
+        
         foreach ($this->parsers as $parser) {
-            
             $ret = $parser->onParseTag($nameSpace, $tagName, $params);
             if (false !== $ret) {
                 return $ret;
