@@ -24,6 +24,9 @@ use Tiny\MVC\View\Engine\ViewEngineInterface;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\View\Helper\HelperInterface;
 
+// 框架默认视图路径
+define('TINY_VIEW_TEMPLATE_PATH', dirname(__DIR__) . '/Resources/templates');
+
 /**
  * 视图层
  *
@@ -33,6 +36,12 @@ use Tiny\MVC\View\Helper\HelperInterface;
  */
 class View
 {
+    /**
+     * 框架视图模板文件所在路径
+     * 
+     * @var string
+     */
+    const VIEW_TEMPLATE_PATH = TINY_VIEW_TEMPLATE_PATH;
     
     /**
      * 当前应用实例
@@ -142,9 +151,15 @@ class View
         if (is_array($path)) {
             $this->templateDirs = array_merge($this->templateDirs, $path);
         }
+        
         if ($templateId) {
             $this->templateDirs[$templateId] = (string)$path;
         }
+        
+        if (!in_array(self::VIEW_TEMPLATE_PATH, $this->templateDirs)) {
+            $this->templateDirs[] = self::VIEW_TEMPLATE_PATH;
+        }
+        
         // 同步给所有实例化的解析器
         $this->viewManager->syncTemplateDir($this->templateDirs);
         return $this;

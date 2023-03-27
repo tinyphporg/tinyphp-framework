@@ -14,7 +14,6 @@
 namespace Tiny\MVC\View\Engine;
 
 use Tiny\MVC\View\ViewException;
-use Tiny\MVC\View\Engine\Template\Template;
 
 /**
  *
@@ -31,8 +30,6 @@ class StaticFile extends ViewEngine
      */
     protected $extendNames = ['js', 'css', 'jpg', 'gif', 'png'];
     
-    protected $template;
-    
     protected $minsize = 2048;
     
     protected $basedir;
@@ -44,12 +41,10 @@ class StaticFile extends ViewEngine
     /**
      * 初始化构造函数
      *
-     * @param Template $template
      * @param array $config
      */
-    public function __construct(Template $template, array $config)
+    public function __construct(array $config)
     {
-        $this->template = $template;
         if (!$config['basedir']) {
             throw new ViewException('basedir is not set');
         }

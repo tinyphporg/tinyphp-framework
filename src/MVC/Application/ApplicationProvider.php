@@ -688,12 +688,11 @@ class ApplicationProvider implements DefinitionProviderInterface
                 $engines = (array)$config['engines'];
                 $assigns = (array)$config['assign'];
                 $widgets = (array)$config['widgets'];
-                $paths = is_array($config['paths']) ? $config['paths'] : [(string)$config['paths']];
+                $templateDirs = is_array($config['paths']) ? $config['paths'] : [(string)$config['paths']];
                 
  
                 
                 // 默认为框架文件下的resource/mvc/view
-                $defaultTemplateDir = TINY_FRAMEWORK_RESOURCE_PATH . 'mvc/view/';
                 
                 // application目录下为 application/views/default
                 $templateTheme = $config['theme'] ?: 'default';
@@ -708,8 +707,6 @@ class ApplicationProvider implements DefinitionProviderInterface
                 }
                 
                 // templater dirs;
-                $templateDirs = $paths;
-                $templateDirs[] = $defaultTemplateDir;
                 array_unshift($templateDirs, $templateThemeDir);
                 
                 // static

@@ -17,8 +17,6 @@
  */
 namespace Tiny\Net;
 
-// IP库地址
-define('TINY_NET_IPAREA_DAT', TINY_FRAMEWORK_RESOURCE_PATH . 'net/qqwry.dat');
 
 /**
  * 获取ip所在的地区和城市
@@ -37,7 +35,7 @@ class IpArea
      * @var string
      *
      */
-    const IPAREA_PATH = TINY_NET_IPAREA_DAT;
+    const IPAREA_DB_PATH = __DIR__ . '/Resources/ipdb/qqwry.dat';
     
     /**
      * 默认编码
@@ -107,7 +105,7 @@ class IpArea
      */
     public static function getIpAreaByQQWry($ip)
     {
-        $fp = fopen(self::IPAREA_PATH, 'rb');
+        $fp = fopen(self::IPAREA_DB_PATH, 'rb');
         $ip = explode('.', $ip);
         $ipNum = $ip[0] * 16777216 + $ip[1] * 65536 + $ip[2] * 256 + $ip[3];
         if (!($dataBegin = fread($fp, 4)) || !($dataEnd = fread($fp, 4))) {

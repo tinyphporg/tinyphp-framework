@@ -32,48 +32,39 @@ use Tiny\DI\Definition\Provider\DefinitionProvider;
 // 定义框架所在路径
 define('TINY_FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
 
-// 定义框架资源路径
-define('TINY_FRAMEWORK_RESOURCE_PATH', dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR);
-
-// WEB模式
-define('TINY_RUNTIME_MODE_WEB', 0);
-
-// 命令行模式
-define('TINY_RUNTIME_MODE_CONSOLE', 1);
-
-// 远程服务模式
-define('TINY_RUNTIME_MODE_RPC', 2);
+// 引入ENV和自动加载类
+require_once __DIR__ . '/Environment.php';
+require_once __DIR__ . '/Autoloader.php';
 
 /**
- * 运行时主体类
+ * 运行时类
  *
  * @package Runtime
  * @since 2019年11月12日上午10:11:41
  * @final 2019年11月12日上午10:11:41
  */
 class Runtime
-{
+{   
+    /**
+     * WEB运行时
+     * 
+     * @var integer
+     */
+    const RUNTIME_WEB = 0;
     
     /**
-     * 框架名名称
-     *
-     * @var string
+     * 命令行运行时
+     * 
+     * @var integer
      */
-    const FRAMEWORK_NAME = 'Tiny Framework For PHP';
+    const RUNTIME_CONSOLE = 1;
     
     /**
-     * 框架版本号
-     *
-     * @var string
+     * RPC运行时
+     * 
+     * @var integer
      */
-    const FRAMEWORK_VERSION = '2.0.0';
-    
-    /**
-     * 框架所在目录
-     *
-     * @var string
-     */
-    const FRAMEWORK_PATH = TINY_FRAMEWORK_PATH;
+    const RUNTIME_RPC = 2;
     
     /**
      * 环境参数实例
@@ -81,26 +72,6 @@ class Runtime
      * @var Environment
      */
     public $env;
-    
-    /**
-     * application与runtime mode的映射表
-     *
-     * @var array 不同运行时模式对应的application类
-     *      WEB模式
-     *      CONSOLE模式
-     *      RPC模式
-     */
-    protected static $applicationMap = [
-        TINY_RUNTIME_MODE_CONSOLE => ConsoleApplication::class,
-        TINY_RUNTIME_MODE_WEB => WebApplication::class,
-    ];
-    
-    /**
-     * Runtime创建的应用程序实例 必须集成ApplicationBase
-     *
-     * @var ApplicationBase
-     */
-    protected $application;
     
     /**
      * Runtime创建的自动加载对象实例
@@ -124,58 +95,64 @@ class Runtime
     public $container;
     
     /**
+     * application与runtime mode的映射表
+     *
+     * @var array 不同运行时模式对应的application类
+     *      0 WEB模式
+     *      1 CONSOLE模式
+     *      2 RPC模式
+     */
+    protected static $applicationClassMap = [
+        self::RUNTIME_WEB => WebApplication::class,
+        self::RUNTIME_CONSOLE => ConsoleApplication::class
+    ];
+    
+    /**
+     *  当前runtime的唯一实例
+     * @var Runtime
+     */
+    protected static $runtime;
+    
+    /**
      * 开始时间戳
      *
      * @var float
      */
-    protected $startTimeline;
+    protected $starttime;
     
     /**
-     * 构建基本运行环境所需的各种实例
+     * Runtime创建的应用程序实例 必须集成ApplicationBase
+     *
+     * @var ApplicationBase
      */
-    public function __construct()
-    {
-        $this->startTimeline =  microtime(true);
-        
-        // default
-        $this->env = new Environment();
-        
-        // autoloader
-        $this->autoloader = new Autoloader();
-        $this->autoloader->addToNamespacePathMap('Tiny', self::FRAMEWORK_PATH);
-        
-        // build container
-        $proivder = new DefinitionProvider([]);
-        $this->container = new Container($proivder);
-        
-        // eventmanager
-        $eventManager = new EventManager($this->container);
-        $this->container->set(EventManager::class, $eventManager);
-
-        // exception handler
-        $this->exceptionHandler = new ExceptionHandler($eventManager);
-        
-        // init
-        $this->container->set(self::class, $this);
-        $this->container->set(Environment::class, $this->env);
-        $this->container->set(Autoloader::class, $this->autoloader);
-        $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
-        $this->container->set(DefinitionProvider::class, $proivder);
-    }
+    protected $application;
     
     /**
-     * 注册或者替换已有的Application类与runtime mode 的映射
+     * 获取Runtime的实例
+     * 
+     * @return \Tiny\Runtime\Runtime
+     */
+    public static function getInstance()
+    {
+        if(!self::$runtime) {
+            self::$runtime = new Runtime();
+        }
+        return self::$runtime;
+    }
+        
+    /**
+     * 注册或者替换已有的Application class与runtime mode 的映射
      *
      * @param int $mode 运行模式 web|console|rpc
      * @param string $applicationClass 继承了ApplicationBase的application类名
      * @return bool
      */
-    public static function registerApplication($runtimeMode, $applicationClass): bool
+    public static function registerApplicationClass($runtimeMode, $applicationClass): bool
     {
         if (!key_exists($runtimeMode, self::$applicationMap)) {
             return false;
         }
-        self::$applicationMap[$runtimeMode] = $applicationClass;
+        self::$applicationClassMap[$runtimeMode] = $applicationClass;
         return true;
     }
     
@@ -210,7 +187,7 @@ class Runtime
     public function createApplication($applicationPath, $profile = null)
     {
         $runtimeMode = $this->env['RUNTIME_MODE'];
-        $applicationClass = self::$applicationMap[$runtimeMode];
+        $applicationClass = self::$applicationClassMap[$runtimeMode];
         $application = new $applicationClass($this->container, $applicationPath, $profile);
         if (!$application instanceof ApplicationBase) {
             throw new RuntimeException("Failed to create app instance, class %s must inherit %s", $applicationClass, ApplicationBase::class);
@@ -256,9 +233,44 @@ class Runtime
      *
      * @return number
      */
-    public function getRuntimeTotal()
+    public function getLifetime()
     {
-        return microtime(true) - $this->startTimeline;
+        return microtime(true) - $this->starttime;
+    }
+    
+    /**
+     * 构建基本运行环境所需的各种实例
+     */
+    protected function __construct()
+    {
+        $this->starttime =  microtime(true);
+        
+        // default
+        $this->env = new Environment();
+        foreach($this->env as $k => $v) {
+            echo $k,$v, '<br>',"\n";
+        }
+        // autoloader
+        $this->autoloader = new Autoloader();
+        $this->autoloader->addToNamespacePathMap('Tiny', TINY_FRAMEWORK_PATH);
+        
+        // build container
+        $proivder = new DefinitionProvider([]);
+        $this->container = new Container($proivder);
+        
+        // eventmanager
+        $eventManager = new EventManager($this->container);
+        $this->container->set(EventManager::class, $eventManager);
+        
+        // exception handler
+        $this->exceptionHandler = new ExceptionHandler($eventManager);
+        
+        // init
+        $this->container->set(self::class, $this);
+        $this->container->set(Environment::class, $this->env);
+        $this->container->set(Autoloader::class, $this->autoloader);
+        $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
+        $this->container->set(DefinitionProvider::class, $proivder);
     }
 }
 ?>

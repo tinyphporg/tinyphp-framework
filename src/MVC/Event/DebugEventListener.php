@@ -57,7 +57,6 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
     public function __construct(ApplicationBase $app)
     {
         $this->app = $app;
-        $this->viewDir = TINY_FRAMEWORK_RESOURCE_PATH . 'mvc/view/debug/';
     }
     
     /**
@@ -167,7 +166,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
     protected function getDebugInfo(Runtime $runtime, $exceptionHandler, $app, $request, $response, $router, $dispatcher, $view)
     {
         // default info
-        $debugInterval = $runtime->getRuntimeTotal();
+        $debugInterval = $runtime->getLifetime();
         $debugIncludeFiles = get_included_files();
         $debugMemory = number_format(memory_get_peak_usage(true) / 1024 / 1024, 4);
         

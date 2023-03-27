@@ -12,6 +12,8 @@
  */
 namespace Tiny\Runtime;
 
+use function Composer\Autoload\includeFile;
+
 /**
  * 当前运行时(Runtime)的环境和平台参数。此类不能被继承。Readonly
  *
@@ -21,16 +23,12 @@ namespace Tiny\Runtime;
  */
 class Environment implements \ArrayAccess, \Iterator, \Countable
 {
-    
     /**
      * 默认的环境配置函数数组
      *
      * @var array
      */
-    const ENV_DEFAULT_LIST = [
-        'FRAMEWORK_NAME' => Runtime::FRAMEWORK_NAME,
-        'FRAMEWORK_PATH' => Runtime::FRAMEWORK_PATH,
-        'FRAMEWORK_VERSION' => Runtime::FRAMEWORK_VERSION,
+    const ENV_DEFAULT = [
         'PHP_VERSION' => PHP_VERSION,
         'PHP_VERSION_ID' => PHP_VERSION_ID,
         'PHP_OS' => PHP_OS,
@@ -50,19 +48,14 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'SCRIPT_DIR' => null,
         'SCRIPT_FILENAME' => null,
         'PHP_PATH' => null,
-        'RUNTIME_MODE' => TINY_RUNTIME_MODE_WEB,
-        'RUNTIME_MODE_CONSOLE' => TINY_RUNTIME_MODE_CONSOLE,
-        'RUNTIME_MODE_WEB' => TINY_RUNTIME_MODE_WEB,
-        'RUNTIME_MODE_RPC' => TINY_RUNTIME_MODE_RPC
-    ];
-    
-    /**
-     * 被允许的自定义运行时环境参数
-     *
-     * @var array
-     */
-    const ENV_CUSTOM_LIST = [
-        'RUNTIME_TICK_LINE'
+        'RUNTIME_MODE' => 0,
+        'RUNTIME_MODE_WEB' => 0,
+        'RUNTIME_MODE_CONSOLE' => 1,
+        'RUNTIME_MODE_RPC' => 2,
+        'TINY_ROOT_DIR' => null,
+        'TINY_VAR_DIRNAME' => 'var',
+        'TINY_PUBLIC_DIRNAME' => 'public',
+        'TINY_VENDOR_DIRNAME' => 'vendor',
     ];
     
     /**
@@ -99,18 +92,44 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
      */
     public function __construct()
     {
-        $env = array_merge($_SERVER, $_ENV, self::ENV_DEFAULT_LIST, self::$defaultENV);
-        
+        // 合并$_SERVER
+        $env = array_merge($_SERVER, $_ENV, self::ENV_DEFAULT, self::$defaultENV);
+        $this->initEnv($env);
+        $this->envdata = $env;
+    }
+    
+    /**
+     * 
+     * @param array $env
+     */
+    protected function initEnv(& $env)
+    {
+        // 区别运行时环境
         if ('cli' == php_sapi_name()) {
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_CONSOLE'];
         } elseif ('FRPC_POST' == $_POST['FRPC_METHOD'] || 'FRPC_POST' == $_SERVER['REQUEST_METHOD']) {
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
         }
         
-        // 注入环境变量
-        $this->envdata = $env;
+        // 加载本地环境文件
+        $localenv = $this->loadEnvFromLocalFile($env);
     }
     
+    /**
+     * 加载本地.env文件
+     */
+    protected function loadEnvFromLocalFile(& $env)
+    {
+        $localEnv = [];
+        
+        // 本地.env文件
+        $rootDir = defined(TINY_ROOT_PATH) ?  TINY_ROOT_PATH : dirname(dirname($_SERVER['SCRIPT_FILENAME']));
+        $envfile = rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.env.local.php';
+        
+        if (!((extension_loaded('opcache') && opcache_is_script_cached($envfile)) || is_file($envfile))) {
+            
+        }
+    }
     /**
      *
      * {@inheritdoc}
@@ -135,7 +154,6 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         if (null === $this->envdata[$ename]) {
             $this->envdata[$ename] = $this->lazyGet($ename);
         }
-        
         return $this->envdata[$ename];
     }
     
@@ -190,6 +208,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $value = current($this->envdata);
         if (null === $value) {
             $key = key($this->envdata);
+            echo $key;
             $value = $this->lazyGet($key);
             if ($value) {
                 $this->envdata[$key] = $value;
@@ -263,6 +282,17 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
                 return debug_backtrace();
             case 'PHP_PATH':
                 return $this->envdata['_'];
+            case 'TINY_ROOT_PATH':
+                if (defined('TINY_ROOT_PATH')) {
+                    return TINY_ROOT_PATH;
+                }
+                
+                $currentDir = dirname($_SERVER['SCRIPT_FILENAME']);
+                if (basename($currentDir) == self::$defaultENV['TINY_PUBLIC_DIRNAME']) {
+                    $rootDir = dirname($currentDir) . DIRECTORY_SEPARATOR;
+                    define('TINY_ROOT_DIR', $rootDir);
+                   return $rootDir;
+                }
         }
     }
 }

@@ -32,7 +32,7 @@ class Pinyin
      *
      * @var string
      */
-    const PINYIN_DB_PATH = TINY_FRAMEWORK_RESOURCE_PATH . 'string/py.qdb';
+    const PINYIN_DB_PATH = __DIR__ . '/Resources/py.qdb';
     
     /**
      * 单个汉字拼音的最小长度

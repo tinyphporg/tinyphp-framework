@@ -1,0 +1,21 @@
+
+-------------debug-------------
+{$env['FRAMEWORK_NAME']};
+Version :  {$env['FRAMEWORK_VERSION']};
+Doc     : https://github.com/saasjit/tinyphp-docs;
+Time    :  {$debugInterval} S;
+Memory  :  {$debugMemory} M;
+--------------------------
+{if is_array($debugDbQuerys)}
+DbQueryTimeTotal : {$debugDbTimeTotal} S;
+{loop $debugDbQuerys $query}
+{$query['engine']}: 
+  TIME: {$query['time']}S
+  SQL: {$query['sql']}
+{/loop}
+{/if} 
+--------------------------
+{loop $debugExceptions $e}
+{$e}
+{/loop}
+
