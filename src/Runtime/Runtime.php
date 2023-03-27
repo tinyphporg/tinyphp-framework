@@ -247,9 +247,7 @@ class Runtime
         
         // default
         $this->env = new Environment();
-        foreach($this->env as $k => $v) {
-            echo $k,$v, '<br>',"\n";
-        }
+
         // autoloader
         $this->autoloader = new Autoloader();
         $this->autoloader->addToNamespacePathMap('Tiny', TINY_FRAMEWORK_PATH);

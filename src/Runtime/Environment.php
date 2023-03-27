@@ -52,11 +52,24 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'RUNTIME_MODE_WEB' => 0,
         'RUNTIME_MODE_CONSOLE' => 1,
         'RUNTIME_MODE_RPC' => 2,
-        'TINY_ROOT_DIR' => null,
+        'TINY_ROOT_PATH' => null,
+        'TINY_CURRENT_PATH' => null,
+        'TINY_BIN_PATH' => null,
+        'TINY_CONFIG_PATH' => null,
+        'TINY_VAR_PATH' => null,
+        'TINY_PUBLIC_PATH' => null,
+        'TINY_VENDOR_PATH' => null,
+        'TINY_BIN_DIRNAME' => 'bin',
+        'TINY_CONFIG_DIRNAME' => 'conf',
         'TINY_VAR_DIRNAME' => 'var',
         'TINY_PUBLIC_DIRNAME' => 'public',
         'TINY_VENDOR_DIRNAME' => 'vendor',
+        'APP_ENV' => 'prod',
+        'APP_DEBUG_ENABLED' => false,
     ];
+    
+    //
+    const ENV_DEFAULT_CUSTOM = [];
     
     /**
      * 默认环境参数数组
@@ -111,24 +124,73 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
         }
         
+        // 根目录
+        $currentpath = dirname($_SERVER['SCRIPT_FILENAME']);
+        $env['TINY_CURRENT_PATH'] = $currentpath;
+        if (basename($currentpath) != $env['TINY_PUBLIC_DIRNAME']) {
+            throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: public path [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentdir, $env['TINY_PUBLIC_DIR']));
+        }
+        $rootdir = dirname($currentpath) . DIRECTORY_SEPARATOR;
+        $env['TINY_ROOT_PATH'] = $rootdir;
+        $env['TINY_PUBLIC_PATH'] = $rootdir . $env['TINY_PUBLIC_DIRNAME'] . DIRECTORY_SEPARATOR;
+        $env['TINY_VAR_PATH'] = $rootdir . $env['TINY_VAR_DIRNAME'] . DIRECTORY_SEPARATOR;
+        $env['TINY_BIN_PATH'] = $rootdir . $env['TINY_BIN_DIRNAME'] . DIRECTORY_SEPARATOR;
+        $env['TINY_CONF_PATH'] = $rootdir . $env['TINY_CONF_DIRNAME'] . DIRECTORY_SEPARATOR;
+        $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIRNAME'] . DIRECTORY_SEPARATOR;
+        
         // 加载本地环境文件
-        $localenv = $this->loadEnvFromLocalFile($env);
+        $localenv = $this->initLocalEnv($env);
+    }
+    
+    /**
+     * 
+     * @param unknown $env
+     * @throws \RuntimeException
+     * @return array
+     */
+    protected function initLocalEnv(& $env)
+    {
+        $localEnv = $this->readFromLocalFile($env['TINY_ROOT_PATH']);
+        if (empty($localEnv)) {
+            return [];
+        }
+        $envs = [];
+        foreach($localEnv as $key => $val) {
+            if (!preg_match('/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$/', $key)) {
+                continue;
+            }
+            if (key_exists($key, self::ENV_DEFAULT) && !in_array($key, self::ENV_DEFAULT_CUSTOM)) {
+                throw new \RuntimeException('');
+            }
+            $envs[$key] = $val;
+        }
     }
     
     /**
      * 加载本地.env文件
      */
-    protected function loadEnvFromLocalFile(& $env)
+    protected function readFromLocalFile($rootdir)
     {
-        $localEnv = [];
-        
         // 本地.env文件
-        $rootDir = defined(TINY_ROOT_PATH) ?  TINY_ROOT_PATH : dirname(dirname($_SERVER['SCRIPT_FILENAME']));
-        $envfile = rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.env.local.php';
-        
-        if (!((extension_loaded('opcache') && opcache_is_script_cached($envfile)) || is_file($envfile))) {
-            
+        $envfile =  $rootdir . '.env.local.php';
+        if ((extension_loaded('opcache') && opcache_is_script_cached($envfile)) || is_file($envfile)) {
+            $localEnv = @include($envfile);
+            if (is_array($localEnv)) {
+                return $localEnv;
+            }
         }
+        
+        $envsourcefile = $rootdir . '.env';
+        if (!is_file($envsourcefile)) {
+            file_put_contents($envsourcefile, '', LOCK_EX);
+            return [];
+        }
+        
+        $localEnv = @parse_ini_file($envsourcefile);
+        if (!is_array($localEnv)) {
+            return [];
+        }
+        return $localEnv;
     }
     /**
      *
@@ -282,17 +344,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
                 return debug_backtrace();
             case 'PHP_PATH':
                 return $this->envdata['_'];
-            case 'TINY_ROOT_PATH':
-                if (defined('TINY_ROOT_PATH')) {
-                    return TINY_ROOT_PATH;
-                }
-                
-                $currentDir = dirname($_SERVER['SCRIPT_FILENAME']);
-                if (basename($currentDir) == self::$defaultENV['TINY_PUBLIC_DIRNAME']) {
-                    $rootDir = dirname($currentDir) . DIRECTORY_SEPARATOR;
-                    define('TINY_ROOT_DIR', $rootDir);
-                   return $rootDir;
-                }
+
         }
     }
 }
