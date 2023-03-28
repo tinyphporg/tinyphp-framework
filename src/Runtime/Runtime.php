@@ -269,6 +269,7 @@ class Runtime
         $this->container->set(Autoloader::class, $this->autoloader);
         $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
         $this->container->set(DefinitionProvider::class, $proivder);
+        
     }
 }
 ?>

@@ -87,15 +87,5 @@ class Tiny
     {
         return Runtime::getInstance()->createApplication($appPath, $profile);
     }
-    
-    /**
-     * 设置Runtime的默认环境参数 仅在RunTime第一次实例化前有效
-     *
-     * @param array $env 运行时环境参数数组
-     */
-    public static function setENV(array $env)
-    {
-        return Environment::setEnv($env);
-    }
 }
 ?>

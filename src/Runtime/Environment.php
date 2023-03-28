@@ -23,9 +23,10 @@ use function Composer\Autoload\includeFile;
  */
 class Environment implements \ArrayAccess, \Iterator, \Countable
 {
+    
     /**
      * 默认的环境配置函数数组
-     *
+     * @formatter:off
      * @var array
      */
     const ENV_DEFAULT = [
@@ -59,24 +60,35 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'TINY_VAR_PATH' => null,
         'TINY_PUBLIC_PATH' => null,
         'TINY_VENDOR_PATH' => null,
-        'TINY_BIN_DIRNAME' => 'bin',
-        'TINY_CONFIG_DIRNAME' => 'conf',
-        'TINY_VAR_DIRNAME' => 'var',
-        'TINY_PUBLIC_DIRNAME' => 'public',
-        'TINY_VENDOR_DIRNAME' => 'vendor',
+        'TINY_BIN_DIR' => 'bin',
+        'TINY_CONFIG_DIR' => 'conf',
+        'TINY_VAR_DIR' => 'var',
+        'TINY_PUBLIC_DIR' => 'public',
+        'TINY_VENDOR_DIR' => 'vendor',
         'APP_ENV' => 'prod',
         'APP_DEBUG_ENABLED' => false,
     ];
     
-    //
-    const ENV_DEFAULT_CUSTOM = [];
-    
     /**
-     * 默认环境参数数组
-     *
+     * 可自定义的系统默认环境变量
+     * 
      * @var array
      */
-    protected static $defaultENV = [];
+    const ENV_DEFAULT_CUSTOM = [
+        'TINY_BIN_DIR',
+        'TINY_CONFIG_DIR',
+        'TINY_VAR_DIR',
+        'TINY_PUBLIC_DIR',
+        'TINY_VENDOR_DIR',
+        'APP_ENV',
+        'APP_DEBUG_ENABLED',
+    ];
+    
+    /**
+     * 可支持的app 环境名
+     * @var array
+     */
+    const APP_ENVS = ['prod', 'test', 'dev'];
     
     /**
      * 环境参数列表
@@ -86,36 +98,27 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
     protected $envdata = [];
     
     /**
-     * 设置运行时的默认环境参数 仅运行时实例化有效
-     *
-     * @param array $env 环境参数数组
-     * @return array
-     */
-    public static function setEnv(array $envs)
-    {
-        foreach ($envs as $ename => $evar) {
-            if (in_array($ename, self::ENV_CUSTOM_LIST)) {
-                self::$defaultENV[$ename] = $evar;
-            }
-        }
-    }
-    
-    /**
      * 初始化系统参数
      */
     public function __construct()
     {
         // 合并$_SERVER
-        $env = array_merge($_SERVER, $_ENV, self::ENV_DEFAULT, self::$defaultENV);
+        $env = array_merge( $_SERVER, $_ENV);
+        foreach($env as $key => $val) {
+            if (key_exists($key, self::ENV_DEFAULT) && !in_array($key, self::ENV_DEFAULT_CUSTOM)) {
+                unset($env[$key]);
+            }
+        }
+        $env = array_merge(self::ENV_DEFAULT, $env);
         $this->initEnv($env);
         $this->envdata = $env;
     }
     
     /**
-     * 
+     *
      * @param array $env
      */
-    protected function initEnv(& $env)
+    protected function initEnv(&$env)
     {
         // 区别运行时环境
         if ('cli' == php_sapi_name()) {
@@ -127,71 +130,94 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         // 根目录
         $currentpath = dirname($_SERVER['SCRIPT_FILENAME']);
         $env['TINY_CURRENT_PATH'] = $currentpath;
-        if (basename($currentpath) != $env['TINY_PUBLIC_DIRNAME']) {
-            throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: public path [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentdir, $env['TINY_PUBLIC_DIR']));
+        if (basename($currentpath) != $env['TINY_PUBLIC_DIR']) {
+            throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: public path [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentpath, $env['TINY_PUBLIC_DIR']));
         }
         $rootdir = dirname($currentpath) . DIRECTORY_SEPARATOR;
         $env['TINY_ROOT_PATH'] = $rootdir;
-        $env['TINY_PUBLIC_PATH'] = $rootdir . $env['TINY_PUBLIC_DIRNAME'] . DIRECTORY_SEPARATOR;
-        $env['TINY_VAR_PATH'] = $rootdir . $env['TINY_VAR_DIRNAME'] . DIRECTORY_SEPARATOR;
-        $env['TINY_BIN_PATH'] = $rootdir . $env['TINY_BIN_DIRNAME'] . DIRECTORY_SEPARATOR;
-        $env['TINY_CONF_PATH'] = $rootdir . $env['TINY_CONF_DIRNAME'] . DIRECTORY_SEPARATOR;
-        $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIRNAME'] . DIRECTORY_SEPARATOR;
+        $env['TINY_PUBLIC_PATH'] = $rootdir . $env['TINY_PUBLIC_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_VAR_PATH'] = $rootdir . $env['TINY_VAR_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_BIN_PATH'] = $rootdir . $env['TINY_BIN_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_CONF_PATH'] = $rootdir . $env['TINY_CONF_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIR'] . DIRECTORY_SEPARATOR;
         
         // 加载本地环境文件
         $localenv = $this->initLocalEnv($env);
     }
     
     /**
-     * 
-     * @param unknown $env
+     *
+     * @param array $env
      * @throws \RuntimeException
      * @return array
      */
-    protected function initLocalEnv(& $env)
+    protected function initLocalEnv(&$env)
     {
-        $localEnv = $this->readFromLocalFile($env['TINY_ROOT_PATH']);
+        $rootdir = $env['TINY_ROOT_PATH'];
+        $appEnv = $env['APP_ENV'];
+        $localEnv = $this->readFromLocalFile($rootdir, $appEnv);
         if (empty($localEnv)) {
             return [];
         }
-        $envs = [];
-        foreach($localEnv as $key => $val) {
+        $env = array_merge($env, $localEnv);
+    }
+    
+    /**
+     * 加载本地.env文件
+     */
+    protected function readFromLocalFile($rootdir, $appEnv)
+    {
+        // 本地.env文件
+        $envfile = $rootdir . '.env.local.php';
+        if ((extension_loaded('opcache') && opcache_is_script_cached($envfile)) || is_file($envfile)) {
+            $localEnv = include ($envfile);
+            if (is_array($localEnv)) {
+                return $this->formatLocalEnvs($localEnv);
+            }
+        }
+
+        // dev模式下 读取.env文件
+        $envsourcefile = $rootdir . '.env';
+        if (!is_file($envsourcefile)) {
+            file_put_contents($envsourcefile, '', LOCK_EX);
+            file_put_contents($envfile, "<?php\nreturn [];\n?>", LOCK_EX);
+            return [];
+        }
+        
+        // 读取ini方式
+        $localEnv = parse_ini_file($envsourcefile);
+        if (false === $localEnv) {
+            throw new \RuntimeException('');
+        }
+        
+        if (key_exists('APP_ENV', $localEnv) && $localEnv['APP_ENV'] != 'dev') {
+            file_put_contents($envfile, sprintf("<?php\nreturn %s\n?>" , var_export($localEnv, true)), LOCK_EX);
+        }
+        return $localEnv;
+    }
+    
+    /**
+     * 格式化本地ENV变量
+     * 
+     * @param array $localEnv
+     * @throws \RuntimeException
+     */
+    protected function formatLocalEnvs(array $envs)
+    {
+        $localEnvs = [];
+        foreach ($envs as $key => $val) {
+            // ENV变量名必须全部大写，以_下划线分割
             if (!preg_match('/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$/', $key)) {
                 continue;
             }
             if (key_exists($key, self::ENV_DEFAULT) && !in_array($key, self::ENV_DEFAULT_CUSTOM)) {
                 throw new \RuntimeException('');
             }
-            $envs[$key] = $val;
+            $localEnvs[$key] = $val;
         }
+        return $localEnvs;
     }
     
-    /**
-     * 加载本地.env文件
-     */
-    protected function readFromLocalFile($rootdir)
-    {
-        // 本地.env文件
-        $envfile =  $rootdir . '.env.local.php';
-        if ((extension_loaded('opcache') && opcache_is_script_cached($envfile)) || is_file($envfile)) {
-            $localEnv = @include($envfile);
-            if (is_array($localEnv)) {
-                return $localEnv;
-            }
-        }
-        
-        $envsourcefile = $rootdir . '.env';
-        if (!is_file($envsourcefile)) {
-            file_put_contents($envsourcefile, '', LOCK_EX);
-            return [];
-        }
-        
-        $localEnv = @parse_ini_file($envsourcefile);
-        if (!is_array($localEnv)) {
-            return [];
-        }
-        return $localEnv;
-    }
     /**
      *
      * {@inheritdoc}
@@ -344,7 +370,6 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
                 return debug_backtrace();
             case 'PHP_PATH':
                 return $this->envdata['_'];
-
         }
     }
 }
