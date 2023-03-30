@@ -163,7 +163,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
     }
     
     /**
-     * 加载本地.env文件
+     * 读取本地.env文件
      */
     protected function readFromLocalFile($rootdir, $appEnv)
     {
@@ -172,26 +172,34 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         if ((extension_loaded('opcache') && opcache_is_script_cached($envfile)) || is_file($envfile)) {
             $localEnv = include ($envfile);
             if (is_array($localEnv)) {
-                return $this->formatLocalEnvs($localEnv);
+                $localEnv = $this->formatLocalEnvs($localEnv);
+                if (!key_exists('APP_ENV', $localEnv)) {
+                    $localEnv['APP_ENV'] = $appEnv;
+                }
+                
+                if ($localEnv['APP_ENV'] == 'prod') {
+                    return $localEnv;
+                }
             }
         }
 
-        // dev模式下 读取.env文件
+        // 非prod模式下 读取.env文件
         $envsourcefile = $rootdir . '.env';
+        
+        // .env文件不存在时，以.env.local.php配置为准
         if (!is_file($envsourcefile)) {
-            file_put_contents($envsourcefile, '', LOCK_EX);
-            file_put_contents($envfile, "<?php\nreturn [];\n?>", LOCK_EX);
-            return [];
+            return is_array($localEnv) ? $localEnv : [];
         }
         
-        // 读取ini方式
-        $localEnv = parse_ini_file($envsourcefile);
-        if (false === $localEnv) {
-            throw new \RuntimeException('');
+        // 读取.ini方式
+        $env = parse_ini_file($envsourcefile);
+        if (false === $env) {
+            throw new \RuntimeException(sprintf('Parsing exception: .env[%s] parsing error', $envsourcefile));
         }
         
-        if (key_exists('APP_ENV', $localEnv) && $localEnv['APP_ENV'] != 'dev') {
-            file_put_contents($envfile, sprintf("<?php\nreturn %s\n?>" , var_export($localEnv, true)), LOCK_EX);
+        // 基于性能考虑，prod模式下自动生成.env.local.php文件
+        if (key_exists('APP_ENV', $env) && $env['APP_ENV'] == 'prod') {
+            file_put_contents($envfile, sprintf("<?php\nreturn %s\n?>" , var_export($env, true)), LOCK_EX);
         }
         return $localEnv;
     }
@@ -211,7 +219,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
                 continue;
             }
             if (key_exists($key, self::ENV_DEFAULT) && !in_array($key, self::ENV_DEFAULT_CUSTOM)) {
-                throw new \RuntimeException('');
+                throw new \RuntimeException(sprintf('Invalid environment variable: [%s] is not allowed to be set!', $key));
             }
             $localEnvs[$key] = $val;
         }
