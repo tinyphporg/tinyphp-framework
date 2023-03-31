@@ -29,12 +29,13 @@ class SingleCache extends CacheStorager
      * @var string
      */
     protected $path;
+    
     /**
-     * 缓存KEY
+     * 单例存储库的ID
      *
      * @var string
      */
-    protected $key;
+    protected $id;
     
     /**
      *
@@ -43,18 +44,25 @@ class SingleCache extends CacheStorager
     protected $data = [];
     
     /**
-     * 缓存生命周期
+     * 缓存默认的生命周期
      * 
      * @var integer
      */
     protected $ttl;
     
     /**
+     * gc时间
+     * 
+     * @var int
+     */
+    protected $timeout;
+    
+    /**
      * 是否更新过缓存
      * 
      * @var boolean
      */
-    protected $isUpdated = false;
+    protected $hasUpdated = false;
     
     /**
      * 构造函数
@@ -68,10 +76,12 @@ class SingleCache extends CacheStorager
         if (!$path) {
             throw new CacheException(sprintf('Class %s instantiation failed: %s does not exists', self::class, $path));
         }
+        
         $this->path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $this->key = (string)$config['key'] ?: get_included_files()[0];
-        $this->ttl = (int)$config['ttl'] ?: 60;
-        $this->data = (array)$this->readFrom($this->key);
+        $this->id = md5($config['id'] ?: get_included_files()[0]);
+        $this->ttl = (int)$config['ttl'] ?: 3600; //缓存时间
+        $this->timeout = (int)$config['timeout'] ?: 60; // 回收清理时间
+        $this->data = (array)$this->readFrom($this->id);
     }
     
     /**
@@ -143,7 +153,7 @@ class SingleCache extends CacheStorager
             $this->data[$key] = $value;
         }
         if ($ttl) {
-            $this->saveTo($this->key, $this->data, $this->ttl);
+            $this->saveTo();
         }
         return true;
     }
@@ -181,10 +191,7 @@ class SingleCache extends CacheStorager
     public function deleteMultiple(array $keys)
     {
         foreach ($keys as $key) {
-            if (key_exists($key, $this->data)) {
-                unset($this->data[$key]);
-                $this->isUpdated  = true;
-            }
+           $this->delete($key);
         }
     }
     
@@ -193,35 +200,55 @@ class SingleCache extends CacheStorager
      */
     public function __destruct()
     {
-        if ($this->isUpdated) {
-            $this->saveTo($this->key, $this->data, $this->ttl);
-        }
+        $this->saveTo();
+    }
+    
+    protected function updateTo() {
         
     }
     
     /**
      * 读取文件数据
      *
-     * @param string $key 缓存KEY
+     * @param string $id 缓存id
      * @return string
      */
-    protected function readFrom(string $key)
+    protected function readFrom(string $id)
     {
-        $storagePath = $this->getStoragePath($key);
+        $storagePath = $this->getStoragePath($id);
         if (!((extension_loaded('opcache') && opcache_is_script_cached($storagePath)) || is_file($storagePath))) {
-            return;
+            return [];
         }
+        
         $data = include ($storagePath);
-        if (!$data || !is_array($data)) {
+        if (!is_array($data) || !key_exists('exprieTime', $data) || !key_exists('data', $data)) {
+            return [];
+        }
+        
+        $this->exprieTime = (int)$data['exprieTime'];
+        $currentTime = time();
+        $rdata = [];
+        foreach($data as $key => $item) {
+            if (!is_array($item) || !key_exists('exprieTime', $item) || !key_exists('value', $item)) {
+                continue;
+            }
+            if ($item['exprieTime'] < $currentTime) {
+                continue;
+            }
+            $rdata[$key] = $item;
+        }
+        return $rdata;
+    }
+    
+    protected function readNode($key) 
+    {
+        if (!key_exists($key, $this->data)) {
             return;
         }
-        if (!isset($data['expriation']) || !isset($data['value'])) {
-            return;
+        $node = $this->data[$key];
+        if (!is_array($node) || !key_exists('', $search)) {
+            
         }
-        if (time() > intval($data['expriation'])) {
-            return;
-        }
-        return $data['value'];
     }
     
     /**
@@ -231,15 +258,20 @@ class SingleCache extends CacheStorager
      * @param string string 写入的字符串
      * @return bool
      */
-    protected function saveTo(string $key, $value, int $ttl)
+    protected function saveTo()
     {
-        $expriation = time() + $ttl;
+        if (!$this->hasUpdated) {
+            return;
+        }
+        
+        //
+        $expriation = time() + $this->timeout;
         $data = [
-            'expriation' => $expriation,
-            'value' => $value
+            'exprieTime' => $expriation,
+            'data' => $this->data
         ];
         $content = "<?php\n return " . var_export($data, true) . ";\n?>";
-        $storagePath = $this->getStoragePath($key);
+        $storagePath = $this->getStoragePath();
         return file_put_contents($storagePath, $content, LOCK_EX);
     }
     
@@ -249,9 +281,9 @@ class SingleCache extends CacheStorager
      * @param $key string 键
      * @return string
      */
-    protected function getStoragePath($key)
+    protected function getStoragePath()
     {
-        return $this->path . md5($key) . '.singlecache.php';
+        return $this->path . md5($this->id) . '.singlecache.php';
     }
     
 }
