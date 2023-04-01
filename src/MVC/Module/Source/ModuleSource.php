@@ -13,9 +13,9 @@
 namespace Tiny\MVC\Module\Source;
 
 use Tiny\MVC\Module\ModuleManager;
-use Tiny\MVC\Application\ApplicationCache;
 use Tiny\DI\ContainerInterface;
 use Tiny\MVC\Module\Parser\ModuleParser;
+use Tiny\Runtime\RuntimeCache;
 
 /**
  * 模块提供源
@@ -51,7 +51,7 @@ class ModuleSource
     /**
      * 当前Application的应用实例
      *
-     * @var ApplicationCache
+     * @var RuntimeCache
      */
     protected $cache;
     
@@ -72,9 +72,9 @@ class ModuleSource
     /**
      *
      * @param ModuleManager $moduleManager
-     * @param ApplicationCache $cache
+     * @param RuntimeCache $cache
      */
-    public function __construct(ContainerInterface $container, ModuleManager $moduleManager, ApplicationCache $cache)
+    public function __construct(ContainerInterface $container, ModuleManager $moduleManager, RuntimeCache $cache)
     {
         $this->container = $container;
         $this->cache = $cache;

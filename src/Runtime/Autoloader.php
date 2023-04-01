@@ -48,7 +48,7 @@ class Autoloader
      * 
      * @var array
      */
-    protected $loadedClassMap = [];
+    protected $loadedClassPathMap = [];
     
     /**
      * 构造函数，主动自动加载类
@@ -56,8 +56,12 @@ class Autoloader
      * @param void
      * @return void
      */
-    public function __construct()
+    public function __construct(array $loadedClasses = [])
     {
+        if ($loadedClasses) {
+            $this->classPathMap = $loadedClasses;
+        }
+        
         $autoloadFunctions = spl_autoload_functions();
         if (!$autoloadFunctions) {
             // @formatter:off
@@ -127,13 +131,21 @@ class Autoloader
      */
     public function addToClassPathMap($className, string $path = null)
     {
+        // 批量添加
         if (is_array($className)) {
             foreach ($className as $cname => $p) {
-                $this->addPath($cname, $p);
+                $this->addToClassPathMap($cname, $p);
             }
             return;
         }
-        if ($path) {
+        
+        if (!$path) {
+            return;
+        }
+        
+        // 单个添加
+        if (key_exists($className, $this->classPathMap) && $path != $this->classPathMap[$className]) {
+            $this->loadedClassMap[$className] = $path;
             $this->classPathMap[$className] = $path;
         }
     }
@@ -145,7 +157,7 @@ class Autoloader
      */
     public function loadClass($className)
     {
-        // class map
+        // class map cache
         if (key_exists($className, $this->classPathMap)) {
             $classfile = $this->classPathMap[$className];
             include_once $classfile;
@@ -164,7 +176,7 @@ class Autoloader
                 if ($this->classFileExists($gclassfile)) {
                     include_once($gclassfile);
                     if (class_exists($className, false)) {
-                        $this->loadedClassMap[$className] = $gclassfile;
+                        $this->pushClassPathMap($className, $gclassfile);
                     }
                     return;
                 }
@@ -194,13 +206,35 @@ class Autoloader
     }
     
     /**
-     * 获取已经加载的class文件路径映射列表
+     * 获取新加载的class文件路径映射列表
      * 
      * @return array
      */
-    public function getLoadedClassMap()
+    public function getLoadedClassPathMap()
     {
-        return $this->loadedClassMap;
+        return $this->loadedClassPathMap;
+    }
+    
+    /**
+     * 获取所有的class文件路径映射列表
+     * 
+     * @return array
+     */
+    public function getClassPathMap()
+    {
+        return $this->classPathMap;
+    }
+    
+    /**
+     * 压入 class map
+     * 
+     * @param string $className 类名
+     * @param string $path 类文件路径
+     */
+    protected function pushClassPathMap($className, $classFile)
+    {
+        $this->loadedClassPathMap[$className] = $classFile;
+        $this->classPathMap[$className] = $classFile;
     }
     
     /**
@@ -219,7 +253,7 @@ class Autoloader
             if ($this->classFileExists($classFile)) {
                 include_once ($classFile);
                 if (class_exists($className, false)) {
-                    $this->loadedClassMap[$className] = $classFile;
+                    $this->pushClassPathMap($className, $classFile);
                     return true;
                 }
                 return;

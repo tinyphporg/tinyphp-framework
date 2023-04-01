@@ -116,10 +116,11 @@ class Tagger extends ViewEngine
         
         $tfile = $pathinfo['path'];
         $tfilemtime = $this->app->isDebug ? filemtime($tfile) : $pathinfo['mtime'];
+        
         // 如果开启模板缓存 并且 模板存在且没有更改
         $compilePath = $this->createCompileFilePath($tfile);
         if (((extension_loaded('opcache') && opcache_is_script_cached($compilePath)) || file_exists($compilePath)) && (filemtime($compilePath) > $tfilemtime)) {
-          //  return $compilePath;
+          return $compilePath;
         }
         
         // 读取模板文件

@@ -43,6 +43,8 @@ use Tiny\MVC\Web\HttpCookie;
 use Tiny\Event\EventManager;
 use Tiny\MVC\View\Engine\StaticFile;
 use Tiny\MVC\View\ViewManager;
+use Tiny\Runtime\RuntimeCache;
+use Tiny\Runtime\Environment;
 
 /**
  * 应用的容器提供源 必须开启
@@ -63,6 +65,13 @@ class ApplicationProvider implements DefinitionProviderInterface
     protected $app;
     
     /**
+     * 运行时缓存
+     * 
+     * @var RuntimeCache
+     */
+    protected $runtimeCache;
+    
+    /**
      * 当前应用属性实例
      *
      * @var Properties
@@ -81,7 +90,7 @@ class ApplicationProvider implements DefinitionProviderInterface
      *
      * @var boolean|array
      */
-    protected $sourceFiles = false;
+    protected $sourceFiles = [];
     
     /**
      * 类别名
@@ -93,7 +102,6 @@ class ApplicationProvider implements DefinitionProviderInterface
         'app.config' => Configuration::class,
         'app.lang' => Lang::class,
         // 'app.view' => View::class,
-        'app.application.cache' => ApplicationCache::class,
         'app.cache' => Cache::class,
         'app.request' => Request::class,
         CacheInterface::class => Cache::class,
@@ -115,10 +123,11 @@ class ApplicationProvider implements DefinitionProviderInterface
      * @param Properties $properties 应用属性配置实例
      * @param array $config 配置数组
      */
-    public function __construct(DefinitionProvider $provider, ApplicationBase $app, Properties $properties)
+    public function __construct(DefinitionProvider $provider, ApplicationBase $app, Properties $properties, RuntimeCache $runtimecache)
     {
         $this->app = $app;
         $this->properties = $properties;
+        $this->runtimeCache = $runtimecache;
         $this->initSourceDefinitions($provider, $properties);
     }
     
@@ -155,18 +164,13 @@ class ApplicationProvider implements DefinitionProviderInterface
             return;
         }
         
-        $this->sourceFiles = [];
-        if ($this->app->has('app.application.cache')) {
-            $cacheInstance = $this->app->get('app.application.cache');
-            $files = $cacheInstance->get('application.containers.files');
-            
-            // load files
-            if (!is_array($files)) {
-                $files = $this->getDefinitionFiles($providerPath);
-                $cacheInstance->set('application.containers.files', $files);
-            }
-            $this->sourceFiles = $files;
+        // 缓存 源文件
+        $sourceFiles = $this->runtimeCache->get('application.containers.files'); 
+        if (!is_array($sourceFiles)) {
+            $sourceFiles = $this->getDefinitionFiles($providerPath);
+            $this->runtimeCache->set('application.containers.files', $sourceFiles);
         }
+        $this->sourceFiles = $sourceFiles;
         $provider->addDefinitionFromFile($this->sourceFiles);
     }
     
@@ -204,8 +208,6 @@ class ApplicationProvider implements DefinitionProviderInterface
                 return $this->getLoggerDefinition();
             case View::class:
                 return $this->getViewDefinition();
-            case ApplicationCache::class:
-                return $this->getApplicationCacheDefinition();
             case HttpSession::class:
                 return $this->getSessionDefinition();
             case HttpCookie::class:
@@ -232,48 +234,7 @@ class ApplicationProvider implements DefinitionProviderInterface
             return $definition;
         }
     }
-    
-    /**
-     * 获取当前应用缓存实例
-     *
-     * @return \Tiny\DI\Definition\CallableDefinition
-     */
-    protected function getApplicationCacheDefinition()
-    {
-        // 获取profile.php的配置 是否允许cache实例化
-        if (!$this->properties['cache.enabled']) {
-            return;
-        }
-        
-        return new CallableDefinition(ApplicationCache::class, function (ContainerInterface $container, array $config) {
-            if (!$container->has(Cache::class)) {
-                return;
-            }
-            
-            $cacheInstance = $container->get(Cache::class);
-            
-            // 获取profile.php的应用缓存配置
-            $storagerClass = (string)$config['application_storager'] ?: SingleCache::class;
-            $ttl = (int)$config['application_ttl'];
-            if ($ttl <= 0) {
-                $ttl = (int)$config['ttl'] ?: 60;
-            }
-            
-            // 添加application的cache存储
-            $storagerId = Cache::getStoragerId($storagerClass);
-            $cacheInstance->addStorager('application.cache', $storagerId, [
-                'path' => '',
-                'key' => 'application.cache',
-                'ttl' => $ttl,
-            ]);
-            
-            // 按照析构顺序
-            $cacheStorager = $cacheInstance['application.cache'];
-            return new ApplicationCache($cacheStorager);
-        }, [
-            'config' => (array)$this->properties['cache']
-        ]);
-    }
+   
     
     /**
      * 获取request定义
@@ -486,15 +447,12 @@ class ApplicationProvider implements DefinitionProviderInterface
             }
             
             // 缓存实例存在则从缓存加载或写入配置数据
-            if ($container->has('app.application.cache')) {
-                $cacheInstance = $container->get('app.application.cache');
-                $configData = $cacheInstance->get('application.config');
-                if ($configData) {
-                    $configInstance->setData($configData);
-                } else {
-                    $configData = $configInstance->get();
-                    $cacheInstance->set('application.config', $configData);
-                }
+            $configData = $this->runtimeCache->get('application.config');
+            if ($configData) {
+                $configInstance->setData($configData);
+            } else {
+                $configData = $configInstance->get();
+                $this->runtimeCache->set('application.config', $configData);
             }
             return $configInstance;
         }, ['config' => $config]);
@@ -597,16 +555,12 @@ class ApplicationProvider implements DefinitionProviderInterface
             }
             
             // config cache
-            if ($container->has('app.application.cache')) {
-                $cacheInstance = $container->get('app.application.cache');
-                $cacheKey = (string)$config['cache']['key'] ?: 'application.cache.lang';
-                $langData = $cacheInstance->get($cacheKey);
-                if ($langData && is_array($langData)) {
+            $langData = $this->runtimeCache->get('application.cache.lang');
+            if ($langData && is_array($langData)) {
                     $langInstance->setData($langData);
-                } else {
-                    $langData = $langInstance->getData();
-                    $cacheInstance->set($cacheKey, $langData);
-                }
+            } else {
+                $langData = $langInstance->getData();
+                $this->runtimeCache->set('application.cache.lang', $langData);
             }
             return $langInstance;
         }, ['config' => $config]);

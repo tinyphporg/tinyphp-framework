@@ -53,6 +53,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'RUNTIME_MODE_WEB' => 0,
         'RUNTIME_MODE_CONSOLE' => 1,
         'RUNTIME_MODE_RPC' => 2,
+        'RUNTIME_CACHE_AUTOLOADER_ID' => 'runtime.cache',
         'TINY_ROOT_PATH' => null,
         'TINY_CURRENT_PATH' => null,
         'TINY_BIN_PATH' => null,
@@ -60,11 +61,13 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'TINY_VAR_PATH' => null,
         'TINY_PUBLIC_PATH' => null,
         'TINY_VENDOR_PATH' => null,
+        'TINY_CACHE_PATH' => null,
         'TINY_BIN_DIR' => 'bin',
         'TINY_CONFIG_DIR' => 'conf',
         'TINY_VAR_DIR' => 'var',
         'TINY_PUBLIC_DIR' => 'public',
         'TINY_VENDOR_DIR' => 'vendor',
+        'TINY_CACHE_DIR' => 'cache',
         'APP_ENV' => 'prod',
         'APP_DEBUG_ENABLED' => false,
     ];
@@ -140,6 +143,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $env['TINY_BIN_PATH'] = $rootdir . $env['TINY_BIN_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_CONF_PATH'] = $rootdir . $env['TINY_CONF_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_CACHE_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_CACHE_DIR'] . DIRECTORY_SEPARATOR;
         
         // 加载本地环境文件
         $localenv = $this->initLocalEnv($env);

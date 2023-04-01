@@ -34,6 +34,7 @@ define('TINY_FRAMEWORK_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
 
 // 引入ENV和自动加载类
 require_once __DIR__ . '/Environment.php';
+require_once __DIR__ . '/RuntimeCache.php';
 require_once __DIR__ . '/Autoloader.php';
 
 /**
@@ -72,6 +73,13 @@ class Runtime
      * @var Environment
      */
     public $env;
+    
+    /**
+     * 运行缓存
+     * 
+     * @var RuntimeCache
+     */
+    public $runtimecache;
     
     /**
      * Runtime创建的自动加载对象实例
@@ -246,16 +254,28 @@ class Runtime
         $this->starttime =  microtime(true);
         
         // default
-        $this->env = new Environment();
-
+        $env = new Environment();
+        $this->env = $env;
+        
+        //  运行缓存
+        $this->runtimecache = new RuntimeCache($env['TINY_CACHE_PATH'], $env['APP_ENV']);
+        
+        
         // autoloader
-        $this->autoloader = new Autoloader();
+        $loadedClasses = $this->runtimecache->get($env['RUNTIME_CACHE_AUTOLOADER_ID']);
+        if (!is_array($loadedClasses)) {
+            $loadedClasses = [];
+        }
+        $this->autoloader = new Autoloader($loadedClasses);
         $this->autoloader->addToNamespacePathMap('Tiny', TINY_FRAMEWORK_PATH);
+        
+        // autoloader
+        
         
         // build container
         $proivder = new DefinitionProvider([]);
         $this->container = new Container($proivder);
-        
+        $this->container->set(RuntimeCache::class, $this->runtimecache);
         // eventmanager
         $eventManager = new EventManager($this->container);
         $this->container->set(EventManager::class, $eventManager);
@@ -265,11 +285,21 @@ class Runtime
         
         // init
         $this->container->set(self::class, $this);
+
         $this->container->set(Environment::class, $this->env);
         $this->container->set(Autoloader::class, $this->autoloader);
         $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
         $this->container->set(DefinitionProvider::class, $proivder);
-        
+    }
+    
+    /**
+     * 
+     */
+    public function __destruct()
+    {
+        if ($this->autoloader->getLoadedClassPathMap()) {
+            $this->runtimecache->set($this->env['RUNTIME_CACHE_AUTOLOADER_ID'], $this->autoloader->getClassPathMap());
+        }
     }
 }
 ?>

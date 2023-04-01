@@ -10,18 +10,16 @@
  * @Function List function_container
  * @History King 2022年5月16日下午4:44:39 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\Cache\Storager;
-
-use Tiny\Cache\CacheException;
+namespace Tiny\Runtime;
 
 /**
-* 简单的延后缓存类
-*  
-* @package Tiny.Cache
-* @since 2022年5月17日下午2:15:47
-* @final 2022年5月17日下午2:15:47
-*/
-class SingleCache extends CacheStorager
+ * 简单的延后缓存类
+ *
+ * @package Tiny.Cache
+ * @since 2022年5月17日下午2:15:47
+ * @final 2022年5月17日下午2:15:47
+ */
+class RuntimeCache implements \ArrayAccess
 {
     /**
      * 存储路径
@@ -45,21 +43,21 @@ class SingleCache extends CacheStorager
     
     /**
      * 缓存默认的生命周期
-     * 
+     *
      * @var integer
      */
     protected $ttl;
     
     /**
      * gc时间
-     * 
+     *
      * @var int
      */
     protected $timeout;
     
     /**
      * 是否更新过缓存
-     * 
+     *
      * @var boolean
      */
     protected $hasUpdated = false;
@@ -67,29 +65,27 @@ class SingleCache extends CacheStorager
     /**
      * 构造函数
      * 
-     * @param string $cachePoolId
-     * @param CacheStorager $cacheStorager
+     * @param string $path runtime文件存储缓存路径
+     * @param string $id   唯一ID
+     * @param int $interval 扫描时间间隔
+     * @param number $ttl 默认缓存生命周期
      */
-    public function __construct(array $config = [])
-    {
-        $path = (string)$config['path'];
-        if (!$path) {
-            throw new CacheException(sprintf('Class %s instantiation failed: %s does not exists', self::class, $path));
-        }
+    public function __construct(string $path, string  $id, int $interval = 60,  $ttl = 3600)
+    {   
         
         $this->path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $this->id = md5($config['id'] ?: get_included_files()[0]);
-        $this->ttl = (int)$config['ttl'] ?: 3600; //缓存时间
-        $this->timeout = (int)$config['timeout'] ?: 60; // 回收清理时间
+        $this->id = md5($id ?: get_included_files()[0]);
+        $this->ttl = $ttl ?: 3600; //缓存时间
+        $this->timeout = $interval ?: 60; // 回收清理时间
         $this->data = $this->readFrom($this->id);
     }
     
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \Tiny\Cache\CacheInterface::has()
      */
-    public function has($key) 
+    public function has($key)
     {
         $dataItem = $this->readItem($key);
         return is_array($dataItem);
@@ -105,9 +101,9 @@ class SingleCache extends CacheStorager
         $dataItem = $this->readItem($key);
         return is_array($dataItem) ? $dataItem['value'] : $default;
     }
-
+    
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \Tiny\Cache\CacheInterface::getMultiple()
      */
@@ -122,14 +118,14 @@ class SingleCache extends CacheStorager
             if (!key_exists($key, $this->data)) {
                 continue;
             }
-                $data[$key] = $this->data[$key];
-            }
+            $data[$key] = $this->data[$key];
+        }
         return $this->formatItems($data);
     }
     
     /**
      * ttl无效
-     * 
+     *
      * {@inheritDoc}
      * @see \Tiny\Cache\CacheInterface::set()
      */
@@ -145,7 +141,7 @@ class SingleCache extends CacheStorager
     }
     
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \Tiny\Cache\CacheInterface::setMultiple()
      */
@@ -170,7 +166,7 @@ class SingleCache extends CacheStorager
     }
     
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \Tiny\Cache\CacheInterface::clear()
      */
@@ -181,7 +177,7 @@ class SingleCache extends CacheStorager
     }
     
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \Tiny\Cache\CacheInterface::delete()
      */
@@ -189,15 +185,15 @@ class SingleCache extends CacheStorager
     {
         if (!key_exists($key, $this->data)) {
             return;
-        } 
-       unset($this->data[$key]);
-       $this->updateData(true);
-       return true;
+        }
+        unset($this->data[$key]);
+        $this->updateData(true);
+        return true;
         
     }
     
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \Tiny\Cache\CacheInterface::deleteMultiple()
      */
@@ -219,13 +215,53 @@ class SingleCache extends CacheStorager
     }
     
     /**
+     *
+     * {@inheritdoc}
+     * @see \ArrayAccess::offsetSet()
+     */
+    public function offsetSet($key, $value)
+    {
+        return $this->set($key, $value);
+    }
+    
+    /**
+     *
+     * {@inheritdoc}
+     * @see \ArrayAccess::offsetGet()
+     */
+    public function offsetGet($key)
+    {
+        return $this->get($key);
+    }
+    
+    /**
+     *
+     * {@inheritdoc}
+     * @see \ArrayAccess::offsetExists()
+     */
+    public function offsetExists($key)
+    {
+        return $this->has($key);
+    }
+    
+    /**
+     *
+     * {@inheritdoc}
+     * @see \ArrayAccess::offsetUnset()
+     */
+    public function offsetUnset($key)
+    {
+        $this->delete($key);
+    }
+    
+    /**
      * 析构函数自动保存
      */
     public function __destruct()
     {
         $this->saveTo();
     }
-        
+    
     /**
      * 读取文件数据
      *
@@ -297,7 +333,7 @@ class SingleCache extends CacheStorager
     
     
     /**
-     * 
+     *
      * @param bool $hasUpdated 是否已经更新
      */
     protected function updateData($hasUpdated = false) {
@@ -352,7 +388,7 @@ class SingleCache extends CacheStorager
      */
     protected function getStoragePath()
     {
-        return $this->path . md5($this->id) . '.singlecache.php';
+        return $this->path . md5($this->id) . '.runtimecache.php';
     }
     
 }

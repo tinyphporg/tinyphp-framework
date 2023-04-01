@@ -123,13 +123,6 @@ abstract class ApplicationBase implements ExceptionEventListener
     public $response;
     
     /**
-     * 应用缓存
-     *
-     * @var CacheInterface
-     */
-    protected $applicationCache;
-    
-    /**
      * 事件管理器
      *
      * @var EventManager
@@ -269,9 +262,6 @@ abstract class ApplicationBase implements ExceptionEventListener
         // event request end
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_END_REQUEST));
         
-        // 保存已加载的类路径映射到应用缓存
-        $this->saveToAutoloaderClasses();
-        
         $this->response->output();
     }
     
@@ -295,14 +285,6 @@ abstract class ApplicationBase implements ExceptionEventListener
     public function has(string $className)
     {
         return $this->container->has($className);
-    }
-    
-    /**
-     * 获取应用缓存
-     */
-    public function getApplicationCache()
-    {
-        return $this->has('app.cache') ? $this->get('app.cache') : true;
     }
     
     /**
@@ -432,42 +414,12 @@ abstract class ApplicationBase implements ExceptionEventListener
             $autoloader->addToNamespacePathMap($ns, $path);
         }
         
-        // 获取缓存实例
-        $applicationCache = $container->get(ApplicationCache::class);
-        
         // 合并
         $classes = (array)$this->properties['autoloader.classes'];
-        $classes += (array)$applicationCache->get('application.autoloader.classes');
         
         // 添加类路径映射
         foreach ($classes as $className => $classPath) {
             $autoloader->addToClassPathMap($className, $classPath);
-        }
-    }
-    
-    /**
-     * 保存已经加载的类路径映射到缓存
-     */
-    protected function saveToAutoloaderClasses()
-    {
-        $applicationCache = $this->get(ApplicationCache::class);
-        
-        // 自动加载实例
-        $autoloader = $this->get(Autoloader::class);
-        $loadedClasses = (array)$autoloader->getLoadedClassMap();
-        
-        // 已经缓存的数据
-        $classes = (array)$applicationCache->get('application.autoloader.classes');
-        
-        // 需要更新到缓存的类映射
-        $updateClasses = [];
-        foreach ($loadedClasses as $className => $path) {
-            if (!key_exists($className, $classes)) {
-                $updateClasses[$className] = $path;
-            }
-        }
-        if ($updateClasses) {
-            $applicationCache->set('application.autoloader.classes', array_merge($classes, $updateClasses));
         }
     }
     

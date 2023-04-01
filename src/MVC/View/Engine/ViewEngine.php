@@ -52,7 +52,7 @@ abstract class ViewEngine implements ViewEngineInterface
      * 应用缓存
      *
      * @autowired
-     * @var \Tiny\MVC\Application\ApplicationCache
+     * @var \Tiny\Runtime\RuntimeCache
      */
     protected $cache;
     
