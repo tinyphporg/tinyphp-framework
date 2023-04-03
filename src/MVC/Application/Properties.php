@@ -80,6 +80,8 @@ class Properties extends Configuration
      */
     protected $applicationDefinitionFiles = false;
     
+    protected $spaths = [];
+    
     /**
      * 已经解析的路径信息
      *
@@ -114,6 +116,7 @@ class Properties extends Configuration
     {
         $profiles = [];
         $appPath = $this->app->path;
+        $this->spaths['app'] = $appPath;
         $profiles[] = __DIR__ . '/Properties/profile.php';
         
         // env prod|dev|test ...
@@ -172,6 +175,12 @@ class Properties extends Configuration
             $this->runtimeCache->set('application.properties', $data);
         }
         $this->parseEnvs($this->data);
+        $this->parseSpath($this->data['spath']);
+        print_r($this->spaths);
+        
+        $this->parseSpath($this->data);
+        
+        print_r($this->data);;
     }
     
     /**
@@ -192,6 +201,39 @@ class Properties extends Configuration
         elseif(is_array($data)) {
             foreach ($data as & $d) {
                 $this->parseEnvs($d);
+            }
+        }
+    }
+    
+    protected function parseSpath(&$data, $name = null, $isPath  = false)
+    {
+        if (is_string($data)) {
+            $spaths = $this->spaths;
+            $matches = [];
+            if (!preg_match('/\{path.([^\{\}]+)\}/', $data, $matches)) {
+                if ($isPath) {
+                    $this->spaths[$name] = $data;
+                }
+                return;
+            }
+            $nodeName = $matches[1];
+            if (!isset($spaths[$nodeName])) {
+                return;
+            }
+            $nodeData = $spaths[$nodeName];
+            $this->spaths[$name]  = $nodeData;
+            $data = preg_replace('/\{path.([^\{\}]+)\}/', $nodeData, $data);
+        } elseif(is_array($data)) {
+            foreach ($data as $n => &$d) {
+                
+                if ($name == null && $n == 'spath'){
+                    $nodeName = null;
+                    $isPath = true;
+                } else{
+                    $isPath = false;
+                   $nodeName = ($name == null ? $n : $name . '.' . $n);
+                }
+                $this->parseSpath($d, $nodeName, $isPath);
             }
         }
     }

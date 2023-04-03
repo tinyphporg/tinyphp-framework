@@ -37,11 +37,31 @@ $profile = [];
  *      当前application的应用实例下，所有类的根命名空间
  *      在设置多个项目的应用实例时时，可单独命名区分
  */
-$profile['debug']['enabled'] = '{%env.APP_DEBUG_ENABLED}';
+$profile['debug']['enabled'] = '{env.APP_DEBUG_ENABLED}';
 $profile['timezone'] = 'PRC';
 $profile['charset'] = 'utf-8';
 $profile['namespace']= 'App';
 
+$profile['spath']['root'] = '{env.TINY_ROOT_PATH}';
+$profile['spath']['public'] = '{env.TINY_PUBLIC_PATH}';        // 入口文件夹
+$profile['spath']['resources'] = '{env.TINY_RESOURCES_PATH}';   // 资源文件夹
+$profile['spath']['var'] = '{env.TINY_VAR_PATH}';      // 运行时文件夹
+$profile['spath']['vendor'] = '{env.TINY_VENDOR_PATH}';
+
+$profile['spath']['bin'] = '{env.TINY_BIN_PATH}';
+$profile['spath']['cache'] = '{env.TINY_CACHE_PATH}';
+$profile['spath']['static'] = '{env.TINY_PUBLIC_PATH}static/';        // 静态资源文件夹
+$profile['spath']['tmp'] = '{env.TINY_VAR_PATH}tmp/';             // 临时文件夹
+$profile['spath']['global'] = '{path.app}librarys/global/';           // 存放全局类的文件夹
+$profile['spath']['library'] = '{path.app}librarys/';          // 除了composer外，引入的其他项目的库文件夹
+$profile['spath']['controller'] = '{path.app}controllers/web/';   // web环境下的控制器类文件夹
+$profile['spath']['model'] = '{path.app}models/';                 // 模型类文件夹
+$profile['spath']['console'] = '{path.app}controllers/console/';  // 命令行环境下的控制器类文件夹
+$profile['spath']['rpc'] = '{path.app}controllers/rpc/';          // rpc模式下的控制器类文件夹
+$profile['spath']['view'] = '{path.app}views/';                   // 存放、、】视图模板的文件夹
+
+$profile['spath']['event'] = '{path.app}events/';
+$profile['spath']['common'] = '{path.app}librarys/common/';
 /**
  * application的容器设置
  *
@@ -67,7 +87,7 @@ $profile['namespace']= 'App';
  *      默认启用容器自动注解
  *
  */
-$profile['container']['provider_path'] = '{%path.app}containers/';
+$profile['container']['provider_path'] = '{path.app}containers/';
 $profile['container']['alias'] = [];
 $profile['container']['definitions'] = [];
 

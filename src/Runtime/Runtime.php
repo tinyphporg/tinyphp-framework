@@ -285,7 +285,6 @@ class Runtime
         
         // init
         $this->container->set(self::class, $this);
-
         $this->container->set(Environment::class, $this->env);
         $this->container->set(Autoloader::class, $this->autoloader);
         $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
@@ -300,6 +299,7 @@ class Runtime
         if ($this->autoloader->getLoadedClassPathMap()) {
             $this->runtimecache->set($this->env['RUNTIME_CACHE_AUTOLOADER_ID'], $this->autoloader->getClassPathMap());
         }
+        // $this->runtimecache->save();
     }
 }
 ?>
