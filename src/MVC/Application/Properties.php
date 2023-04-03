@@ -14,6 +14,8 @@ namespace Tiny\MVC\Application;
 
 use Tiny\Config\Configuration;
 use Tiny\Runtime\Runtime;
+use Tiny\Runtime\Environment;
+use Tiny\Runtime\RuntimeCache;
 
 /**
  * application属性
@@ -59,6 +61,19 @@ class Properties extends Configuration
     protected $app;
     
     /**
+     * @var Environment
+     */
+    protected $env;
+    
+    /**
+     * 运行时内存
+     * 
+     * @var RuntimeCache
+     */
+    protected $runtimeCache;
+    
+    
+    /**
      * 是否加载了application的定义源
      *
      * @var boolean|array
@@ -78,10 +93,58 @@ class Properties extends Configuration
      * @param ApplicationBase $app
      * @param string|array $cpath 配置文件路径
      */
-    public function __construct(ApplicationBase $app, $profile)
+    public function __construct(ApplicationBase $app, $profile = null)
     {
-        parent::__construct($profile);
         $this->app = $app;
+        $this->env = $app->get(Environment::class);
+        $this->runtimeCache = $app->get(RuntimeCache::class);
+        
+        // 读取配置并初始化
+        $profiles = $this->initProfiles($profile);
+        parent::__construct($profiles);
+        $this->init();
+    }
+    
+    /**
+     * 
+     * @param mixed $profile
+     * @return array
+     */
+    protected function initProfiles($profile)
+    {
+        $profiles = [];
+        $appPath = $this->app->path;
+        $profiles[] = __DIR__ . '/Properties/profile.php';
+        
+        // env prod|dev|test ...
+        $envName = $this->env['APP_ENV'];
+        if ($envName) {
+            $profiles[] = $appPath . sprintf('/properties/profile.%s.php', $envName);
+        }
+        
+        // 自定义配置文件
+        if (is_string($profile)) {
+            $profiles[] = $profile;
+        } 
+        elseif (is_array($profile)) {
+            foreach($profile as $pfile) {
+                if (is_string($pfile)) {
+                    $profiles[] = $pfile;
+                }
+            }
+        }
+        
+        $this->profiles = $profiles;
+        return $profiles;
+    }
+    
+    /**
+     * 初始化
+     */
+    protected function init()
+    {
+
+        $this->initData();        
         $this->initDebug();
         $this->initNamespace();
         $this->initPath();
@@ -90,6 +153,47 @@ class Properties extends Configuration
         // 执行命令行应用的一些初始化配置
         $this->initInConsoleApplication();
         $this->initModule();
+    }
+    
+    /**
+     * 初始化配置数据
+     */
+    protected function initData()
+    {
+        $data = $this->runtimeCache->get('application.properties');
+        if (is_array($data) && $data) {
+            $this->setData($data);
+        }
+        else {
+            $data = $this->get();
+            if (!$data || !is_array($data)) {
+                throw new ApplicationException('Properties Data parse error: must be an array!');
+            }
+            $this->runtimeCache->set('application.properties', $data);
+        }
+        $this->parseEnvs($this->data);
+    }
+    
+    /**
+     * 解析环境参数
+     * 
+     * @param mixed $data
+     */
+    protected function parseEnvs(& $data) 
+    {
+        
+        if(is_string($data)) {
+            $env = $this->env;
+            $data = preg_replace_callback('/\{env.([^\{\}]+)\}/', function($matches)use($env){
+                $nodeName = $matches[1];
+                return isset($env[$nodeName]) ? $env[$nodeName] : $matches[0];
+            }, $data);
+        } 
+        elseif(is_array($data)) {
+            foreach ($data as & $d) {
+                $this->parseEnvs($d);
+            }
+        }
     }
     
     /**

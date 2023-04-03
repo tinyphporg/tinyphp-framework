@@ -128,12 +128,6 @@ class Configuration implements \ArrayAccess, ParserInterface
         } elseif (is_string($cpath) && $cpath) {
             $this->paths[] = $cpath;
         }
-        
-        foreach ($this->paths as $path) {
-            if (!file_exists($path)) {
-              throw new ConfigException(sprintf('Class %s instantiation failed: the path %s does not exists', self::class), E_ERROR);
-            }
-        }
         $this->initParser();
     }
     

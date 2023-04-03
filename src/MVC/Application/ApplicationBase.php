@@ -77,14 +77,6 @@ abstract class ApplicationBase implements ExceptionEventListener
     public $path;
     
     /**
-     * App配置文件路径
-     *
-     * @var string
-     *
-     */
-    public $profile;
-    
-    /**
      * 是否为调试模式
      *
      * @var bool
@@ -147,8 +139,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         $container->set(ApplicationBase::class, $this);
         
         // properties
-        $this->profile = $profile ?: $path . DIRECTORY_SEPARATOR . 'profile.php';
-        $this->properties = new Properties($this, $this->profile);
+        $this->properties = new Properties($this, $profile);
         $container->set(Properties::class, $this->properties);
         
         // container;
@@ -156,6 +147,7 @@ abstract class ApplicationBase implements ExceptionEventListener
         $provider->addDefinitionFromArray([
             ApplicationProvider::class
         ]);
+        
         $applicationProvider = $container->get(ApplicationProvider::class);
         $provider->addDefinitionProvider($applicationProvider);
         
