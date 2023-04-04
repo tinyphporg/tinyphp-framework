@@ -80,8 +80,6 @@ class Properties extends Configuration
      */
     protected $applicationDefinitionFiles = false;
     
-    protected $spaths = [];
-    
     /**
      * 已经解析的路径信息
      *
@@ -116,7 +114,7 @@ class Properties extends Configuration
     {
         $profiles = [];
         $appPath = $this->app->path;
-        $this->spaths['app'] = $appPath;
+        $this->parsedPaths['app'] = $appPath;
         $profiles[] = __DIR__ . '/Properties/profile.php';
         
         // env prod|dev|test ...
@@ -150,8 +148,6 @@ class Properties extends Configuration
         $this->initData();        
         $this->initDebug();
         $this->initNamespace();
-        $this->initPath();
-        $this->initAutoloader();
         
         // 执行命令行应用的一些初始化配置
         $this->initInConsoleApplication();
@@ -175,12 +171,7 @@ class Properties extends Configuration
             $this->runtimeCache->set('application.properties', $data);
         }
         $this->parseEnvs($this->data);
-        $this->parseSpath($this->data['spath']);
-        print_r($this->spaths);
-        
-        $this->parseSpath($this->data);
-        
-        print_r($this->data);;
+        $this->initPath($this->data);
     }
     
     /**
@@ -205,35 +196,31 @@ class Properties extends Configuration
         }
     }
     
-    protected function parseSpath(&$data, $name = null, $isPath  = false)
+    protected function initPath(&$data, $name = null)
     {
         if (is_string($data)) {
-            $spaths = $this->spaths;
-            $matches = [];
-            if (!preg_match('/\{path.([^\{\}]+)\}/', $data, $matches)) {
-                if ($isPath) {
-                    $this->spaths[$name] = $data;
+            
+            $sdata = preg_replace_callback('/\{path.([^\{\}]+)\}/', function($matches){
+                $nodeName = $matches[1];
+                if (!isset($this->parsedPaths[$nodeName])) {
+                    return $matches[0];
                 }
-                return;
+                return $this->parsedPaths[$nodeName];
+            }, $data);
+            
+            //
+            $ispath = strpos($name, 'path.') === 0;
+            if ($sdata != $data || $ispath) {
+                if ($ispath) {
+                    $name = substr($name, 5);
+                }
+                $this->parsedPaths[$name] =  $this->getAbsolutePath($sdata);
             }
-            $nodeName = $matches[1];
-            if (!isset($spaths[$nodeName])) {
-                return;
-            }
-            $nodeData = $spaths[$nodeName];
-            $this->spaths[$name]  = $nodeData;
-            $data = preg_replace('/\{path.([^\{\}]+)\}/', $nodeData, $data);
+            $data = $sdata;
         } elseif(is_array($data)) {
             foreach ($data as $n => &$d) {
-                
-                if ($name == null && $n == 'spath'){
-                    $nodeName = null;
-                    $isPath = true;
-                } else{
-                    $isPath = false;
-                   $nodeName = ($name == null ? $n : $name . '.' . $n);
-                }
-                $this->parseSpath($d, $nodeName, $isPath);
+                $nodeName = ($name == null ? $n : $name . '.' . $n);
+                $this->initPath($d, $nodeName);
             }
         }
     }
@@ -307,34 +294,7 @@ class Properties extends Configuration
         $this['namespaces']  = ['app' => $appNamespace, 'controller' => $controllerNamespace, 'model' => $modelNamespace];
         $this->app->namespace = $appNamespace;
     }
-    
-    /**
-     * 初始化配置路径
-     */
-    protected function initPath()
-    {
-        $this->parsedPaths['app'] = $this->app->path;
-        $paths = $this['path'];
-        foreach ($paths as $p) {
-            $path = $this[$p];
-            if (!$path) {
-                continue;
-            }
-            if (is_array($path)) {
-                $parsedPaths = [];
-                foreach ($path as $k => $ipath) {
-                    $parsedPaths[$k] = $this->path($ipath);
-                    $this->parsedPaths[$p . '.' . $k] = $this->path($ipath);
-                }
-                $this->set($p, $parsedPaths);
-                continue;
-            }
-            $parsedPath = $this->path($path);
-            $this->parsedPaths[$p] = $parsedPath;
-            $this->set($p, $parsedPath);
-        }
-    }
-    
+
     /**
      * 获取绝对路径
      *
@@ -369,31 +329,6 @@ class Properties extends Configuration
             $path .= DIRECTORY_SEPARATOR;
         }
         return $path;
-    }
-    
-    /**
-     * 初始化加载类库
-     */
-    protected function initAutoloader()
-    {
-
-        // app
-        $isRealpath = (bool)$this['autoloader.is_realpath'];
-        
-        // namespaces
-        $namespaces = (array)$this['autoloader.namespaces'];
-        foreach ($namespaces as $ns => $p) {
-            $path = $isRealpath ? $p : $this[$p];
-            $this['autoloader.namespaces.' . $ns] = $path;
-        }
-       
-        // classes
-        $classes = (array)$this['autoloader.classes'];
-        foreach ($classes as $class => $p) {
-            $path = $isRealpath ? $p : $this[$p];  
-            $this['autoloader.classes.' . $class] = $path;
-        }
-        
     }
     
     /**

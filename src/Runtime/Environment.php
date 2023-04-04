@@ -146,7 +146,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $env['TINY_CONF_PATH'] = $rootdir . $env['TINY_CONF_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_CACHE_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_CACHE_DIR'] . DIRECTORY_SEPARATOR;
-        
+        $env['TINY_RESOURCES_PATH'] =  $rootdir . $env['TINY_RESOURCES_DIR'] . DIRECTORY_SEPARATOR;
         // 加载本地环境文件
         $localenv = $this->initLocalEnv($env);
     }

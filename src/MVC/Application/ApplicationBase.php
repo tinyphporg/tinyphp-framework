@@ -242,7 +242,6 @@ abstract class ApplicationBase implements ExceptionEventListener
         $this->bootstrap();
         
         $this->route();
-        
         // event predispatch
         $this->eventManager->triggerEvent(new MvcEvent(MvcEvent::EVENT_PRE_DISPATCH));
         
@@ -405,12 +404,13 @@ abstract class ApplicationBase implements ExceptionEventListener
         foreach ($namespaces as $ns => $path) {
             $autoloader->addToNamespacePathMap($ns, $path);
         }
-        
+
         // 合并
         $classes = (array)$this->properties['autoloader.classes'];
-        
+     
         // 添加类路径映射
         foreach ($classes as $className => $classPath) {
+            
             $autoloader->addToClassPathMap($className, $classPath);
         }
     }

@@ -176,6 +176,7 @@ class ModuleManager implements \ArrayAccess, \Iterator, \Countable, RequestEvent
      */
     public function onBeginRequest(MvcEvent $event, array $params)
     {        
+        
         // search profiles
         $moduleSource = $this->container->get(ModuleSource::class);      
         $modules = $moduleSource->readFrom($this->config['path'], (bool)$this->config['cache'], (array)$this->config['disabled_modules']);
@@ -467,7 +468,10 @@ class ModuleManager implements \ArrayAccess, \Iterator, \Countable, RequestEvent
         $this->initModuleViewPaths($moduleName, $module['path']['view']);
         
         // static
-        $this->initModuleStaticFiles($moduleName, $module['static']);
+        if (!$module['haslocked']) {
+            $this->initModuleStaticFiles($moduleName, $module['static']);
+            touch($module['lockfile']);
+        }
         
         // 更新状态
         if ($isInited) {
@@ -567,6 +571,8 @@ class ModuleManager implements \ArrayAccess, \Iterator, \Countable, RequestEvent
         if (!$sconfig['web'] && $app instanceof WebApplication) {
             return;
         }
+        
+        
         // 静态copy
         $staticCopyer = $this->container->get(StaticCopyer::class);
         foreach ((array)$sconfig['paths'] as $path) {

@@ -92,7 +92,7 @@ class ModuleSource
         if (!$isUpdated || !$this->isUpdated) {
             return;
         }
-        return $this->cache->set(self::APPLICATION_MODULE_CACHE_KEY, $modules);
+        return $this->cache->set(self::APPLICATION_MODULE_CACHE_KEY, $modules, 3600);
     }
     
     /**
@@ -104,7 +104,6 @@ class ModuleSource
     public function readFrom($path, $readFromCache = true, array $disabledModules = [])
     {
         $modules = [];
-        
         // from cache
         if ($readFromCache && $modules = $this->readFromCache()) {
             return $modules;
@@ -127,6 +126,9 @@ class ModuleSource
             if (!$module) {
                 continue;
             }
+            $lockfile = dirname($profile) . '/module.lock';
+            $module['lockfile'] = $lockfile;
+            $module['haslocked'] = is_file($lockfile);
             $modules[$module['name']] = $module;
         }
         

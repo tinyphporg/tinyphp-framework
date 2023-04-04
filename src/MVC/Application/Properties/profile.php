@@ -42,26 +42,29 @@ $profile['timezone'] = 'PRC';
 $profile['charset'] = 'utf-8';
 $profile['namespace']= 'App';
 
-$profile['spath']['root'] = '{env.TINY_ROOT_PATH}';
-$profile['spath']['public'] = '{env.TINY_PUBLIC_PATH}';        // 入口文件夹
-$profile['spath']['resources'] = '{env.TINY_RESOURCES_PATH}';   // 资源文件夹
-$profile['spath']['var'] = '{env.TINY_VAR_PATH}';      // 运行时文件夹
-$profile['spath']['vendor'] = '{env.TINY_VENDOR_PATH}';
+$profile['path']['root'] = '{env.TINY_ROOT_PATH}';
+$profile['path']['public'] = '{env.TINY_PUBLIC_PATH}';        // 入口文件夹
+$profile['path']['resources'] = '{env.TINY_RESOURCES_PATH}';   // 资源文件夹
+$profile['path']['var'] = '{env.TINY_VAR_PATH}';      // 运行时文件夹
+$profile['path']['vendor'] = '{env.TINY_VENDOR_PATH}';
+$profile['path']['bin'] = '{env.TINY_BIN_PATH}';
+$profile['path']['cache'] = '{env.TINY_CACHE_PATH}';
+$profile['path']['static'] = '{env.TINY_PUBLIC_PATH}static/';        // 静态资源文件夹
+$profile['path']['tmp'] = '{env.TINY_VAR_PATH}tmp/';
 
-$profile['spath']['bin'] = '{env.TINY_BIN_PATH}';
-$profile['spath']['cache'] = '{env.TINY_CACHE_PATH}';
-$profile['spath']['static'] = '{env.TINY_PUBLIC_PATH}static/';        // 静态资源文件夹
-$profile['spath']['tmp'] = '{env.TINY_VAR_PATH}tmp/';             // 临时文件夹
-$profile['spath']['global'] = '{path.app}librarys/global/';           // 存放全局类的文件夹
-$profile['spath']['library'] = '{path.app}librarys/';          // 除了composer外，引入的其他项目的库文件夹
-$profile['spath']['controller'] = '{path.app}controllers/web/';   // web环境下的控制器类文件夹
-$profile['spath']['model'] = '{path.app}models/';                 // 模型类文件夹
-$profile['spath']['console'] = '{path.app}controllers/console/';  // 命令行环境下的控制器类文件夹
-$profile['spath']['rpc'] = '{path.app}controllers/rpc/';          // rpc模式下的控制器类文件夹
-$profile['spath']['view'] = '{path.app}views/';                   // 存放、、】视图模板的文件夹
+$profile['path']['log'] = '{path.var}log/';
+$profile['path']['global'] = '{path.app}librarys/global/';           // 存放全局类的文件夹
+$profile['path']['library'] = '{path.app}librarys/';          // 除了composer外，引入的其他项目的库文件夹
+$profile['path']['controller']['web'] = '{path.app}controllers/web/';   // web环境下的控制器类文件夹
+$profile['path']['controller']['console'] = '{path.app}controllers/console/';  // 命令行环境下的控制器类文件夹
+$profile['path']['controller']['rpc'] = '{path.app}controllers/rpc/';          // rpc模式下的控制器类文件夹
+$profile['path']['model'] = '{path.app}models/';                 // 模型类文件夹
 
-$profile['spath']['event'] = '{path.app}events/';
-$profile['spath']['common'] = '{path.app}librarys/common/';
+$profile['path']['view'] = '{path.app}views/';                   // 存放、、】视图模板的文件夹
+$profile['path']['pid'] = '{path.var}pid/';
+$profile['path']['event'] = '{path.app}events/';
+$profile['path']['common'] = '{path.app}librarys/common/';
+
 /**
  * application的容器设置
  *
@@ -125,47 +128,6 @@ $profile['event']['enabled'] = true;
 $profile['event']['listeners'] = [];
 
 /**
- * application的路径设置
- *
- *  {app} 默认为APPLICATION_PATH
- *  每个src.nodename可作为标签{nodename}按顺序在后续的路径中被自动替换
- *
- * src.path
- *      application的根路径
- *
- * src.public
- *      入口文件夹，存放静态文件和项目文件夹
- *
- * src.resources
- *      资源文件的存放目录 一般与application目录平行
- *
- * src.runtime
- *      运行时文件存放目录
- *
- * src.tmp
- *      运行时的临时文件夹
- *
- * src.global
- *      存放全局类的文件夹
- */
-$profile['src']['path'] = '{app}';                    // application源码路径
-$profile['src']['public'] = '{app}../public/';        // 入口文件夹
-$profile['src']['static'] = '{public}static/';        // 静态资源文件夹
-$profile['src']['resources'] = '{app}../resource/';   // 资源文件夹
-$profile['src']['var'] = '{app}../var/';      // 运行时文件夹
-$profile['src']['tmp'] = '{var}tmp/';             // 临时文件夹
-$profile['src']['global'] = 'librarys/global/';           // 存放全局类的文件夹
-$profile['src']['library'] = 'librarys/';          // 除了composer外，引入的其他项目的库文件夹
-$profile['src']['controller'] = 'controllers/web/';   // web环境下的控制器类文件夹
-$profile['src']['model'] = 'models/';                 // 模型类文件夹
-$profile['src']['console'] = 'controllers/console/';  // 命令行环境下的控制器类文件夹
-$profile['src']['rpc'] = 'controllers/rpc/';          // rpc模式下的控制器类文件夹
-$profile['src']['view'] = 'views/';                   // 存放、、】视图模板的文件夹
-$profile['src']['vendor'] = '{app}../vendor/';
-$profile['src']['event'] = 'events/';
-$profile['src']['common'] = 'librarys/common/';
-
-/**
  * 调试模式
  *
  * debug.enabled 默认开启调试模式
@@ -217,9 +179,9 @@ $profile['debug']['console'] = false;
 $profile['builder']['enabled'] = true;
 $profile['builder']['param_name'] = 'build';
 $profile['builder']['event_listener'] = \Tiny\MVC\Event\BuilderEventListener::class;
-$profile['builder']['path'] = 'build/builder';
-$profile['builder']['config_path'] = 'build/config';
-$profile['builder']['profile_path'] = 'build/profile';
+$profile['builder']['path'] = '{path.app}build/builder';
+$profile['builder']['config_path'] = '{path.app}build/config';
+$profile['builder']['profile_path'] = '{path.app}build/profile';
 
 /**
  * 守护进程的基本设置
@@ -262,7 +224,7 @@ $profile['builder']['profile_path'] = 'build/profile';
 $profile['daemon']['enabled'] = true;
 $profile['daemon']['id'] = 'tinyphp-daemon';
 $profile['daemon']['event_listener'] = \Tiny\MVC\Event\DaemonEventListener::class;
-$profile['daemon']['piddir'] = '{var}/pid/';
+$profile['daemon']['piddir'] = '{path.var}pid/';
 $profile['daemon']['tick'] = 2;
 $profile['daemon']['daemons'] = [
     'tinyphp-daemon' => [
@@ -292,7 +254,7 @@ $profile['daemon']['daemons'] = [
  *
  */
 $profile['config']['enabled'] = true;
-$profile['config']['path'] = 'config/';
+$profile['config']['path'] = '{path.app}config/';
 $profile['config']['cache']['enabled'] = true;
 
 /**
@@ -311,7 +273,7 @@ $profile['config']['cache']['enabled'] = true;
  */
 $profile['lang']['enabled'] = true;          // 是否开启
 $profile['lang']['locale'] = 'zh_cn';        // 默认语言包
-$profile['lang']['path'] = 'lang/';          // 存放语言包的目录
+$profile['lang']['path'] = '{path.app}lang/';          // 存放语言包的目录
 $profile['lang']['cache']['enabled'] = true; // 配置模块缓存设置 提高性能
 
 /**
@@ -326,7 +288,7 @@ $profile['lang']['cache']['enabled'] = true; // 配置模块缓存设置 提高�
  */
 $profile['log']['enabled'] = true;
 $profile['log']['writer'] = 'file';    /*默认可以设置file|syslog 设置类型为file时，需要设置log.path为可写目录路径 */
-$profile['log']['path'] = '{var}/log/';
+$profile['log']['path'] = '{path.log}';
 
 /**
  * 数据资源池配置
@@ -439,7 +401,7 @@ $profile['data']['sources'] = [
  */
 $profile['cache']['enabled'] = true;
 $profile['cache']['ttl'] = 3600;
-$profile['cache']['dir'] = '{var}/cache/';
+$profile['cache']['dir'] = '{path.cache}';
 $profile['cache']['default_id'] = 'default';
 $profile['cache']['storagers'] = [];
 $profile['cache']['sources'] = [
@@ -561,8 +523,8 @@ $profile['cookie']['encode'] = false;
  *      array [实现Bootstrapevent_listener的类名]
  *
  */
-$profile['bootstrap']['enabled'] = true;
-$profile['bootstrap']['event_listener'] = \App\Event\Bootstrap::class;
+$profile['bootstrap']['enabled'] = false;
+$profile['bootstrap']['event_listener'] = null;
 
 /**
  * Application的路由设置
@@ -629,7 +591,7 @@ $profile['response']['formatJsonConfigId'] = 'status';
 $profile['controller']['namespace']['default'] = 'Controller';
 $profile['controller']['namespace']['console'] = 'Controller\Console';
 $profile['controller']['namepsace']['rpc'] = 'Controller\RPC';
-$profile['controller']['src'] = 'controller/';
+$profile['controller']['src'] = '{path.path}controllers/';
 $profile['controller']['default'] = 'main';
 $profile['controller']['param'] = 'c';
 $profile['controller']['action_default'] = 'index';
@@ -644,7 +606,7 @@ $profile['controller']['action_param'] = 'a';
  * model.src  模型层的存放目录
  */
 $profile['model']['namespace'] = 'Model';
-$profile['model']['src'] = 'models/';
+$profile['model']['src'] = '{path.app}models/';
 
 /**
  * 视图设置
@@ -696,12 +658,12 @@ $profile['model']['src'] = 'models/';
  *  view.cache.dir 缓存目录
  *  view.cache.ttl 缓存过期时间
  */
-$profile['view']['basedir'] = 'views/';
+$profile['view']['basedir'] = '{path.app}views/';
 $profile['view']['theme'] = 'default';
 $profile['view']['lang'] = true;     //自动加载语言包
 $profile['view']['paths'] = [];
-$profile['view']['compile'] = '{var}/view/compile/';
-$profile['view']['config']  = '{var}/view/config/';
+$profile['view']['compile'] = '{path.var}/view/compile/';
+$profile['view']['config']  = '{path.var}/view/config/';
 $profile['view']['assign'] = [];
 
 // 引擎和助手配置
@@ -734,7 +696,7 @@ $profile['view']['widgets'] = [];
  *
  */
 
-$profile['view']['static']['basedir'] = '{static}';
+$profile['view']['static']['basedir'] = '{path.static}';
 $profile['view']['static']['public_path'] = '/static/';
 $profile['view']['static']['engine'] = true;
 $profile['view']['static']['minsize'] = 2048;
@@ -754,17 +716,16 @@ $profile['view']['static']['exts'] = ['css', 'js','png', 'jpg', 'gif'];
  *      false propertis.path里的路径加载
  */
 $profile['autoloader']['namespaces'] = [
-    'App' => 'src.library',
-    'App\Controller' => 'src.controller',
-    'App\Controller\Console' => 'src.console',
-    'App\Controller\Rpc' => 'src.rpc',
-    'App\Model' => 'src.model',
-    'App\Event' => 'src.event',
-    'App\Common' => 'src.common',
-    '*' => 'src.global',
+    'App' => '{path.library}',
+    'App\Controller' => '{path.controller.web}',
+    'App\Controller\Console' => '{path.controller.console}',
+    'App\Controller\Rpc' => '{path.controller.rpc}',
+    'App\Model' => '{path.model}',
+    'App\Event' => '{path.event}',
+    'App\Common' => '{path.common}',
+    '*' => '{path.global}',
 ];
 $profile['autoloader']['classes'] = [];
-$profile['autoloader']['is_realpath'] = false;
 
 /**
  * 模块管理
@@ -794,7 +755,7 @@ $profile['autoloader']['is_realpath'] = false;
  */
 $profile['module']['enabled'] = true;
 $profile['module']['event_listener'] = \Tiny\MVC\Module\ModuleManager::class;
-$profile['module']['path'] = ['{app}modules/', '{app}../vendor/tinyphporg'];
+$profile['module']['path'] = ['{path.app}modules/', '{path.vendor}tinyphporg/'];
 $profile['module']['cache'] = true;
 $profile['module']['disabled_modules'] = [];
 $profile['module']['activate_modules'] = [];
@@ -860,44 +821,5 @@ $profile['module']['tinyphp-ui']['dev']['dev_public_path'] = "http://127.0.0.1:8
 
 // 将预设配置的变量注入到视图模板
 $profile['module']['tinyphp-ui']['assigns'] = ['ui'];
-/**
- * 需要做路径处理的路径节点列表
- *      [propertis.nodename...]
- *      作为路径传递的配置节点名，在相对路径前添加application_path的绝对路径，并替换src里的标签,./,../,相对路径等。
- */
-$profile['path'] = [
-    'src.path',
-    'src.public',
-    'src.static',
-    'src.var',
-    'src.resources',
-    'src.tmp',
-    'src.vendor',
-    'builder.path',
-    'builder.profile_path',
-    'builder.config_path',
-    'config.path',
-    'lang.path',
-    'log.path',
-    'cache.dir',
-    'view.basedir',
-    'view.cache.dir',
-    'view.compile',
-    'view.config',
-    'view.path',
-    'module.tinyphp-ui.template_dirname',
-    'view.static.basedir',
-    'src.library',
-    'src.global',
-    'src.controller',
-    'src.console',
-    'src.rpc',
-    'src.model',
-    'src.common',
-    'src.event',
-    'daemon.piddir',
-    'daemon.logdir',
-    'container.provider_path',
-    'module.path',
-];
+
 ?>

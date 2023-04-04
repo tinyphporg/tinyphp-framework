@@ -69,7 +69,7 @@ class StaticCopyer
                 continue;
             }
             
-            if (is_array($replace) && $this->replace($filename, $tofilename, $replace)) {
+            if (is_array($replace) && $replace && $this->replace($filename, $tofilename, $replace)) {
                 continue;
             }
             $ret = copy($filename, $tofilename);

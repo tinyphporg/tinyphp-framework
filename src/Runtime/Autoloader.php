@@ -58,6 +58,7 @@ class Autoloader
      */
     public function __construct(array $loadedClasses = [])
     {
+        $this->m = microtime(true);
         if ($loadedClasses) {
             $this->classPathMap = $loadedClasses;
         }
