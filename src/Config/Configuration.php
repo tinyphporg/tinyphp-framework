@@ -329,9 +329,9 @@ class Configuration implements \ArrayAccess, ParserInterface
                 $data = $this->loadDataFromFile($pathinfo[0][0], $pathinfo[0][1]);
                 if ($data) {
                     if ($isHideNode) {
-                        $d = (is_array($d) && is_array($data)) ? array_merge($d, $data) : $data;
+                        $d = (is_array($d) && is_array($data)) ? array_replace_recursive($d, $data) : $data;
                     } else {
-                        $d[$node] = (is_array($d[$node]) && is_array($data)) ? array_merge($d[$node], $data) : $data;
+                        $d[$node] = (is_array($d[$node]) && is_array($data)) ? array_replace_recursive($d[$node], $data) : $data;
                     }
                 }
             }

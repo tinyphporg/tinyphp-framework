@@ -101,8 +101,8 @@ class WidgetHelper implements HelperInterface, ParserInterface
     
     /**
      * 解析Tagger的标签
-     * <:widget path="/main/index" /> 默认部件 可将控制器动作函数直接引入解析模板
-     * <widget:$tagName /> 扩展各种小部件
+     * {widget path="/main/index"} 默认部件 可将控制器动作函数直接引入解析模板
+     * {widget.$tagName} 扩展各种小部件
      *
      * {@inheritdoc}
      * @see \Tiny\MVC\View\Engine\Tagger\Parser\ParserInterface::onParseTag()

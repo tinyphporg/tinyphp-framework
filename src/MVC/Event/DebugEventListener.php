@@ -75,6 +75,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
      */
     public function onRouterShutdown(MvcEvent $event, array $params)
     {
+        
         if (!$this->app->isDebug) {
             return;
         }
