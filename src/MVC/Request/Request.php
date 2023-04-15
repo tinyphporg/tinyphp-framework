@@ -15,8 +15,7 @@
 namespace Tiny\MVC\Request;
 
 use Tiny\MVC\Application\ApplicationBase;
-use Tiny\Runtime\Param\Readonly;
-use Tiny\MVC\Application\Properties;
+use Tiny\MVC\Request\Param\Readonly;
 
 /**
  * 请求体基类

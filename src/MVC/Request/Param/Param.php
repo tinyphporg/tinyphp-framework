@@ -11,7 +11,7 @@
  * @History King 2017年3月12日下午10:35:18 0 第一次建立该文件
  *          King 2017年3月12日下午10:35:18 1 上午修改
  */
-namespace Tiny\Runtime\Param;
+namespace Tiny\MVC\Request\Param;
 
 use Tiny\Filter\Filter;
 use Tiny\Tiny;

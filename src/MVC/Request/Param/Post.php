@@ -13,8 +13,6 @@
  */
 namespace Tiny\MVC\Request\Param;
 
-use Tiny\Runtime\Param\Readonly;
-
 /**
 *  POST只读和过滤类
 *  

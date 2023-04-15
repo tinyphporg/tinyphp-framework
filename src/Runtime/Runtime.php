@@ -259,18 +259,10 @@ class Runtime
         
         //  运行缓存
         $this->runtimecache = new RuntimeCache($env['TINY_CACHE_PATH'], $env['APP_ENV']);
-        
-        
+
         // autoloader
-        $loadedClasses = $this->runtimecache->get($env['RUNTIME_CACHE_AUTOLOADER_ID']);
-        if (!is_array($loadedClasses)) {
-            $loadedClasses = [];
-        }
-        $this->autoloader = new Autoloader($loadedClasses);
+        $this->autoloader = new Autoloader($this->runtimecache, $env['RUNTIME_CACHE_AUTOLOADER_ID']);
         $this->autoloader->addToNamespacePathMap('Tiny', TINY_FRAMEWORK_PATH);
-        
-        // autoloader
-        
         
         // build container
         $proivder = new DefinitionProvider([]);
@@ -289,17 +281,6 @@ class Runtime
         $this->container->set(Autoloader::class, $this->autoloader);
         $this->container->set(ExceptionHandler::class, $this->exceptionHandler);
         $this->container->set(DefinitionProvider::class, $proivder);
-    }
-    
-    /**
-     * 
-     */
-    public function __destruct()
-    {
-        if ($this->autoloader->getLoadedClassPathMap()) {
-            $this->runtimecache->set($this->env['RUNTIME_CACHE_AUTOLOADER_ID'], $this->autoloader->getClassPathMap());
-        }
-        // $this->runtimecache->save();
     }
 }
 ?>

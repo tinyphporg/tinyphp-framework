@@ -22,6 +22,19 @@ namespace Tiny\Runtime;
 class Autoloader
 {
     
+    /***
+     * 运行时缓存
+     * 
+     * @var RuntimeCache
+     */
+    protected $runtimeCache;
+    
+    /**
+     * 缓存ID
+     * @var string
+     */
+    protected $cacheId = 'runtimecache.autoloader';
+    
     /**
      * 类的命名空间路径映射表
      *
@@ -56,10 +69,15 @@ class Autoloader
      * @param void
      * @return void
      */
-    public function __construct(array $loadedClasses = [])
+    public function __construct(RuntimeCache $runtimeCache, string $cacheId = '')
     {
-        $this->m = microtime(true);
-        if ($loadedClasses) {
+        $this->runtimeCache = $runtimeCache;
+        if ($cacheId) {
+            $this->cacheId = $cacheId;
+        }
+        
+        $loadedClasses = $this->runtimeCache->get($this->cacheId);
+        if ($loadedClasses && is_array($loadedClasses)) {
             $this->classPathMap = $loadedClasses;
         }
         
@@ -227,6 +245,17 @@ class Autoloader
     }
     
     /**
+     * 缓存
+     */
+    public function __destruct()
+    {
+        if (!$this->loadedClassPathMap) {
+            return;
+        }
+        $this->runtimeCache->set($this->cacheId, $this->classPathMap);
+    }
+    
+    /**
      * 压入 class map
      * 
      * @param string $className 类名
@@ -255,7 +284,7 @@ class Autoloader
                 include_once ($classFile);
                 if (class_exists($className, false)) {
                     $this->pushClassPathMap($className, $classFile);
-                    return true;
+                    return;
                 }
                 return;
             }

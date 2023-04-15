@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  *
  * @copyright (C), 2013-, King.
@@ -21,6 +21,7 @@ namespace Tiny\Runtime;
  */
 class RuntimeCache implements \ArrayAccess
 {
+    
     /**
      * 存储路径
      *
@@ -49,11 +50,18 @@ class RuntimeCache implements \ArrayAccess
     protected $ttl;
     
     /**
-     * gc时间
+     * gc间隔时间
      *
      * @var int
      */
-    protected $timeout;
+    protected $gcInterval;
+    
+    /**
+     * gc过期时间
+     *
+     * @var int
+     */
+    protected $gcExprie;
     
     /**
      * 是否更新过缓存
@@ -64,25 +72,24 @@ class RuntimeCache implements \ArrayAccess
     
     /**
      * 构造函数
-     * 
+     *
      * @param string $path runtime文件存储缓存路径
-     * @param string $id   唯一ID
+     * @param string $id 唯一ID
      * @param int $interval 扫描时间间隔
      * @param number $ttl 默认缓存生命周期
      */
-    public function __construct(string $path, string  $id, int $interval = 60,  $ttl = 3600)
-    {   
-        
+    public function __construct(string $path, string $id, int $interval = 60, $ttl = 3600)
+    {
         $this->path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $this->id = md5($id ?: get_included_files()[0]);
-        $this->ttl = $ttl ?: 3600; //缓存时间
-        $this->timeout = $interval ?: 60; // 回收清理时间
+        $this->ttl = $ttl ?: 3600; // 缓存时间
+        $this->gcInterval = $interval ?: 60; // 回收清理时间
         $this->data = $this->readFrom($this->id);
     }
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::has()
      */
     public function has($key)
@@ -93,7 +100,7 @@ class RuntimeCache implements \ArrayAccess
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::get()
      */
     public function get(string $key, $default = null)
@@ -104,7 +111,7 @@ class RuntimeCache implements \ArrayAccess
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::getMultiple()
      */
     public function getMultiple(array $keys, $default = NULL)
@@ -126,7 +133,7 @@ class RuntimeCache implements \ArrayAccess
     /**
      * ttl无效
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::set()
      */
     public function set($key, $value, int $ttl = 0)
@@ -137,12 +144,12 @@ class RuntimeCache implements \ArrayAccess
         $ttl = $ttl ?: $this->ttl;
         $exprie = time() + 60;
         $this->data[$key] = ['exprie' => $exprie, 'value' => $value];
-        $this->updateData(true);
+        $this->gc(true);
     }
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::setMultiple()
      */
     public function setMultiple(array $values, int $ttl = 0)
@@ -161,24 +168,24 @@ class RuntimeCache implements \ArrayAccess
         foreach ($values as $key => $value) {
             $this->data[$key] = ['exprie' => $exprie, 'value' => $value];
         }
-        $this->updateData(true);
+        $this->gc(true);
         return true;
     }
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::clear()
      */
     public function clear()
     {
         $this->data = [];
-        $this->updateData(true);
+        $this->gc(true);
     }
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::delete()
      */
     public function delete(string $key)
@@ -187,14 +194,13 @@ class RuntimeCache implements \ArrayAccess
             return;
         }
         unset($this->data[$key]);
-        $this->updateData(true);
+        $this->gc(true);
         return true;
-        
     }
     
     /**
      *
-     * {@inheritDoc}
+     * {@inheritdoc}
      * @see \Tiny\Cache\CacheInterface::deleteMultiple()
      */
     public function deleteMultiple(array $keys)
@@ -210,7 +216,7 @@ class RuntimeCache implements \ArrayAccess
         
         // 批量操作，只检测一次
         if ($hasUpdated) {
-            $this->updateData($hasUpdated);
+            $this->gc($hasUpdated);
         }
     }
     
@@ -259,7 +265,7 @@ class RuntimeCache implements \ArrayAccess
      */
     public function __destruct()
     {
-        $this->saveTo();
+        $this->gc();
     }
     
     /**
@@ -279,7 +285,7 @@ class RuntimeCache implements \ArrayAccess
         if (!is_array($data) || !key_exists('exprie', $data) || !key_exists('data', $data)) {
             return [];
         }
-        $this->exprieTime = (int)$data['exprie'];
+        $this->gcExprie = (int)$data['exprie'];
         return $this->formatItems($data['data']);
     }
     
@@ -298,14 +304,14 @@ class RuntimeCache implements \ArrayAccess
         $dataItem = $this->data[$key];
         if (!is_array($dataItem) || !key_exists('exprie', $dataItem) || time() > $dataItem['exprie'] || !key_exists('value', $dataItem)) {
             unset($this->data[$key]);
-            $this->updateData(true);
+            $this->gc(true);
             return false;
         }
         return $dataItem;
     }
     
     /**
-     * 读取所有的数据item
+     * 格式化所有的数据item
      *
      * @param array $data 数据
      * @return array
@@ -320,39 +326,38 @@ class RuntimeCache implements \ArrayAccess
         $currentTime = time();
         $rdata = [];
         $hasUpdated = false;
-        foreach($data as $key => $item) {
+        foreach ($data as $key => $item) {
             if (!is_array($item) || !key_exists('exprie', $item) || !key_exists('value', $item) || $item['exprie'] < $currentTime) {
                 $hasUpdated = true;
                 continue;
             }
             $rdata[$key] = $item;
         }
-        $this->updateData($hasUpdated);
+        $this->gc($hasUpdated);
         return $rdata;
     }
     
-    
     /**
+     * 更新数据
      *
      * @param bool $hasUpdated 是否已经更新
      */
-    protected function updateData($hasUpdated = false) {
+    protected function gc($hasUpdated = false)
+    {
         if ($hasUpdated) {
             $this->hasUpdated = $hasUpdated;
         }
-        if (!$hasUpdated) {
+        $currentTime = time();
+        if (!$this->hasUpdated || $this->gcExprie > $currentTime) {
             return;
         }
-        $currentTime = time();
-        foreach($this->data as $key => $item) {
+        foreach ($this->data as $key => $item) {
             if (!is_array($item) || !key_exists('exprie', $item) || !key_exists('value', $item) || $item['exprie'] < $currentTime) {
                 unset($this->data[$key]);
             }
         }
         $this->saveTo();
     }
-    
-    
     
     /**
      * 写入文件
@@ -368,13 +373,8 @@ class RuntimeCache implements \ArrayAccess
         }
         
         $this->hasUpdated = false;
-        
-        //
         $expriation = time() + $this->timeout;
-        $data = [
-            'exprie' => $expriation,
-            'data' => $this->data
-        ];
+        $data = ['exprie' => $expriation, 'data' => $this->data];
         $content = "<?php\n return " . var_export($data, true) . ";\n?>";
         $storagePath = $this->getStoragePath();
         return file_put_contents($storagePath, $content, LOCK_EX);
@@ -390,6 +390,5 @@ class RuntimeCache implements \ArrayAccess
     {
         return $this->path . md5($this->id) . '.runtimecache.php';
     }
-    
 }
 ?>

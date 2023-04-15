@@ -13,8 +13,6 @@
  */
 namespace Tiny\MVC\Request\Param;
 
-use Tiny\Runtime\Param\Readonly;
-
 /**
 * GET只读数组 用于过滤
 * 

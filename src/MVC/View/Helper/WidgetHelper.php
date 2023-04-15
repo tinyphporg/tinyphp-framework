@@ -35,7 +35,7 @@ class WidgetHelper implements HelperInterface, ParserInterface
      *
      * @var string
      */
-    const ALIAS_NAME = 'widget';
+    const WIDGET_NAME = 'widget';
     
     /**
      * View 当前view实例
@@ -56,7 +56,7 @@ class WidgetHelper implements HelperInterface, ParserInterface
      *
      * @var array
      */
-    protected $alias = [];
+    protected $widgets = [];
     
     /**
      * 构造函数
@@ -69,8 +69,8 @@ class WidgetHelper implements HelperInterface, ParserInterface
         $this->viewManager = $viewManager;
         
         // 获取部件的别名配置数组
-        if (key_exists('alias', $config) && is_array($config['alias'])) {
-            $this->alias = $config['alias'];
+        if (is_array($config['widgets'])) {
+            $this->widgets = $config['widgets'];
         }
     }
     
@@ -79,21 +79,21 @@ class WidgetHelper implements HelperInterface, ParserInterface
      *
      * @param string $hname
      */
-    public function matchHelperName(string $helperName)
+    public function matchHelperName(string $widgetName)
     {
         // WidgetHelper 自身作为视图助手$view->widget存在
-        if (self::ALIAS_NAME == $helperName) {
+        if (self::WIDGET_NAME == $widgetName) {
             return $this;
         }
         
         // 部件的别名匹配查询
-        foreach ($this->alias as $widgetClass => $alias) {
-            if (!$alias || !is_array($alias)) {
+        foreach ($this->widgets as $widgetClass => $widgetConfig) {
+            if (!$widgetConfig || !is_array($widgetConfig)) {
                 continue;
             }
             
             // 匹配则返回视图部件实例
-            if (in_array($helperName, $alias)) {
+            if (in_array($widgetName, $widgetConfig)) {
                 return $this->viewManager->getWidget($widgetClass);
             }
         }
@@ -109,23 +109,19 @@ class WidgetHelper implements HelperInterface, ParserInterface
      */
     public function onParseTag($tagName, $namespace = '', array $params = [])
     {
+        
         // 自身作为默认视图小部件 <:widget path=" " $id="xxx" />
         if ($namespace == '' && $tagName == 'widget') {
             return $this->parseWidgetTag($params);
         }
         
         // 命名空间需要<widget: />
-        if (!self::ALIAS_NAME == $namespace) {
+        if (!self::WIDGET_NAME == $namespace) {
             return false;
         }
         
-        foreach ($this->alias as $widgetClass => $alias) {
-            if (!$alias || !is_array($alias)) {
-                continue;
-            }
-            
-            // 返回解析内容
-            if (in_array($tagName, $alias)) {
+        foreach ($this->widgets as $widgetClass => $widgetAlias) {
+            if (is_array($widgetAlias) && in_array($tagName, $widgetAlias)) {
                 return $this->viewManager->getWidget($widgetClass)->parseTag($params);
             }
         }
@@ -142,7 +138,7 @@ class WidgetHelper implements HelperInterface, ParserInterface
         if ($namespace == '' && $tagName == 'widget') {
             return '';
         }
-        return (self::ALIAS_NAME == $namespace) ? '' : false;
+        return (self::WIDGET_NAME == $namespace) ? '' : false;
     }
     
     /**

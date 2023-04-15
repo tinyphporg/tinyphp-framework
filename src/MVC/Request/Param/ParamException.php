@@ -10,7 +10,7 @@
  * @Function List function_container
  * @History King 2022年2月23日下午2:26:36 2017年3月8日下午4:20:28 0 第一次建立该文件
  */
-namespace Tiny\Runtime\Param;
+namespace Tiny\MVC\Request\Param;
 
 /**
 * 参数异常

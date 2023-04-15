@@ -14,11 +14,10 @@
  */
 namespace Tiny\MVC\Request;
 
-use Tiny\MVC\Request\Param\Get;
-use Tiny\MVC\Request\Param\Post;
-use Tiny\Runtime\Param\Readonly;
 use Tiny\MVC\Web\HttpCookie;
 use Tiny\MVC\Web\HttpSession;
+use Tiny\MVC\Request\Param\Get;
+use Tiny\MVC\Request\Param\Post;
 
 /**
  * Web请求
@@ -39,7 +38,7 @@ class WebRequest extends Request
     /**
      * $_POST 只读
      * 
-     * @var POST
+     * @var Post
      */
     public $post;
     

@@ -116,7 +116,7 @@ class ViewManager
         
         // 绑定视图部件助手
         $this->bindHelper(WidgetHelper::class, [
-            'alias' => &$this->widgetAlias
+            'widgets' => &$this->widgetAlias
         ]);
     }
     
@@ -382,7 +382,7 @@ class ViewManager
         
         // 类名(不包含命名空间) 作为view部件检索的别名存在
         $widgetName = strtolower(basename(str_replace('\\', '/', $widgetClass)));
-        
+       
         // 不存在则新建
         if (!key_exists($widgetClass, $this->widgets)) {
             $this->widgets[$widgetClass] = [
@@ -391,14 +391,17 @@ class ViewManager
                 'config' => $config
             ];
             $this->widgetAlias[$widgetClass] = [
-                $alias,
                 $widgetName
             ];
+            
+            if ($alias) {
+                $this->widgetAlias[$widgetClass][] =  $alias;
+            }
             return $this->widgets[$widgetClass];
         }
         
         // 存在则修改
-        $widget = &$this->widgets[$widgetClass];
+        $widget =  $this->widgets[$widgetClass];
         $widget['class'] = $widgetClass;
         if ($config) {
             $widget['config'] = array_merge_recursive($widget['config'], $config);
