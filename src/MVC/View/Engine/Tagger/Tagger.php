@@ -14,6 +14,7 @@ namespace Tiny\MVC\View\Engine\Tagger;
 
 use Tiny\MVC\View\Engine\ViewEngine;
 use Tiny\MVC\View\View;
+use Tiny\MVC\Application\ApplicationBase;
 
 define('TINY_IS_IN_VIEW_ENGINE_TEMPLATE', true);
 /**
@@ -24,20 +25,13 @@ define('TINY_IS_IN_VIEW_ENGINE_TEMPLATE', true);
 */
 class Tagger extends ViewEngine
 {
-
-    /**
-     * 视图管理器
-     * 
-     * @var View
-     */
-    protected $view;
     
     /**
-     * 配置数组
-     * 
-     * @var array
+     * 当前APP实例
+     * @autowired
+     * @var \Tiny\MVC\Application\ApplicationBase
      */
-    protected $config = [];
+    protected $app;
     
     /**
      * 解析器管理器
@@ -68,18 +62,6 @@ class Tagger extends ViewEngine
      * @var array
      */
     protected $templateTagContents = [];
-    
-    /**
-     * 构造函数
-     * 
-     */
-    public function __construct(View $view, array $config = [])
-    {
-        if ($config) {
-            $this->config = array_merge($this->config, $config);
-        }
-        $this->view = $view;
-    }
     
     /**
      * 获取解析器管理器
@@ -115,12 +97,20 @@ class Tagger extends ViewEngine
         }
         
         $tfile = $pathinfo['path'];
-        $tfilemtime = $this->app->isDebug ? filemtime($tfile) : $pathinfo['mtime'];
-        
         // 如果开启模板缓存 并且 模板存在且没有更改
         $compilePath = $this->createCompileFilePath($tfile);
+        $tfilemtime = $this->app->isDebug ? filemtime($tfile) : $pathinfo['mtime'];
         if (((extension_loaded('opcache') && opcache_is_script_cached($compilePath)) || file_exists($compilePath)) && (filemtime($compilePath) > $tfilemtime)) {
-         // return $compilePath;
+            
+            // 正式模式下
+            if (!$this->app->isDebug && ($pathinfo['expire'] > time() || $pathinfo['mtime'] < filemtime($compilePath))) {
+               return  $compilePath;
+            }
+            
+            // debug模式下
+            if ($this->app->isDebug && filemtime($tfile) < filemtime($compilePath)) {
+                return $compilePath;
+            }
         }
         
         // 读取模板文件

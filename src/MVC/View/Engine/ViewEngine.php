@@ -305,6 +305,7 @@ abstract class ViewEngine implements ViewEngineInterface
         $pathinfo = pathinfo($tfile);
         $pathinfo['size'] = filesize($tfile);
         $pathinfo['mtime'] = filemtime($tfile);
+        $pathinfo['expire'] = time() + 3600;
         $pathinfo['path'] = $tfile;
         return $pathinfo;
     }
