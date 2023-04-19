@@ -145,12 +145,20 @@ $profile['event']['listeners'] = [];
  *
  * debug.cache.enabled
  *  控制在调试模式下，是否进行应用缓存
+ *  
+ *  debug.clear_cache
+ *  清空缓存路径
+ *  
+ *  debug.split_log
+ *  按日期切割路径
  */
 // $profile['debug']['enabled'] = true;
 $profile['debug']['event_listener'] = \Tiny\MVC\Event\DebugEventListener::class;
 $profile['debug']['param_name'] = 'debug';
 $profile['debug']['cache']['enabled'] = true;
 $profile['debug']['console'] = false;
+$profile['debug']['clear_cache'] = ['{%path.cache_dir}'];
+$profile['debug']['log_split'] = ['tinyphp_exception'];
 
 /**
  * 打包器
