@@ -158,7 +158,8 @@ $profile['debug']['param_name'] = 'debug';
 $profile['debug']['cache']['enabled'] = true;
 $profile['debug']['console'] = false;
 $profile['debug']['clear_cache'] = ['{%path.cache_dir}'];
-$profile['debug']['log_split'] = ['tinyphp_exception'];
+$profile['debug']['log_split']['paths'] = ['tinyphp_exception'];
+$profile['debug']['log_split']['fattmaer'] = ['tinyphp_exception'];
 
 /**
  * 打包器
