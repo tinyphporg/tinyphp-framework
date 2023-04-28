@@ -32,6 +32,8 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
     const ENV_DEFAULT = [
         'PHP_VERSION' => PHP_VERSION,
         'PHP_VERSION_ID' => PHP_VERSION_ID,
+        'FRAMEWORK_VERSION' => '2.0.0',
+        'FRAMEWORK_NAME' => 'tinyphp-framework',
         'PHP_OS' => PHP_OS,
         'PHP_PATH' => null,
         'PID' => null,
@@ -53,7 +55,10 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'RUNTIME_MODE_WEB' => 0,
         'RUNTIME_MODE_CONSOLE' => 1,
         'RUNTIME_MODE_RPC' => 2,
-        'RUNTIME_CACHE_AUTOLOADER_ID' => 'runtime.cache',
+        'RUNTIME_INDEX_FILE' => null,
+        'RUNTIME_CACHE_ID' => null,
+        'RUNTIME_CACHE_AUTOLOADER_ID' => 'runtime.autloader',
+        'RUNTIME_CACHE_PATH' => null,
         'TINY_ROOT_PATH' => null,
         'TINY_CURRENT_PATH' => null,
         'TINY_BIN_PATH' => null,
@@ -87,6 +92,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'TINY_VENDOR_DIR',
         'APP_ENV',
         'APP_DEBUG_ENABLED',
+        'RUNTIME_CACHE_ID'
     ];
     
     /**
@@ -125,7 +131,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
      */
     protected function initEnv(&$env)
     {
-        // 区别运行时环境
+        // RUNTIME_MODE
         if ('cli' == php_sapi_name()) {
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_CONSOLE'];
         } elseif ('FRPC_POST' == $_POST['FRPC_METHOD'] || 'FRPC_POST' == $_SERVER['REQUEST_METHOD']) {
@@ -133,7 +139,8 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         }
         
         // 根目录
-        $currentpath = dirname($_SERVER['SCRIPT_FILENAME']);
+        $env['RUNTIME_INDEX_FILE'] = get_included_files()[0];
+        $currentpath = dirname($env['RUNTIME_INDEX_FILE']);
         $env['TINY_CURRENT_PATH'] = $currentpath;
         if (basename($currentpath) != $env['TINY_PUBLIC_DIR']) {
             throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: public path [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentpath, $env['TINY_PUBLIC_DIR']));
@@ -147,8 +154,11 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_CACHE_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_CACHE_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_RESOURCES_PATH'] =  $rootdir . $env['TINY_RESOURCES_DIR'] . DIRECTORY_SEPARATOR;
+        
         // 加载本地环境文件
-        $localenv = $this->initLocalEnv($env);
+        $this->initLocalEnv($env);
+        $env['RUNTIME_CACHE_ID'] = md5($env['RUNTIME_INDEX_FILE']) .'.'. $env['APP_ENV'];
+        $env['RUNTIME_CACHE_PATH'] = $env['TINY_CACHE_PATH'];
     }
     
     /**

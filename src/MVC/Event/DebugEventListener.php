@@ -32,14 +32,18 @@ use Tiny\MVC\Application\WebApplication;
  * @since 2022年8月15日下午3:16:33
  * @final 2022年8月15日下午3:16:33
  */
-class DebugEventListener implements RequestEventListenerInterface, RouteEventListenerInterface
+class DebugEventListener implements RequestEventListenerInterface, DispatchEventListenerInterface
 {
     
     /**
-     * 运行的动作列表
+     * WEB环境下允许的debug动作
      */
-    const ALLOW_ACTION_LIST = [
+    const WEB_ACTIONS = [
         'showdocs'
+    ];
+    
+    const CONSOLE_ACTIONS = [
+        'help'
     ];
     
     /**
@@ -64,8 +68,46 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
      * {@inheritdoc}
      * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterStartup()
      */
-    public function onRouterStartup(MvcEvent $event, array $params)
+    public function onPreDispatch(MvcEvent $event, array $params)
     {
+        if (!$this->app->isDebug) {
+            return;
+        }
+        
+        $cname = $this->app->request->getControllerName();
+        if ($cname !== 'debug') {
+            return;
+        }
+        
+        $aname = $this->app->request->getActionName();
+        $this->dispatch($aname);
+        $this->app->response->end();
+    }
+    
+    /**
+     * 执行
+     * 
+     * @param string $cname 
+     * @param string $aname
+     */
+    protected function dispatch($aname)
+    {
+        if ($this->app instanceof ConsoleApplication && !in_array($aname, self::CONSOLE_ACTIONS)) {
+            return;
+        }
+        if ($this->app instanceof WebApplication && !in_array($aname, self::WEB_ACTIONS)) {
+            return;
+        }
+
+        $actionName = $aname. 'Action';
+        if (!method_exists($this, $actionName)) {
+            return;
+        }
+        $view = $this->app->get(View::class);
+        call_user_func([
+                $this,
+                $actionName
+            ], $view);
     }
     
     /**
@@ -73,34 +115,9 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
      * {@inheritdoc}
      * @see \Tiny\MVC\Event\RouteEventListenerInterface::onRouterShutdown()
      */
-    public function onRouterShutdown(MvcEvent $event, array $params)
+    public function onPostDispatch(MvcEvent $event, array $params)
     {
-        
-        if (!$this->app->isDebug) {
-            return;
-        }
-        $cname = $this->app->request->getControllerName();
-        if ($cname !== 'debug') {
-            return;
-        }
-        
-        $aname = $this->app->request->getActionName();
-        if (!in_array($aname, self::ALLOW_ACTION_LIST)) {
-            return;
-        }
-        
-        $actionName = $aname . 'Action';
-        if (!method_exists($this, $actionName)) {
-            return;
-        }
-        try {
-            call_user_func([
-                $this,
-                $actionName
-            ]);
-        } finally {
-            $this->app->response->end();
-        }
+
     }
     
     /**
@@ -230,12 +247,13 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
             'debugModelList' => $modelList,
             'debugExceptions' => $this->formatExceptions($exceptionHandler)
         ];
+        $debugs['debugFirstException'] = $this->formatFirstException($exceptionHandler);
         
         if (!$app instanceof WebApplication) {
             return $debugs;
         }
         
-        $debugs['debugFirstException'] = $this->formatFirstException($exceptionHandler);
+        
         
         // 文档手册信息
         $docsUrl = $router->rewriteUrl([
@@ -250,16 +268,21 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         return $debugs;
     }
     
+    protected  function helpAction(View $view)
+    {
+        $this->view
+    }
+    
     /**
      * 输出框架的文档和手册
      *
      * @return void
      */
-    public function showDocsAction()
+    protected function showDocsAction(View $view)
     {
         // @formatter:off
         $docContent = $this->getDocContent();
-        $viewInstance = $this->app->get(View::class);
+        
         $viewInstance->display('debug/web_docs.htm', ['debugDocContent' =>  $docContent]);
         // @formatter:on
     }
@@ -317,7 +340,7 @@ class DebugEventListener implements RequestEventListenerInterface, RouteEventLis
         $exceptions = $exceptionHandler->getExceptions();
         $exceptionList = [];
         foreach ($exceptions as $exception) {
-            $exceptionList[] = str_replace('#', '<br />&nbsp;&nbsp;&nbsp;&nbsp;# File:', $exception->getTraceAsString());
+            $exceptionList[] = str_replace('#', '    # File:', $exception->getTraceAsString());
         }
         return $exceptionList;
     }

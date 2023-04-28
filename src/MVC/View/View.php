@@ -23,9 +23,10 @@ use Tiny\MVC\Application\ApplicationBase;
 use Tiny\MVC\View\Engine\ViewEngineInterface;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\View\Helper\HelperInterface;
+use Tiny\Runtime\Environment;
 
 // 框架默认视图路径
-define('TINY_VIEW_TEMPLATE_PATH', dirname(__DIR__) . '/Resources/templates');
+define('TINY_VIEW_TEMPLATE_PATH', dirname(__DIR__) . '/Resources/templates/');
 
 /**
  * 视图层
@@ -105,6 +106,7 @@ class View
         // default variables
         $this->variables = [
             'view' => $this,
+            'env' => $app->get(Environment::class),
             'isDebug' => $app->isDebug,
             'request' => $app->request,
             'response' => $app->response
@@ -159,7 +161,7 @@ class View
         if (!in_array(self::VIEW_TEMPLATE_PATH, $this->templateDirs)) {
             $this->templateDirs[] = self::VIEW_TEMPLATE_PATH;
         }
-        
+
         // 同步给所有实例化的解析器
         $this->viewManager->syncTemplateDir($this->templateDirs);
         return $this;

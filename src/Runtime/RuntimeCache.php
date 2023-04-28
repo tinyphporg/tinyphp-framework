@@ -78,10 +78,10 @@ class RuntimeCache implements \ArrayAccess
      * @param int $interval 扫描时间间隔
      * @param number $ttl 默认缓存生命周期
      */
-    public function __construct(string $path, string $id, int $interval = 60, $ttl = 3600)
+    public function __construct(string $path, string $cacheId, int $interval = 60, $ttl = 3600)
     {
         $this->path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $this->id = md5($id ?: get_included_files()[0]);
+        $this->id = $cacheId ?: get_included_files()[0];
         $this->ttl = $ttl ?: 3600; // 缓存时间
         $this->gcInterval = $interval ?: 60; // 回收清理时间
         $this->data = $this->readFrom($this->id);
@@ -388,7 +388,7 @@ class RuntimeCache implements \ArrayAccess
      */
     protected function getStoragePath()
     {
-        return $this->path . md5($this->id) . '.runtimecache.php';
+        return $this->path . $this->id . '.runtimecache.php';
     }
 }
 ?>

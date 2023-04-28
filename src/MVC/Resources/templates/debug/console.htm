@@ -1,5 +1,5 @@
 
--------------debug-------------
+-------------Debug-------------
 {$env['FRAMEWORK_NAME']};
 Version :  {$env['FRAMEWORK_VERSION']};
 Doc     : https://github.com/saasjit/tinyphp-docs;
@@ -14,8 +14,15 @@ DbQueryTimeTotal : {$debugDbTimeTotal} S;
   SQL: {$query['sql']}
 {/loop}
 {/if} 
---------------------------
+{if !empty($debugExceptions)}
+----------Exception----------------
+Message: {$debugFirstException['message']}
+
+Line:    {$debugFirstException['line']}
+
+File:    {$debugFirstException['file']}
+
 {loop $debugExceptions $e}
 {$e}
 {/loop}
-
+{/if}

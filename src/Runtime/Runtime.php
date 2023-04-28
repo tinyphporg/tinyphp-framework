@@ -258,7 +258,7 @@ class Runtime
         $this->env = $env;
         
         //  运行缓存
-        $this->runtimecache = new RuntimeCache($env['TINY_CACHE_PATH'], $env['APP_ENV']);
+        $this->runtimecache = new RuntimeCache($env['RUNTIME_CACHE_PATH'], $env['RUNTIME_CACHE_ID']);
 
         // autoloader
         $this->autoloader = new Autoloader($this->runtimecache, $env['RUNTIME_CACHE_AUTOLOADER_ID']);

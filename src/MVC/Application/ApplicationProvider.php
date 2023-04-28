@@ -17,7 +17,6 @@ use Tiny\Lang\Lang;
 use Tiny\MVC\View\View;
 use Tiny\Cache\Cache;
 use Tiny\Cache\CacheInterface;
-use Tiny\Cache\Storager\SingleCache;
 use Tiny\DI\Definition\Provider\DefinitionProvider;
 use Tiny\MVC\Request\ConsoleRequest;
 use Tiny\MVC\Request\Request;
@@ -36,15 +35,13 @@ use Tiny\Data\Data;
 use Tiny\Filter\Filter;
 use Tiny\MVC\Request\Param\Get;
 use Tiny\MVC\Request\Param\Post;
-use Tiny\Runtime\Param\Param;
 use Tiny\Log\Logger;
 use Tiny\MVC\Web\HttpSession;
 use Tiny\MVC\Web\HttpCookie;
 use Tiny\Event\EventManager;
 use Tiny\MVC\View\Engine\StaticFile;
-use Tiny\MVC\View\ViewManager;
 use Tiny\Runtime\RuntimeCache;
-use Tiny\Runtime\Environment;
+use Tiny\MVC\Request\Param\Param;
 
 /**
  * 应用的容器提供源 必须开启
@@ -643,11 +640,7 @@ class ApplicationProvider implements DefinitionProviderInterface
                 $assigns = (array)$config['assign'];
                 $widgets = (array)$config['widgets'];
                 $templateDirs = is_array($config['paths']) ? $config['paths'] : [(string)$config['paths']];
-                
- 
-                
-                // 默认为框架文件下的resource/mvc/view
-                
+        
                 // application目录下为 application/views/default
                 $templateTheme = $config['theme'] ?: 'default';
                 $templateThemeDir = $config['basedir'] . $templateTheme . DIRECTORY_SEPARATOR;
