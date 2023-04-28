@@ -24,6 +24,7 @@ use Tiny\MVC\Request\Request;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\Controller\DispatcherException;
 use Tiny\MVC\Application\WebApplication;
+use Tiny\DI\ContainerInterface;
 
 /**
  * 调试模式处理器
@@ -104,10 +105,8 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
             return;
         }
         $view = $this->app->get(View::class);
-        call_user_func([
-                $this,
-                $actionName
-            ], $view);
+        $container = $this->app->get(ContainerInterface::class);
+        return $container->call([$this, $actionName]);
     }
     
     /**
@@ -268,9 +267,9 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
         return $debugs;
     }
     
-    protected  function helpAction(View $view)
+    public  function helpAction(View $view)
     {
-        $this->view
+        echo "help";
     }
     
     /**
@@ -278,12 +277,11 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
      *
      * @return void
      */
-    protected function showDocsAction(View $view)
+    public function showDocsAction(View $view)
     {
         // @formatter:off
         $docContent = $this->getDocContent();
-        
-        $viewInstance->display('debug/web_docs.htm', ['debugDocContent' =>  $docContent]);
+        $view->display('debug/web_docs.htm', ['debugDocContent' =>  $docContent]);
         // @formatter:on
     }
     
