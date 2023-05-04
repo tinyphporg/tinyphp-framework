@@ -396,16 +396,17 @@ class Builder
         }
         
         // index.php
-        $id = $this->config['name'];
+        $name = $this->config['name'];
+        $id = md5($name . microtime(true));
         $indexstring = <<<EOT
         <?php
-        define('TINY_PHAR_ID', '$id');
+        define('TINY_PHAR_NAME', '$name');
         define('TINY_PHAR_FILE', dirname(__DIR__));
-        define('TINY_HOME_DIR', \$_SERVER['HOME'] . '/.' . TINY_PHAR_ID . '/' . md5(TINY_PHAR_FILE));
+        define('TINY_PHAR_ID', '$id');
+        define('TINY_HOME_DIR', \$_SERVER['HOME'] . '/.' . TINY_PHAR_NAME . '/' . TINY_PHAR_ID . '/');
         define('TINY_PHAR_DIR', str_replace('phar://', '', dirname(dirname(__DIR__))));
         define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
-        define('TINY_COMPOSER_FILE', TINY_PHAR_FILE . '/vendor/autoload.php');
-        require_once(TINY_COMPOSER_FILE);
+        require_once(TINY_PHAR_FILE . '/vendor/autoload.php');
         \Tiny\Build\Builder::init([]);
         \Tiny\Tiny::createApplication(APPLICATION_PATH, $profilestr)->run();
         ?>

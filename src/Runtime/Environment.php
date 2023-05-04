@@ -138,17 +138,20 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
             $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
         }
         
-        // 根目录
         $env['RUNTIME_INDEX_FILE'] = get_included_files()[0];
-        $currentpath = dirname($env['RUNTIME_INDEX_FILE']);
-        $env['TINY_CURRENT_PATH'] = $currentpath;
-        echo $currentpath;
+        $currentDir = dirname($env['RUNTIME_INDEX_FILE']);
+        $env['TINY_CURRENT_PATH'] = $currentDir;
         
-        if (basename($currentpath) != $env['TINY_PUBLIC_DIR']) {
-            throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: public path [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentpath, $env['TINY_PUBLIC_DIR']));
+        // rootdie;
+        if (defined('TINY_ROOT_PATH')) {
+            $rootdir = rtrim(TINY_ROOT_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        } elseif (defined('TINY_PHAR_ID') && defined('TINY_HOME_DIR')) {
+            $rootdir = TINY_HOME_DIR;
+        } else {
+            $rootdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
         }
         
-        $rootdir = dirname($currentpath) . DIRECTORY_SEPARATOR;
+       // $rootdir = defined('TINY_ROOT_PATH') ? TINY_ROOT_PATH : dirname($currentDir) . DIRECTORY_SEPARATOR;
         $env['TINY_ROOT_PATH'] = $rootdir;
         $env['TINY_PUBLIC_PATH'] = $rootdir . $env['TINY_PUBLIC_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_VAR_PATH'] = $rootdir . $env['TINY_VAR_DIR'] . DIRECTORY_SEPARATOR;
