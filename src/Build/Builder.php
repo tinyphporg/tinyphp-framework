@@ -155,8 +155,14 @@ class Builder
         // runtime
         $homefiles = $this->config['home_attachments'] ?: [];
         
-        $this->pharHandler->addEmptyDir('home_attachments/runtime');
-        $this->properties['src']['runtime'] = 'TINY_HOME_DIR/runtime/';
+        $this->pharHandler->addEmptyDir('home_attachments/var');
+        $this->properties['path']['var'] = 'TINY_HOME_DIR/var/';
+        
+        
+        // view
+        $this->pharHandler->addEmptyDir('home_attachments/view');
+        $this->properties['path']['view'] = 'TINY_HOME_DIR/view/';
+        $this->properties['view']['basedir'] = '{path.app}view/templates/';
         
         // config
         if ($homefiles['config']) {
@@ -229,10 +235,6 @@ class Builder
         if ($this->data['config_path']) {
             $this->properties['config']['path'][] = $this->data['config_path'];
         }
-        $cindex = array_search('config.path', $this->properties['path']);
-        if (false !== $cindex) {
-            unset($this->properties['path'][$cindex]);
-        }
     }
     
     /**
@@ -283,7 +285,8 @@ class Builder
         $contents = "<?php\n return " . var_export($this->properties, true) . ";\n?>";
         $contents = strtr($contents, [
             "'TINY_PHAR_FILE/application" => "TINY_PHAR_FILE . '/application",
-            "'TINY_HOME_DIR/runtime/'" => "TINY_HOME_DIR . '/runtime/'",
+            "'TINY_HOME_DIR/var/'" => "TINY_HOME_DIR . '/var/'",
+            "'TINY_HOME_DIR/view/'" => "TINY_HOME_DIR . '/view/'",
             "'TINY_HOME_DIR/config/'" => "TINY_HOME_DIR . '/config/'",
             "'TINY_HOME_DIR/profile/'" => "TINY_HOME_DIR . '/profile/'"
         ]);
@@ -301,6 +304,8 @@ class Builder
     protected function addDir($path, $name, $noFile = false)
     {
         // $path = realpath($path);
+        $path = preg_replace('#\/+#','/', $path);
+
         if (is_dir($path)) {
             $files = scandir($path);
             $this->pharHandler->addEmptyDir($name);
@@ -310,6 +315,7 @@ class Builder
                 }
                 
                 $fpath = $path . '/' . $file;
+               
                 if ($this->isExclude($fpath)) {
                     continue;
                 }
@@ -395,7 +401,7 @@ class Builder
         <?php
         define('TINY_PHAR_ID', '$id');
         define('TINY_PHAR_FILE', dirname(__DIR__));
-        define('TINY_HOME_DIR', \$_SERVER['HOME'] . '/.' . TINY_PHAR_ID);
+        define('TINY_HOME_DIR', \$_SERVER['HOME'] . '/.' . TINY_PHAR_ID . '/' . md5(TINY_PHAR_FILE));
         define('TINY_PHAR_DIR', str_replace('phar://', '', dirname(dirname(__DIR__))));
         define('APPLICATION_PATH', dirname(__DIR__) . '/application/');
         define('TINY_COMPOSER_FILE', TINY_PHAR_FILE . '/vendor/autoload.php');

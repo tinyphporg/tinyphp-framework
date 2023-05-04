@@ -12,8 +12,6 @@
  */
 namespace Tiny\Runtime;
 
-use function Composer\Autoload\includeFile;
-
 /**
  * 当前运行时(Runtime)的环境和平台参数。此类不能被继承。Readonly
  *
@@ -67,6 +65,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'TINY_PUBLIC_PATH' => null,
         'TINY_VENDOR_PATH' => null,
         'TINY_CACHE_PATH' => null,
+        'TINY_LOG_PATH' => null,
         'TINY_RESOURCES_PATH' => null,
         'TINY_BIN_DIR' => 'bin',
         'TINY_CONFIG_DIR' => 'conf',
@@ -74,6 +73,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'TINY_PUBLIC_DIR' => 'public',
         'TINY_VENDOR_DIR' => 'vendor',
         'TINY_CACHE_DIR' => 'cache',
+        'TINY_LOG_DIR' => 'log',
         'TINY_RESOURCES_DIR' => 'resources',
         'APP_ENV' => 'prod',
         'APP_DEBUG_ENABLED' => false,
@@ -142,9 +142,12 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $env['RUNTIME_INDEX_FILE'] = get_included_files()[0];
         $currentpath = dirname($env['RUNTIME_INDEX_FILE']);
         $env['TINY_CURRENT_PATH'] = $currentpath;
+        echo $currentpath;
+        
         if (basename($currentpath) != $env['TINY_PUBLIC_DIR']) {
             throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: public path [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentpath, $env['TINY_PUBLIC_DIR']));
         }
+        
         $rootdir = dirname($currentpath) . DIRECTORY_SEPARATOR;
         $env['TINY_ROOT_PATH'] = $rootdir;
         $env['TINY_PUBLIC_PATH'] = $rootdir . $env['TINY_PUBLIC_DIR'] . DIRECTORY_SEPARATOR;
@@ -154,6 +157,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_CACHE_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_CACHE_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_RESOURCES_PATH'] =  $rootdir . $env['TINY_RESOURCES_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_LOG_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_LOG_DIR'] . DIRECTORY_SEPARATOR;
         
         // 加载本地环境文件
         $this->initLocalEnv($env);

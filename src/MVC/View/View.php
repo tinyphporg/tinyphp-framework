@@ -252,7 +252,7 @@ class View
      * @param boolean $isAbsolute 模板路径是否为绝对路径
      * @return void
      */
-    public function display($tpath, $assign = false, $templateId = null)
+    public function display($tpath, array $assign = [], $templateId = null)
     {
         $content = $this->viewManager->getEngineByPath($tpath)->fetch($tpath, $assign, $templateId);
         $this->response->appendBody($content);
@@ -266,7 +266,7 @@ class View
      * @param boolean $isAbsolute 是否为绝对的模板路径
      * @return string
      */
-    public function fetch($tpath, $assign = false, $templateId = null)
+    public function fetch($tpath, array $assign = [], $templateId = null)
     {
         return $this->viewManager->getEngineByPath($tpath)->fetch($tpath, $assign, $templateId);
     }

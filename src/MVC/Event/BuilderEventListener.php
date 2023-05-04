@@ -103,7 +103,7 @@ class BuilderEventListener implements RouteEventListenerInterface
         $options['application_path'] = $this->app->path;
         $options['properties']  = (new Configuration($this->app->profile))->get();
         $options['config'] = $this->app->getConfig()->get();
-        $options['home_attachments']['runtime'] = ['runtime', $this->properties['src.runtime'], true];
+        $options['home_attachments']['var'] = ['var', $this->properties['path.var'], true];
         
         //自定义config数据
         $spath = $this->properties['builder.config_path'];
@@ -117,6 +117,12 @@ class BuilderEventListener implements RouteEventListenerInterface
         if ($ppath && file_exists($ppath))
         {
             $options['home_attachments']['profile'] = ['profile', $ppath];
+        }
+        
+        // 自定义view
+        $vpath = $this->properties['path.view'];
+        if ($vpath && file_exists($ppath)) {
+            $options['home_attachments']['view'] = ['view', $vpath, true];
         }
         
         // namespace
@@ -177,7 +183,7 @@ class BuilderEventListener implements RouteEventListenerInterface
         $boption['exclude'] = is_array($boption['exclude']) ? $boption['exclude'] : [(string)$boption['exclude']];
         $boption['exclude'][] = "/\.phar$/";
         
-        //框架路径
+        // 框架路径
         $boption['framework_path'] = $boption['framework_path'] ?: TINY_FRAMEWORK_PATH;
         
         // vendor 路径

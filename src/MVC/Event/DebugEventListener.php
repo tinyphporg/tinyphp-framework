@@ -25,6 +25,8 @@ use Tiny\MVC\Response\Response;
 use Tiny\MVC\Controller\DispatcherException;
 use Tiny\MVC\Application\WebApplication;
 use Tiny\DI\ContainerInterface;
+use Tiny\Runtime\Environment;
+use Tiny\MVC\Application\Properties;
 
 /**
  * 调试模式处理器
@@ -44,7 +46,12 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
     ];
     
     const CONSOLE_ACTIONS = [
-        'help'
+        'help',
+        'clearcache',
+        'clear',
+        'clearlog',
+        'clearview',
+        'splitlog',
     ];
     
     /**
@@ -267,9 +274,86 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
         return $debugs;
     }
     
+    /**
+     * 显示帮助信息
+     * @param View $view
+     */
     public  function helpAction(View $view)
     {
-        echo "help";
+        $view->display('debug/console_help.htm');
+    }
+    
+    public function clearAction()
+    {
+        $this->dispatch('clearcache');
+        $this->dispatch('clearlog');
+        $this->dispatch('clearview');
+    }
+    /**
+     * 清理缓存
+     * 
+     * @param Environment $env 当前环境实例
+     * @return void
+     */
+    public function clearCacheAction(Environment $env)
+    {
+        $cacheDir = $env['TINY_CACHE_PATH'];
+        if (false === $this->clearfiles($cacheDir)) {
+            $this->dispatch('help');
+        }
+    }
+    
+    /**
+     * 清理日志
+     *
+     * @param Environment $env 当前环境实例
+     * @return void
+     */
+    public function clearLogAction(Environment $env)
+    {
+        $logDir = $env['TINY_LOG_PATH'];
+        if (false === $this->clearfiles($logDir)) {
+            $this->dispatch('help');
+        }
+    }
+    
+    /**
+     * 清理视图文件
+     * 
+     * @param Properties $prop
+     */
+    public function clearViewAction(Properties $prop)
+    {
+        $viewdir = $prop['view.compile'];
+        $viewCacheDir = $prop['view.cache'];
+        $this->clearfiles($viewdir);
+        $this->clearfiles($viewCacheDir);
+        
+    }
+    
+    /**
+     * 清理文件
+     * 
+     * @param string $dir 文件夹路径
+     */
+    protected function clearfiles($dir)
+    {
+        if (!$dir || in_array($dir, ['/', '.', '..', '/bin', '/var', '/usr', '/root', '/home', '/tmp'])) {
+            return false;
+        }
+        $files = scandir($dir);
+        foreach($files as $f) {
+            if ($f == '.' || $f == '..' || $f == '.keepgit') {
+                continue;
+            }
+            $p  = $dir . $f;
+            if (is_dir($p)) {
+                $this->clearfiles($p . '/');
+            }else if(is_file($p)) {
+                echo "delete $p\n";
+                unlink($p);
+            }
+        }
     }
     
     /**

@@ -126,8 +126,7 @@ class Properties extends Configuration
         // 自定义配置文件
         if (is_string($profile)) {
             $profiles[] = $profile;
-        } 
-        elseif (is_array($profile)) {
+        } elseif (is_array($profile)) {
             foreach($profile as $pfile) {
                 if (is_string($pfile)) {
                     $profiles[] = $pfile;

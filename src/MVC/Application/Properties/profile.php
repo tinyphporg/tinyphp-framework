@@ -41,26 +41,24 @@ $profile['debug']['enabled'] = '{env.APP_DEBUG_ENABLED}';
 $profile['timezone'] = 'PRC';
 $profile['charset'] = 'utf-8';
 $profile['namespace']= 'App';
-
 $profile['path']['root'] = '{env.TINY_ROOT_PATH}';
-$profile['path']['public'] = '{env.TINY_PUBLIC_PATH}';        // 入口文件夹
-$profile['path']['resources'] = '{env.TINY_RESOURCES_PATH}';   // 资源文件夹
-$profile['path']['var'] = '{env.TINY_VAR_PATH}';      // 运行时文件夹
-$profile['path']['vendor'] = '{env.TINY_VENDOR_PATH}';
+$profile['path']['public'] = '{env.TINY_PUBLIC_PATH}';               // 入口文件夹
+$profile['path']['resources'] = '{env.TINY_RESOURCES_PATH}';         // 资源文件夹
+$profile['path']['var'] = '{env.TINY_VAR_PATH}';                     // 运行时文件夹
+$profile['path']['vendor'] = '{env.TINY_VENDOR_PATH}';               // 
 $profile['path']['bin'] = '{env.TINY_BIN_PATH}';
 $profile['path']['cache'] = '{env.TINY_CACHE_PATH}';
 $profile['path']['static'] = '{env.TINY_PUBLIC_PATH}static/';        // 静态资源文件夹
 $profile['path']['tmp'] = '{env.TINY_VAR_PATH}tmp/';
-
-$profile['path']['log'] = '{path.var}log/';
+$profile['path']['log'] = '{env.TINY_LOG_PATH}';
 $profile['path']['global'] = '{path.app}librarys/global/';           // 存放全局类的文件夹
-$profile['path']['library'] = '{path.app}librarys/';          // 除了composer外，引入的其他项目的库文件夹
+$profile['path']['library'] = '{path.app}librarys/';                 // 除了composer外，引入的其他项目的库文件夹
 $profile['path']['controller']['web'] = '{path.app}controllers/web/';   // web环境下的控制器类文件夹
 $profile['path']['controller']['console'] = '{path.app}controllers/console/';  // 命令行环境下的控制器类文件夹
 $profile['path']['controller']['rpc'] = '{path.app}controllers/rpc/';          // rpc模式下的控制器类文件夹
 $profile['path']['model'] = '{path.app}models/';                 // 模型类文件夹
-
-$profile['path']['view'] = '{path.app}views/';                   // 存放、、】视图模板的文件夹
+$profile['path']['config'] = '{path.app}config/';                // 配置文件夹
+$profile['path']['view'] = '{path.app}views/';                   // 存放视图模板的文件夹
 $profile['path']['pid'] = '{path.var}pid/';
 $profile['path']['event'] = '{path.app}events/';
 $profile['path']['common'] = '{path.app}librarys/common/';
@@ -157,9 +155,6 @@ $profile['debug']['event_listener'] = \Tiny\MVC\Event\DebugEventListener::class;
 $profile['debug']['param_name'] = 'debug';
 $profile['debug']['cache']['enabled'] = true;
 $profile['debug']['console'] = false;
-$profile['debug']['clear_cache'] = ['{%path.cache_dir}'];
-$profile['debug']['log_split']['paths'] = ['tinyphp_exception'];
-$profile['debug']['log_split']['fattmaer'] = ['tinyphp_exception'];
 
 /**
  * 打包器
@@ -245,7 +240,6 @@ $profile['daemon']['daemons'] = [
     ],
 ];
 
-
 /**
  * 当前Application实例下的Configuration实例设置
  *
@@ -263,7 +257,7 @@ $profile['daemon']['daemons'] = [
  *
  */
 $profile['config']['enabled'] = true;
-$profile['config']['path'] = '{path.app}config/';
+$profile['config']['path'] = '{path.config}';
 $profile['config']['cache']['enabled'] = true;
 
 /**
@@ -280,10 +274,10 @@ $profile['config']['cache']['enabled'] = true;
  * lang.cache.enabled 开启缓存
  *      开启将所有语言包数据缓存
  */
-$profile['lang']['enabled'] = true;          // 是否开启
-$profile['lang']['locale'] = 'zh_cn';        // 默认语言包
-$profile['lang']['path'] = '{path.app}lang/';          // 存放语言包的目录
-$profile['lang']['cache']['enabled'] = true; // 配置模块缓存设置 提高性能
+$profile['lang']['enabled'] = true;           // 是否开启
+$profile['lang']['locale'] = 'zh_cn';         // 默认语言包
+$profile['lang']['path'] = '{path.app}lang/'; // 存放语言包的目录
+$profile['lang']['cache']['enabled'] = true;  // 配置模块缓存设置 提高性能
 
 /**
  * application的日志配置
@@ -294,10 +288,14 @@ $profile['lang']['cache']['enabled'] = true; // 配置模块缓存设置 提高�
  *      file 写入到本地文件
  *      syslog 通过系统syslog函数写入到系统文件夹
  *      rsyslog 通过rsyslog协议，写入到远程文件夹
+ *  log.format 日志文件名的格式
+ *      为空
+ *      可加入日期格式
  */
 $profile['log']['enabled'] = true;
 $profile['log']['writer'] = 'file';    /*默认可以设置file|syslog 设置类型为file时，需要设置log.path为可写目录路径 */
 $profile['log']['path'] = '{path.log}';
+$profile['log']['format'] = '%id%-His';
 
 /**
  * 数据资源池配置
@@ -419,20 +417,6 @@ $profile['cache']['sources'] = [
     ['id' => 'file', 'storager' => 'file', 'options' => ['ttl' => 3600, 'path' => '']],
     ['id' => 'php', 'storager' => 'php', 'options' => ['ttl' => 3600, 'path' => '']]
 ];
-
-/**
- * 当前应用实例的缓存配置
- *
- * cache.application_storager ApplicationCache调用的存储器类型
- *      默认为SingleCache 适合小数据的快速存储应用，php文件存储于opcache内存中，IO性能很好。
- *
- * cache.application_ttl ApplicationCache的缓存过期时间
- *      int 60
- *
- */
-$profile['cache']['application_storager'] = SingleCache::class;
-$profile['cache']['application_ttl'] = 60;
-
 
 /**
  * application的过滤器配置
@@ -667,12 +651,13 @@ $profile['model']['src'] = '{path.app}models/';
  *  view.cache.dir 缓存目录
  *  view.cache.ttl 缓存过期时间
  */
-$profile['view']['basedir'] = '{path.app}views/';
+$profile['view']['basedir'] = '{path.view}templates/';
 $profile['view']['theme'] = 'default';
 $profile['view']['lang'] = true;     //自动加载语言包
 $profile['view']['paths'] = [];
-$profile['view']['compile'] = '{path.var}/view/compile/';
-$profile['view']['config']  = '{path.var}/view/config/';
+$profile['view']['compile'] = '{path.view}compile/';
+$profile['view']['cache'] = '{path.view}cache/';
+$profile['view']['config']  = '{path.view}config/';
 $profile['view']['assign'] = [];
 
 // 引擎和助手配置
@@ -680,7 +665,6 @@ $profile['view']['engines'] = [];
 $profile['view']['helpers'] = [];
 
 // 部件配置
-
 $profile['view']['widgets'] = [];
 
 /*
