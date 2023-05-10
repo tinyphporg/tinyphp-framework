@@ -149,6 +149,9 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
             $rootdir = TINY_HOME_DIR;
         } else {
             $rootdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
+            if (basename($currentDir) != $env['TINY_PUBLIC_DIR']) {
+                throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentDir, $env['TINY_PUBLIC_DIR']));
+            }
         }
         
        // $rootdir = defined('TINY_ROOT_PATH') ? TINY_ROOT_PATH : dirname($currentDir) . DIRECTORY_SEPARATOR;

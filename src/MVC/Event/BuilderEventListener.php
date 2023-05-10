@@ -18,6 +18,7 @@ use Tiny\MVC\Application\Properties;
 use Tiny\MVC\Response\Response;
 use Tiny\MVC\Request\Request;
 use Tiny\MVC\Application\ConsoleApplication;
+use Tiny\Runtime\Environment;
 
 
 /**
@@ -178,16 +179,18 @@ class BuilderEventListener implements RouteEventListenerInterface
      */
     protected function _formatOptions($options, $boption)
     {
+        $env = $this->app->get(Environment::class);
         $boption = array_merge($boption, $options);
         $boption['name'] = $boption['name'] ?: 'tinyphp';
         $boption['exclude'] = is_array($boption['exclude']) ? $boption['exclude'] : [(string)$boption['exclude']];
         $boption['exclude'][] = "/\.phar$/";
-        
+        $boption['extname'] = $boption['extname'] ?? '.phar';
         // 框架路径
-        $boption['framework_path'] = $boption['framework_path'] ?: TINY_FRAMEWORK_PATH;
+        $boption['framework_path'] = TINY_FRAMEWORK_PATH;
+        $boption['bin_path'] = $env['TINY_BIN_PATH'];
         
         // vendor 路径
-        $boption['vendor_path'] = $boption['vendor_path'] ?: dirname(dirname(get_included_files()[0])) . '/vendor';
+        $boption['vendor_path'] = $env['TINY_VENDOR_PATH'];
         
         // imports
         if (is_array($boption['namespaces']))
