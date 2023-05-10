@@ -57,6 +57,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'RUNTIME_CACHE_ID' => null,
         'RUNTIME_CACHE_AUTOLOADER_ID' => 'runtime.autloader',
         'RUNTIME_CACHE_PATH' => null,
+        'TINY_ENV_PATH' => null,
         'TINY_ROOT_PATH' => null,
         'TINY_CURRENT_PATH' => null,
         'TINY_BIN_PATH' => null,
@@ -145,21 +146,27 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         // rootdie;
         if (defined('TINY_ROOT_PATH')) {
             $rootdir = rtrim(TINY_ROOT_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        } elseif (defined('TINY_PHAR_ID') && defined('TINY_HOME_DIR')) {
-            $rootdir = TINY_HOME_DIR;
-        } else {
-            $rootdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
+            $envdir = $rootdir;
         }
         
-       // $rootdir = defined('TINY_ROOT_PATH') ? TINY_ROOT_PATH : dirname($currentDir) . DIRECTORY_SEPARATOR;
-        $env['TINY_ROOT_PATH'] = $rootdir;
-        $env['TINY_PUBLIC_PATH'] = $rootdir . $env['TINY_PUBLIC_DIR'] . DIRECTORY_SEPARATOR;
-        $env['TINY_VAR_PATH'] = $rootdir . $env['TINY_VAR_DIR'] . DIRECTORY_SEPARATOR;
-        $env['TINY_BIN_PATH'] = $rootdir . $env['TINY_BIN_DIR'] . DIRECTORY_SEPARATOR;
-        $env['TINY_CONF_PATH'] = $rootdir . $env['TINY_CONF_DIR'] . DIRECTORY_SEPARATOR;
-        $env['TINY_VENDOR_PATH'] = $rootdir . $env['TINY_VENDOR_DIR'] . DIRECTORY_SEPARATOR;
+        // PHAR 模式下
+        if (defined('TINY_PHAR_ID') && defined('TINY_HOME_DIR')) {
+            $envdir = TINY_HOME_DIR;
+        } elseif(basename($currentDir) == $env['TINY_PUBLIC_DIR']) {
+            $envdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
+        } else {
+            $envdir = $currentDir . DIRECTORY_SEPARATOR;
+        }
+
+        $env['TINY_ENV_PATH'] = $envdir;
+        $env['TINY_ROOT_PATH'] = $rootdir ?? dirname($currentDir) . DIRECTORY_SEPARATOR;
+        $env['TINY_PUBLIC_PATH'] = $envdir . $env['TINY_PUBLIC_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_VAR_PATH'] = $envdir . $env['TINY_VAR_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_BIN_PATH'] = $envdir . $env['TINY_BIN_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_CONF_PATH'] = $envdir . $env['TINY_CONF_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_VENDOR_PATH'] = $envdir . $env['TINY_VENDOR_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_CACHE_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_CACHE_DIR'] . DIRECTORY_SEPARATOR;
-        $env['TINY_RESOURCES_PATH'] =  $rootdir . $env['TINY_RESOURCES_DIR'] . DIRECTORY_SEPARATOR;
+        $env['TINY_RESOURCES_PATH'] =  $envdir . $env['TINY_RESOURCES_DIR'] . DIRECTORY_SEPARATOR;
         $env['TINY_LOG_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_LOG_DIR'] . DIRECTORY_SEPARATOR;
         
         // 加载本地环境文件
@@ -176,9 +183,8 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
      */
     protected function initLocalEnv(&$env)
     {
-        $rootdir = $env['TINY_ROOT_PATH'];
         $appEnv = $env['APP_ENV'];
-        $localEnv = $this->readFromLocalFile($rootdir, $appEnv);
+        $localEnv = $this->readFromLocalFile($env['TINY_ENV_DIR'], $appEnv);
         if (empty($localEnv)) {
             return [];
         }
@@ -188,10 +194,10 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
     /**
      * 读取本地.env文件
      */
-    protected function readFromLocalFile($rootdir, $appEnv)
+    protected function readFromLocalFile($envdir, $appEnv)
     {
         // 本地.env文件
-        $envfile = $rootdir . '.env.local.php';
+        $envfile = $envdir . '.env.local.php';
         if ((extension_loaded('opcache') && opcache_is_script_cached($envfile)) || is_file($envfile)) {
             $localEnv = include ($envfile);
             if (is_array($localEnv)) {
@@ -207,7 +213,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         }
 
         // 非prod模式下 读取.env文件
-        $envsourcefile = $rootdir . '.env';
+        $envsourcefile = $envdir . '.env';
         
         // .env文件不存在时，以.env.local.php配置为准
         if (!is_file($envsourcefile)) {
