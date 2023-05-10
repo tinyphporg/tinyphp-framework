@@ -370,12 +370,23 @@ class Builder
     protected function createrPhar($name)
     {
         if (!$this->pharHandler) {
-            $filename = $name . '.phar';
-            if (file_exists($filename)) {
-                unlink($filename);
+            $binDir =  rtrim($this->config['bin_path'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR; 
+            if (!$binDir || is_file($binDir)) {
+                throw new BuilderException(sprintf('bin_path %s must be an dir !', $binDir));
             }
-            $this->pharHandler = new \Phar($filename);
-            printf("builder starting:  \n    phar file[%s]  creating\n\n", $filename);
+            if (!file_exists($binDir)) {
+                mkdir($binDir, 0777, true);
+            }
+            
+            $pfile = $binDir . $name. '.phar';
+            
+            $this->config['pfile'] = $pfile;
+            $this->config['pname'] = $binDir . $name;
+            if (file_exists($pfile)) {
+                unlink($pfile);
+            }
+            $this->pharHandler = new \Phar($pfile);
+            printf("builder starting:  \n    phar file[%s]  creating\n\n", $pfile);
         }
         return $this->pharHandler;
     }
@@ -420,6 +431,25 @@ class Builder
             $stub = "#!" . $this->config['php_path'] . "\n" . $stub;
         }
         $this->pharHandler->setStub($stub);
+        
+        
+        $pfile = $this->config['pfile'];
+        if (!is_file($pfile)) {
+            return;
+        }
+        
+        $extname  = $this->config['extname'];
+        $pname = $this->config['pname'];
+        chmod($pfile, 0777);
+        if (!$extname) {
+            if (is_file($pname)) {
+                unlink($pname);
+            }
+            if (copy($pfile, $pname)) {
+                chmod($pname, 0777);
+                unlink($pfile);
+            }
+        }
     }
 }
 ?>

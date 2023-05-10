@@ -143,19 +143,17 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $currentDir = dirname($env['RUNTIME_INDEX_FILE']);
         $env['TINY_CURRENT_PATH'] = $currentDir;
         
-        // rootdie;
+        // rootdir;
         if (defined('TINY_ROOT_PATH')) {
             $rootdir = rtrim(TINY_ROOT_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             $envdir = $rootdir;
-        }
-        
-        // PHAR 模式下
-        if (defined('TINY_PHAR_ID') && defined('TINY_HOME_DIR')) {
-            $envdir = TINY_HOME_DIR;
-        } elseif(basename($currentDir) == $env['TINY_PUBLIC_DIR']) {
-            $envdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
+        } elseif (defined('TINY_PHAR_ID') && defined('TINY_HOME_DIR')) {
+            $rootdir = TINY_HOME_DIR;
         } else {
-            $envdir = $currentDir . DIRECTORY_SEPARATOR;
+            $rootdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
+            if (basename($currentDir) != $env['TINY_PUBLIC_DIR']) {
+                throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentDir, $env['TINY_PUBLIC_DIR']));
+            }
         }
 
         $env['TINY_ENV_PATH'] = $envdir;
