@@ -59,5 +59,6 @@ class ConsoleApplication extends ApplicationBase implements WorkerHandlerInterfa
     {
         return $this->getLogger()->log($logId, $log, $priority);
     }
+    
 }
 ?>

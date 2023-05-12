@@ -37,7 +37,6 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'PID' => null,
         'GID' => null,
         'UID' => null,
-        'USER' => null,
         'SYSTEM_NAME' => null,
         'HOSTNAME' => null,
         'SYSTME_VERSION_NAME' => null,
@@ -77,6 +76,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'TINY_LOG_DIR' => 'log',
         'TINY_RESOURCES_DIR' => 'resources',
         'APP_ENV' => 'prod',
+        'APP_USER' => null,
         'APP_DEBUG_ENABLED' => false,
     ];
     
@@ -93,7 +93,8 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'TINY_VENDOR_DIR',
         'APP_ENV',
         'APP_DEBUG_ENABLED',
-        'RUNTIME_CACHE_ID'
+        'RUNTIME_CACHE_ID',
+        'APP_USER'
     ];
     
     /**
@@ -131,14 +132,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
      * @param array $env
      */
     protected function initEnv(&$env)
-    {
-        // RUNTIME_MODE
-        if ('cli' == php_sapi_name()) {
-            $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_CONSOLE'];
-        } elseif ('FRPC_POST' == $_POST['FRPC_METHOD'] || 'FRPC_POST' == $_SERVER['REQUEST_METHOD']) {
-            $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
-        }
-        
+    {        
         $env['RUNTIME_INDEX_FILE'] = get_included_files()[0];
         $currentDir = dirname($env['RUNTIME_INDEX_FILE']);
         $env['TINY_CURRENT_PATH'] = $currentDir;
@@ -147,15 +141,19 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         if (defined('TINY_ROOT_PATH')) {
             $rootdir = rtrim(TINY_ROOT_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             $envdir = $rootdir;
-        } elseif (defined('TINY_PHAR_ID') && defined('TINY_HOME_DIR')) {
-            $rootdir = TINY_HOME_DIR;
-        } else {
-            $rootdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
+        }
+        
+        // env dir
+        if (defined('TINY_PHAR_ID') && defined('TINY_HOME_DIR')) {  // 单文件phar
+            $envdir = TINY_HOME_DIR;
+        } elseif(!isset($envdir)) {
             if (basename($currentDir) != $env['TINY_PUBLIC_DIR']) {
                 throw new \RuntimeException(sprintf('Runtime\Environment class initialization error: [%s] not match Runtime\Environment::TINY_PUBLIC_DIR[%s]', $currentDir, $env['TINY_PUBLIC_DIR']));
             }
+            $envdir = dirname($currentDir) . DIRECTORY_SEPARATOR;
         }
 
+        // 环境路径
         $env['TINY_ENV_PATH'] = $envdir;
         $env['TINY_ROOT_PATH'] = $rootdir ?? dirname($currentDir) . DIRECTORY_SEPARATOR;
         $env['TINY_PUBLIC_PATH'] = $envdir . $env['TINY_PUBLIC_DIR'] . DIRECTORY_SEPARATOR;
@@ -168,22 +166,50 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $env['TINY_LOG_PATH'] = $env['TINY_VAR_PATH'] . $env['TINY_LOG_DIR'] . DIRECTORY_SEPARATOR;
         
         // 加载本地环境文件
-        $this->initLocalEnv($env);
+        $this->initLocalEnv($env['APP_ENV'], $envdir, $env);
         $env['RUNTIME_CACHE_ID'] = md5($env['RUNTIME_INDEX_FILE']) .'.'. $env['APP_ENV'];
         $env['RUNTIME_CACHE_PATH'] = $env['TINY_CACHE_PATH'];
+        // RUNTIME_MODE
+        if ('cli' == php_sapi_name()) {
+            $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_CONSOLE'];
+            $this->initConsoleUSER($env);
+
+        } elseif ('FRPC_POST' == $_POST['FRPC_METHOD'] || 'FRPC_POST' == $_SERVER['REQUEST_METHOD']) {
+            $env['RUNTIME_MODE'] = $env['RUNTIME_MODE_RPC'];
+        }
     }
     
+    /**
+     * 初始化命令行环境下的进程用户组和用户
+     * @param array $env
+     */
+    protected function initConsoleUSER(&$env)
+    {
+        if (!$env['APP_USER'] || posix_getegid() !== 0) {
+            return;
+        }
+       
+        $userinfo = posix_getpwnam($env['APP_USER']);
+        if (!is_array($userinfo)) {
+            return;
+        }
+        $env['GID'] = $userinfo['gid'];
+        $env['UID'] = $userinfo['uid'];
+        
+        posix_setegid($env['GID']);
+        posix_seteuid($env['UID']);
+    }
+        
     /**
      *
      * @param array $env
      * @throws \RuntimeException
      * @return array
      */
-    protected function initLocalEnv(&$env)
+    protected function initLocalEnv($defaultEnv, $envdir, &$env)
     {
-        $appEnv = $env['APP_ENV'];
-        $localEnv = $this->readFromLocalFile($env['TINY_ENV_DIR'], $appEnv);
-        if (empty($localEnv)) {
+        $localEnv = $this->readFromLocalFile($envdir, $defaultEnv);
+        if (!$localEnv) {
             return [];
         }
         $env = array_merge($env, $localEnv);
@@ -192,7 +218,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
     /**
      * 读取本地.env文件
      */
-    protected function readFromLocalFile($envdir, $appEnv)
+    protected function readFromLocalFile($envdir, $defaultEnv)
     {
         // 本地.env文件
         $envfile = $envdir . '.env.local.php';
@@ -201,32 +227,30 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
             if (is_array($localEnv)) {
                 $localEnv = $this->formatLocalEnvs($localEnv);
                 if (!key_exists('APP_ENV', $localEnv)) {
-                    $localEnv['APP_ENV'] = $appEnv;
+                    $localEnv['APP_ENV'] = $defaultEnv;
                 }
-                
                 if ($localEnv['APP_ENV'] == 'prod') {
                     return $localEnv;
                 }
             }
         }
-
+        
         // 非prod模式下 读取.env文件
         $envsourcefile = $envdir . '.env';
-        
         // .env文件不存在时，以.env.local.php配置为准
         if (!is_file($envsourcefile)) {
             return is_array($localEnv) ? $localEnv : [];
         }
         
         // 读取.ini方式
-        $env = parse_ini_file($envsourcefile);
-        if (false === $env) {
+        $localEnv = parse_ini_file($envsourcefile);
+        if (false === $localEnv) {
             throw new \RuntimeException(sprintf('Parsing exception: .env[%s] parsing error', $envsourcefile));
         }
         
         // 基于性能考虑，prod模式下自动生成.env.local.php文件
-        if (key_exists('APP_ENV', $env) && $env['APP_ENV'] == 'prod') {
-            file_put_contents($envfile, sprintf("<?php\nreturn %s\n?>" , var_export($env, true)), LOCK_EX);
+        if (key_exists('APP_ENV', $localEnv) && $localEnv['APP_ENV'] == 'prod') {
+            file_put_contents($envfile, sprintf("<?php\nreturn %s\n?>" , var_export($localEnv, true)), LOCK_EX);
         }
         return $localEnv;
     }
@@ -331,7 +355,6 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         $value = current($this->envdata);
         if (null === $value) {
             $key = key($this->envdata);
-            echo $key;
             $value = $this->lazyGet($key);
             if ($value) {
                 $this->envdata[$key] = $value;

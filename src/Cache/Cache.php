@@ -43,7 +43,7 @@ class Cache implements CacheInterface, \ArrayAccess
         'memcached' => Memcached::class,
         'redis' => Redis::class,
         'php' => PHP::class,
-        'singlephp' => SingleCache::class
+        'single' => SingleCache::class
     ];
     
     /**

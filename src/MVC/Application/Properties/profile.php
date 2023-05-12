@@ -230,15 +230,7 @@ $profile['daemon']['id'] = 'tinyphp-daemon';
 $profile['daemon']['event_listener'] = \Tiny\MVC\Event\DaemonEventListener::class;
 $profile['daemon']['piddir'] = '{path.var}pid/';
 $profile['daemon']['tick'] = 2;
-$profile['daemon']['daemons'] = [
-    'tinyphp-daemon' => [
-        'workers' => [
-            ['id' => 'index', 'type' => 'worker' , 'dispatcher' => ['controller' => 'main', 'action' => 'index', "module" => ''], 'num' => 1, 'options' => ['runmax' => 1024, 'tick' => '10']],
-            ['id' => 'test', 'worker' => 'worker' , 'dispatcher' => ['controller' => 'main', 'action' => 'test', 'module' => ''], 'num' => 1, 'options' => ['runmax' => 1024, 'tick' => '1']]
-        ],
-        'options' => [],
-    ],
-];
+$profile['daemon']['daemons'] = [];
 
 /**
  * 当前Application实例下的Configuration实例设置
@@ -339,14 +331,7 @@ $profile['data']['enabled'] = true;
 $profile['data']['charset'] = 'utf8';
 $profile['data']['default_id'] = 'default';
 $profile['data']['drivers'] = [];
-$profile['data']['sources'] = [
-    ['id' => 'default', 'driver' => 'db.mysqli', 'host' => '127.0.0.1', 'port' => '3306', 'user' => 'root', 'password' => '123456', 'dbname' => 'mysql'],
-    ['id' => 'redis', 'driver' => 'redis', 'host' => '127.0.0.1', 'port' => '6379', 'db' => 0],
-    ['id' => 'redis_cache', 'driver' => 'redis', 'db' => 1, 'servers' => [['host' => '127.0.0.1', 'port' => '6379']]],
-    ['id' => 'redis_session', 'driver' => 'redis', 'db' => 2, 'host' => '127.0.0.1', 'port' => '6379'],
-    ['id' => 'redis_queue', 'driver' => 'redis', 'db' => 3, 'host' => '127.0.0.1', 'port' => '6379'],
-    ['id' => 'memcached', 'driver' => 'memcached', 'servers' => [['host' => '127.0.0.1', 'port' => '11211']], 'persistent_id' => null, 'options' => []]
-];
+$profile['data']['sources'] = [];
 
 /**
  * Application的缓存设置
@@ -411,12 +396,7 @@ $profile['cache']['ttl'] = 3600;
 $profile['cache']['dir'] = '{path.cache}';
 $profile['cache']['default_id'] = 'default';
 $profile['cache']['storagers'] = [];
-$profile['cache']['sources'] = [
-    ['id' => 'default', 'storager' => 'redis', 'options' => ['ttl' => 3600, 'dataid' => 'redis_cache']],
-    ['id' => 'memcached', 'storager' => 'memcached', 'options' => ['ttl' => 3600, 'dataid' => 'memcached']],
-    ['id' => 'file', 'storager' => 'file', 'options' => ['ttl' => 3600, 'path' => '']],
-    ['id' => 'php', 'storager' => 'php', 'options' => ['ttl' => 3600, 'path' => '']]
-];
+$profile['cache']['sources'] = [];
 
 /**
  * application的过滤器配置
@@ -468,13 +448,13 @@ $profile['filter']['filters'] = [];
  *      根据session.adapter选择对应的data资源实例
  * */
 
-$profile['session']['enabled'] = true;
+$profile['session']['enabled'] = false;
 $profile['session']['domain'] = '';
 $profile['session']['path'] = '/';
 $profile['session']['expires'] = 36000;
 $profile['session']['adapters'] = [];
-$profile['session']['adapter'] = 'redis';
-$profile['session']['dataid'] = 'redis_session';
+$profile['session']['adapter'] = '';
+$profile['session']['dataid'] = '';
 
 /**
  * HTTP COOKIE设置
@@ -543,9 +523,7 @@ $profile['bootstrap']['event_listener'] = null;
 $profile['router']['enabled'] = true;  // 是否开启router
 $profile['router']['routes'] = [];     // 注册自定义的route
 $profile['router']['rules'] = [
-    ['route' => 'pathinfo', 'rule' => ['ext' => '.html' , 'domain' => '*.tinyphp1', 'priority' => 0]],
     ['route' => 'pathinfo', 'rule' => ['ext' => '.html' , 'domain' => '*', 'priority' => 0]],
-    ['route' => 'pathinfo', 'rule' => ['ext' => '.html' , 'domain' => '*.tinyphp', 'priority' => 0]],
 ];
 
 /**

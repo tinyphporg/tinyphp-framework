@@ -42,6 +42,7 @@ use Tiny\Event\EventManager;
 use Tiny\MVC\View\Engine\StaticFile;
 use Tiny\Runtime\RuntimeCache;
 use Tiny\MVC\Request\Param\Param;
+use Tiny\Runtime\Environment;
 
 /**
  * 应用的容器提供源 必须开启
@@ -360,7 +361,7 @@ class ApplicationProvider implements DefinitionProviderInterface
             return;
         }
         
-        return new CallableDefinition(Cache::class, function (array $config) {
+        return new CallableDefinition(Cache::class, function (Environment $env, array $config) {
             
             // 添加缓存存储器
             $storagers = (array)$config['storagers'];
@@ -370,7 +371,9 @@ class ApplicationProvider implements DefinitionProviderInterface
             
             $defaultId = (string)$config['default_id'];
             $ttl = (int)$config['ttl'];
-            $path = (string)$config['dir'];
+            $path = (string)$config['dir'] ;
+            
+            $path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $env['APP_ENV'] . DIRECTORY_SEPARATOR;
             
             // 创建实例
             $cacheInstance = new Cache();

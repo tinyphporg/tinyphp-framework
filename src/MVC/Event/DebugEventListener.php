@@ -111,7 +111,6 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
         if (!method_exists($this, $actionName)) {
             return;
         }
-        $view = $this->app->get(View::class);
         $container = $this->app->get(ContainerInterface::class);
         return $container->call([$this, $actionName]);
     }
@@ -283,12 +282,17 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
         $view->display('debug/console_help.htm');
     }
     
+    /**
+     * 清空缓存 视图 日志
+     */
     public function clearAction()
     {
         $this->dispatch('clearcache');
         $this->dispatch('clearlog');
         $this->dispatch('clearview');
     }
+    
+    
     /**
      * 清理缓存
      * 
@@ -326,6 +330,7 @@ class DebugEventListener implements RequestEventListenerInterface, DispatchEvent
     {
         $viewdir = $prop['view.compile'];
         $viewCacheDir = $prop['view.cache'];
+        echo $viewCacheDir;
         $this->clearfiles($viewdir);
         $this->clearfiles($viewCacheDir);
         
