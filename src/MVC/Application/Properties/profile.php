@@ -482,7 +482,6 @@ $profile['cookie']['expires'] = 3600;
 $profile['cookie']['prefix'] = '';
 $profile['cookie']['encode'] = false;
 
-
 /**
  * Application引导类
  *
