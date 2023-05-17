@@ -102,6 +102,13 @@ class Configuration implements \ArrayAccess, ParserInterface
     protected $defaultData = null;
     
     /**
+     * 标签替换数组
+     * 
+     * @var array
+     */
+    protected $tagReplaces = [];
+    
+    /**
      * 注册配置解析器映射
      *
      * @param string $ext 文件扩展名
@@ -118,7 +125,7 @@ class Configuration implements \ArrayAccess, ParserInterface
      * @param string $cpath 配置文件或者文件夹路径
      * @return void
      */
-    public function __construct($cpath, array $data = [])
+    public function __construct($cpath, array $data = [], array $tagReplaces = [])
     {
         if ($data) {
             $this->defaultData = $data;
@@ -127,6 +134,14 @@ class Configuration implements \ArrayAccess, ParserInterface
             $this->paths = $cpath;
         } elseif (is_string($cpath) && $cpath) {
             $this->paths[] = $cpath;
+        }
+        if ($tagReplaces) {
+            foreach($tagReplaces as $tagName => $replaceList) {
+                if (!preg_match('/^[a-zA-Z]+$/', $tagName)) {
+                    continue;
+                }
+                $this->tagReplaces[$tagName] = $replaceList;
+            }
         }
         $this->initParser();
     }
@@ -312,6 +327,30 @@ class Configuration implements \ArrayAccess, ParserInterface
     {
         $this->data = $this->defaultData;
         $this->parseAllDataFromPaths($this->paths, $this->data, true);
+        if ($this->tagReplaces) {
+            $this->replaceTags($this->data);
+        }
+        
+    }
+    
+    /**
+     * 替换标签
+     * @param array $data
+     */
+    protected function replaceTags(& $data)
+    {
+        if(is_string($data)) {
+            $tagReplaces = $this->tagReplaces;
+            $data = preg_replace_callback('/\{([a-z]+(\.[^\{\}]+)+\}/', function($matches)use($tagReplaces){
+                $nodeName = $matches[1];
+                return isset($env[$nodeName]) ? $env[$nodeName] : $matches[0];
+            }, $data);
+        }
+        elseif(is_array($data)) {
+            foreach ($data as & $d) {
+                $this->replaceTags($d);
+            }
+        }
     }
     
     /**
