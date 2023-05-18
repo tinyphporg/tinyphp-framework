@@ -431,15 +431,20 @@ class ApplicationProvider implements DefinitionProviderInterface
             return;
         }
         
-        return new CallableDefinition(Configuration::class, function (ContainerInterface $container, array $config) {
+        return new CallableDefinition(Configuration::class, function (Properties $prop, Environment $env,ContainerInterface $container, array $config) {
             
             // 检测配置路径
             if (!$config['path']) {
                 throw new ApplicationException("properties.config.path is not allow null!");
             }
             
+            $replaces = [
+                'env' => $env,
+                'properties' => $prop
+            ];
+            
             // 实例化
-            $configInstance = new Configuration($config['path']);
+            $configInstance = new Configuration($config['path'],[], $replaces);
            
             // 是否开启缓存
             if (!$config['cache']['enabled']) {

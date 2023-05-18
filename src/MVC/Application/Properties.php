@@ -101,7 +101,7 @@ class Properties extends Configuration
         
         // 读取配置并初始化
         $profiles = $this->initProfiles($profile);
-        parent::__construct($profiles);
+        parent::__construct($profiles, [], ['env' => $this->env]);
         $this->init();
     }
     
@@ -169,37 +169,20 @@ class Properties extends Configuration
             }
             $this->runtimeCache->set('application.properties', $data);
         }
-        $this->parseEnvs($this->data);
         $this->initPath($this->data);
     }
     
-    /**
-     * 解析环境参数
-     * 
-     * @param mixed $data
-     */
-    protected function parseEnvs(& $data) 
-    {
-        
-        if(is_string($data)) {
-            $env = $this->env;
-            $data = preg_replace_callback('/\{env.([^\{\}]+)\}/', function($matches)use($env){
-                $nodeName = $matches[1];
-                return isset($env[$nodeName]) ? $env[$nodeName] : $matches[0];
-            }, $data);
-        } 
-        elseif(is_array($data)) {
-            foreach ($data as & $d) {
-                $this->parseEnvs($d);
-            }
-        }
-    }
     
+    /**
+     * 初始化脚本路径配置
+     * 
+     * @param array $data 配置数组
+     * @param string $name
+     */
     protected function initPath(&$data, $name = null)
     {
         if (is_string($data)) {
-            
-            $sdata = preg_replace_callback('/\{path.([^\{\}]+)\}/', function($matches){
+            $sdata = preg_replace_callback('/\{%?path.([^\{\}]+)\}/', function($matches){
                 $nodeName = $matches[1];
                 if (!isset($this->parsedPaths[$nodeName])) {
                     return $matches[0];
@@ -219,6 +202,7 @@ class Properties extends Configuration
         } elseif(is_array($data)) {
             foreach ($data as $n => &$d) {
                 $nodeName = ($name == null ? $n : $name . '.' . $n);
+                
                 $this->initPath($d, $nodeName);
             }
         }
@@ -238,9 +222,6 @@ class Properties extends Configuration
             $pathName = $matchs[1];
             if (key_exists($pathName, $parsedPaths)) {
                 return $parsedPaths[$pathName];
-            }
-            if (!strpos($pathName, '.') && key_exists('src.' . $pathName, $parsedPaths)) {
-                return $parsedPaths['src.' . $pathName];
             }
         }, $path);
         

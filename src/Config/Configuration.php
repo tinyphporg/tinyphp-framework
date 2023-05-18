@@ -135,15 +135,31 @@ class Configuration implements \ArrayAccess, ParserInterface
         } elseif (is_string($cpath) && $cpath) {
             $this->paths[] = $cpath;
         }
+        
         if ($tagReplaces) {
             foreach($tagReplaces as $tagName => $replaceList) {
-                if (!preg_match('/^[a-zA-Z]+$/', $tagName)) {
-                    continue;
-                }
-                $this->tagReplaces[$tagName] = $replaceList;
+                $this->addTagReplace($tagName, $replaceList);
             }
         }
         $this->initParser();
+    }
+    
+    /**
+     * 添加可替换的标签名与值
+     * {env.xxx}
+     * 
+     * @param string $tagName
+     * @param mixed $replaceList
+     */
+    public function addTagReplace(string $tagName, $replaceList)
+    {
+        if (!preg_match('/^[a-z]+$/i', $tagName)) {
+            return;
+        }
+        $this->tagReplaces[$tagName] = $replaceList;
+        if ($this->data) {
+            $this->replaceTags($this->data);
+        }
     }
     
     /**
@@ -192,7 +208,7 @@ class Configuration implements \ArrayAccess, ParserInterface
         }
         $data = $this->data;
         foreach ($nodes as $n) {
-            if (!is_array($data)) {
+            if (!is_array($data) && !$data instanceof \ArrayAccess) {
                 return null;
             }
             $data = &$data[$n];
@@ -335,15 +351,36 @@ class Configuration implements \ArrayAccess, ParserInterface
     
     /**
      * 替换标签
+     *  
+     *  @example {env.TINY_VAR_PATH}  {path.app} {properties.debug.enabled}
+     *  
      * @param array $data
      */
     protected function replaceTags(& $data)
     {
         if(is_string($data)) {
             $tagReplaces = $this->tagReplaces;
-            $data = preg_replace_callback('/\{([a-z]+(\.[^\{\}]+)+\}/', function($matches)use($tagReplaces){
-                $nodeName = $matches[1];
-                return isset($env[$nodeName]) ? $env[$nodeName] : $matches[0];
+            $data = preg_replace_callback('/\{([a-z][a-z0-9_]*)((?:\.[a-z][a-z0-9_]+)*)\}/i', function($matches)use($tagReplaces){
+                $tagName = $matches[1];
+                if (!key_exists($tagName, $tagReplaces)) {
+                    return $matches[0];
+                }
+                
+                //  replace
+                $tagReplace = $tagReplaces[$tagName];
+                $nodeText = $matches[2];
+                if (!$nodeText) {
+                    return (string)$tagReplace;
+                }
+                
+                $nodes = explode('.', ltrim($nodeText, '.'));
+                foreach($nodes as $key => $node) {
+                    if (!is_array($tagReplace) && !$tagReplace instanceof \ArrayAccess) {
+                        return count($nodes) == $key + 1 ? (string)$tagReplace : null;
+                    }
+                    $tagReplace = & $tagReplace[$node]; 
+                }
+                return (string)$tagReplace;
             }, $data);
         }
         elseif(is_array($data)) {
