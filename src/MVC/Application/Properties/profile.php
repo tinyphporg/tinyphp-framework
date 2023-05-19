@@ -396,7 +396,9 @@ $profile['cache']['ttl'] = 3600;
 $profile['cache']['dir'] = '{path.cache}';
 $profile['cache']['default_id'] = 'default';
 $profile['cache']['storagers'] = [];
-$profile['cache']['sources'] = [];
+$profile['cache']['sources'] = [
+    ['id' => 'default', 'storager' => 'single', 'options' => ['ttl' => 3600, 'path' => '']]
+];
 
 /**
  * application的过滤器配置
@@ -496,7 +498,7 @@ $profile['cookie']['encode'] = false;
  *
  */
 $profile['bootstrap']['enabled'] = false;
-$profile['bootstrap']['event_listener'] = null;
+$profile['bootstrap']['event_listener'] = '';
 
 /**
  * Application的路由设置

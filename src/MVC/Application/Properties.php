@@ -182,7 +182,7 @@ class Properties extends Configuration
     protected function initPath(&$data, $name = null)
     {
         if (is_string($data)) {
-            $sdata = preg_replace_callback('/\{%?path.([^\{\}]+)\}/', function($matches){
+            $sdata = preg_replace_callback('/\{path.([^\{\}]+)\}/', function($matches){
                 $nodeName = $matches[1];
                 if (!isset($this->parsedPaths[$nodeName])) {
                     return $matches[0];
