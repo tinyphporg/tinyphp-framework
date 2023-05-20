@@ -119,8 +119,9 @@ class Properties extends Configuration
         
         // env prod|dev|test ...
         $envName = $this->env['APP_ENV'];
+        $profileDir = $this->env['APP_PROFILE_DIR'];
         if ($envName) {
-            $profiles[] = $appPath . sprintf('/properties/profile.%s.php', $envName);
+            $profiles[] = $appPath . sprintf('/%s/%s.php', $profileDir, $envName);
         }
         
         // 自定义配置文件

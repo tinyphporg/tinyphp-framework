@@ -78,6 +78,7 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'APP_ENV' => 'prod',
         'APP_USER' => null,
         'APP_DEBUG_ENABLED' => false,
+        'APP_PROFILE_DIR' => 'profile',
     ];
     
     /**
@@ -94,14 +95,9 @@ class Environment implements \ArrayAccess, \Iterator, \Countable
         'APP_ENV',
         'APP_DEBUG_ENABLED',
         'RUNTIME_CACHE_ID',
-        'APP_USER'
+        'APP_USER',
+        'APP_PROFILE_DIR'
     ];
-    
-    /**
-     * 可支持的app 环境名
-     * @var array
-     */
-    const APP_ENVS = ['prod', 'test', 'dev'];
     
     /**
      * 环境参数列表

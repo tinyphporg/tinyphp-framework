@@ -41,6 +41,9 @@ $profile['debug']['enabled'] = '{env.APP_DEBUG_ENABLED}';
 $profile['timezone'] = 'PRC';
 $profile['charset'] = 'utf-8';
 $profile['namespace']= 'App';
+
+
+// 路径设置
 $profile['path']['root'] = '{env.TINY_ROOT_PATH}';
 $profile['path']['public'] = '{env.TINY_PUBLIC_PATH}';               // 入口文件夹
 $profile['path']['resources'] = '{env.TINY_RESOURCES_PATH}';         // 资源文件夹
@@ -397,7 +400,9 @@ $profile['cache']['dir'] = '{path.cache}';
 $profile['cache']['default_id'] = 'default';
 $profile['cache']['storagers'] = [];
 $profile['cache']['sources'] = [
-    ['id' => 'default', 'storager' => 'single', 'options' => ['ttl' => 3600, 'path' => '']]
+    ['id' => 'default', 'storager' => 'single', 'options' => ['ttl' => 3600, 'path' => '']],
+//    'php' => ['id' => 'file', 'storager' => 'php', 'options' => ['ttl' => 3600, 'path' => '', 'namespace' => '{env.APP_ENV}']],
+//    'file' => ['id' => 'php', 'storager' => 'single', 'options' => ['ttl' => 3600, 'path' => '', 'namespace' => '{env.APP_ENV}']],
 ];
 
 /**
@@ -449,7 +454,6 @@ $profile['filter']['filters'] = [];
  *  session.dataid
  *      根据session.adapter选择对应的data资源实例
  * */
-
 $profile['session']['enabled'] = false;
 $profile['session']['domain'] = '';
 $profile['session']['path'] = '/';
@@ -683,9 +687,6 @@ $profile['view']['static']['exts'] = ['css', 'js','png', 'jpg', 'gif'];
  *  autoloader.classes 类文件的加载配置
  *      classname => propertis.path.node
  *
- * autoloader.is_realpath  是否绝对路径加载
- *      true 绝对路径加载
- *      false propertis.path里的路径加载
  */
 $profile['autoloader']['namespaces'] = [
     'App' => '{path.library}',
@@ -697,6 +698,8 @@ $profile['autoloader']['namespaces'] = [
     'App\Common' => '{path.common}',
     '*' => '{path.global}',
 ];
+
+// 类文件预加载数组
 $profile['autoloader']['classes'] = [];
 
 /**
@@ -742,56 +745,11 @@ $profile['module']['param'] = 'm';
  *
  *  module.static.web WEB环境下是否自动开启静态资源复制
  *      true 开启  会影响web下的某些性能
+ *      
+ *  module.static.basedir 静态公共资源复制的目录    
  *
  */
 $profile['module']['static']['enabled'] = true;
 $profile['module']['static']['web'] = true;
-
-/**
- * tinyphp-ui 前端库设置
- *
- * module.tinyphp-ui.enabled 开启
- *      true 开启前确认是否通过composer/框架加载，引入了tinyphporg/tinyphp-ui模块
- *
- * module.tinyphp-ui.public_path 在前端源码展示的公共路径、
- *
- *      根目录下的绝对路径 /tinyphp-ui
- *      包含域名的绝对路径 比如cdn域名， demo.xxx.com/tinyphp-ui/
- *
- *  module.tinyphp-ui.inject
- *      是否自动将ui库的公共路径，注入到html源码
- *      仅支持engine = template时
- *
- *  module.tinyphp-ui.helper
- *      ui前端库在view注册的助手类
- *      message 提示消息体
- *      pagination 分页
- *
- * module.tinyphp-ui.template_dirname
- *      UI库的视图模板路径
- *
- *  module.tinyphp-ui.dev_enabled 是否开启UI调试
- *      必须在tinyphp-ui 运行npm run dev后开启调试模式
- *
- *  module.tinyphp-ui.dev_public_path
- *      调试库在前端展现的URL  相对于view.public_path的路径
- *
- *  module.tinyphp-ui.dev_event_listener
- *      开启调试后的监听事件类
- *
- *  module.tinyphp-ui.assigns array
- *  预设的配置变量注入到视图模板内
- *  example: ui 即寻找tinyphp-ui.config内的ui节点，与application.config的ui节点合并，并以$ui注入到视图变量
- */
-$profile['module']['tinyphp-ui']['enabled'] = true;
-$profile['module']['tinyphp-ui']['public_path'] = '/static/tinyphp-ui/';
-$profile['module']['tinyphp-ui']['inject'] = true;
-
-// UI前端模块的开发设置 可选
-$profile['module']['tinyphp-ui']['dev']['enabled'] = false;
-$profile['module']['tinyphp-ui']['dev']['dev_public_path'] = "http://127.0.0.1:8080/";
-
-// 将预设配置的变量注入到视图模板
-$profile['module']['tinyphp-ui']['assigns'] = ['ui'];
-
+$profile['module']['static']['basedir'] = '{path.static}';
 ?>

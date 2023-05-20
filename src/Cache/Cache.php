@@ -20,7 +20,6 @@ use Tiny\Cache\Storager\File;
 use Tiny\Cache\Storager\Memcached;
 use Tiny\Cache\Storager\Redis;
 use Tiny\Cache\Storager\PHP;
-use Tiny\Cache\Storager\CacheStorager;
 use Tiny\Cache\Storager\SingleCache;
 
 /**
@@ -66,6 +65,13 @@ class Cache implements CacheInterface, \ArrayAccess
      * @var string
      */
     protected $defaultPath = '';
+    
+    /**
+     * 默认的缓存命名空间
+     * 
+     * @var string
+     */
+    protected $defaultNamespace = '';
     
     /**
      * Mapping array for cache policy
@@ -127,6 +133,10 @@ class Cache implements CacheInterface, \ArrayAccess
         
         if (isset($options['path'])) {
             $options['path'] = $options['path'] ?: $this->defaultPath;
+        }
+        
+        if (isset($options['namespace'])) {
+            $options['namespace'] = $options['namespace'] ?: $this->defaultNamespace;
         }
         $this->storagers[$cacheId] = [
             'cacheId' => $cacheId,
@@ -198,6 +208,26 @@ class Cache implements CacheInterface, \ArrayAccess
     public function getDefaultTtl(): int
     {
         return $this->defaultTtl;
+    }
+    
+    /**
+     * 设置默认的命名空间
+     * 
+     * @param string $namespace
+     */
+    public function setDefaultNamespace(string $namespace)
+    {
+        $this->defaultNamespace = $namespace;
+    }
+    
+    /**
+     * 获取默认的缓存命名空间
+     * 
+     * @return string
+     */
+    public function getDefaultNamespace():string 
+    {
+        return $this->defaultNamespace;    
     }
     
     /**

@@ -65,6 +65,13 @@ class SingleCache extends CacheStorager
     protected $hasUpdated = false;
     
     /**
+     * 缓存的命名空间
+     *
+     * @var string
+     */
+    protected  $namespace;
+    
+    /**
      * 构造函数
      * 
      * @param string $cachePoolId
@@ -82,6 +89,7 @@ class SingleCache extends CacheStorager
         $this->ttl = (int)$config['ttl'] ?: 3600; //缓存时间
         $this->timeout = (int)$config['timeout'] ?: 60; // 回收清理时间
         $this->data = $this->readFrom($this->id);
+        $this->namespace = isset($config['namespace']) ? '.singlecache.' . $config['namespace']  : '.singlecache';    
     }
     
     /**
@@ -352,7 +360,7 @@ class SingleCache extends CacheStorager
      */
     protected function getStoragePath()
     {
-        return $this->path . md5($this->id) . '.singlecache.php';
+        return $this->path . md5($this->id) . $this->namespace . '.php';
     }
     
 }

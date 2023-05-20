@@ -44,6 +44,13 @@ class File extends CacheStorager
     const CACHE_FILE_EXT = '.txt'; 
    
     /**
+     * 缓存的命名空间
+     * 
+     * @var string
+     */
+    protected  $namespace;
+    
+    /**
      * 存储路径
      * 
      * @var string
@@ -69,6 +76,7 @@ class File extends CacheStorager
             throw new CacheException(sprintf('Class %s instantiation failed: the path %s does not exists', self::class, $path));
         }
         $this->path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $this->namespace = isset($config['namespace']) ? '.filecache.' . $config['namespace']  : '.filecache';
     }
     
     /**
@@ -272,6 +280,6 @@ class File extends CacheStorager
      */
     protected function getStoragePath($key)
     {
-        return $this->path . md5($key) . self::CACHE_FILE_EXT;
+        return $this->path . md5($key) . $this->namespace .  self::CACHE_FILE_EXT;
     }
 }

@@ -39,6 +39,13 @@ class PHP extends CacheStorager
     protected $ttl = 3600;
     
     /**
+     * 缓存的命名空间
+     * 
+     * @var string
+     */
+    protected  $namespace;
+    
+    /**
      * 初始化配置
      *
      * @param array $config 配置数据
@@ -51,6 +58,7 @@ class PHP extends CacheStorager
             throw new CacheException(sprintf('Class %s instantiation failed: %s does not exists', self::class, $path));
         }
         $this->path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $this->namespace = isset($config['namespace']) ? '.phpcache.' . $config['namespace']  : '.phpcache';     
     }
     
     /**
@@ -220,7 +228,7 @@ class PHP extends CacheStorager
      */
     protected function getStoragePath($key)
     {
-        return $this->path . md5($key) . '.cache.php';
+        return $this->path . md5($key) . $this->namespace . '.php';
     }
 }
 ?>

@@ -30,7 +30,7 @@ class RuntimeCache implements \ArrayAccess
     protected $path;
     
     /**
-     * 单例存储库的ID
+     * 存储的空间ID
      *
      * @var string
      */

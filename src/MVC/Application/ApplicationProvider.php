@@ -371,9 +371,7 @@ class ApplicationProvider implements DefinitionProviderInterface
             
             $defaultId = (string)$config['default_id'];
             $ttl = (int)$config['ttl'];
-            $path = (string)$config['dir'] ;
-            
-            $path = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $env['APP_ENV'] . DIRECTORY_SEPARATOR;
+            $path = rtrim($config['dir'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             
             // 创建实例
             $cacheInstance = new Cache();
@@ -386,6 +384,9 @@ class ApplicationProvider implements DefinitionProviderInterface
             
             // 默认的缓存周期
             $cacheInstance->setDefaultTtl($ttl);
+            
+            // 默认的命名空间
+            $cacheInstance->setDefaultNamespace($env['APP_ENV']);
             
             // 添加缓存池的源配置
             $caches = (array)$config['sources'];
